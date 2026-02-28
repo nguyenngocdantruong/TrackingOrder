@@ -1,0 +1,32 @@
+{
+  "trackingNumber": "JSON123456",
+  "currentStatus": "In Transit",
+  "events": [
+    {
+      "code": "ARRIVED",
+      "name": "Arrived at Facility",
+      "descBuyer": "Your package has arrived at the local sorting center.",
+      "descSeller": "Arrived at HUB-SGN",
+      "milestoneCode": 2,
+      "milestoneName": "In Transit",
+      "actualTime": "2026-02-27T10:00:00Z",
+      "currentLocation": {
+        "name": "SGN HUB",
+        "address": "Ho Chi Minh City, VN"
+      }
+    },
+    {
+      "code": "PICKED_UP",
+      "name": "Picked Up",
+      "descBuyer": "The courier has picked up your package.",
+      "descSeller": "Picked up by Driver A",
+      "milestoneCode": 1,
+      "milestoneName": "Picked Up",
+      "actualTime": "2026-02-26T14:30:00Z",
+      "currentLocation": {
+        "name": "Sender Warehouse",
+        "address": "District 1, HCMC"
+      }
+    }
+  ]
+}

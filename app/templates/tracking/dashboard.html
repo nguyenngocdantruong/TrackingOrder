@@ -1,0 +1,80 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-5 gap-3">
+    <div>
+        <h2 class="fw-bold mb-1 tracking-tight">Vận đơn của tôi</h2>
+        <p class="text-muted mb-0">Theo dõi hành trình đơn hàng Shopee Express</p>
+    </div>
+    <a href="{{ url_for('tracking.add_tracking') }}" class="btn btn-primary shadow-sm px-4">
+        <i class="bi bi-plus-lg me-2"></i>Thêm vận đơn
+    </a>
+</div>
+
+<div class="row g-4">
+    {% for t in trackings %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 border-0 shadow-sm overflow-hidden {% if not t.isActive %}bg-light opacity-75{% endif %}">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill small fw-bold">
+                        {{ t.carrierId.upper() }}
+                    </span>
+                    {% if t.isActive %}
+                        <div class="d-flex align-items-center text-success small fw-bold">
+                            <span class="d-inline-block bg-success rounded-circle me-2" style="width:8px; height:8px; animation: pulse 2s infinite;"></span>
+                            Đang theo dõi
+                        </div>
+                    {% else %}
+                        <span class="text-muted small fw-bold">Đã hoàn tất</span>
+                    {% endif %}
+                </div>
+
+                <h5 class="fw-bold mb-1 text-truncate">{{ t.alias or t.trackingNumber }}</h5>
+                <p class="text-muted font-monospace small mb-4">{{ t.trackingNumber }}</p>
+
+                <div class="rounded-4 p-3 mb-4" style="background-color: #f3f4f6;">
+                    <label class="d-block small text-muted text-uppercase fw-bold mb-1" style="font-size: 10px; letter-spacing: 1px;">Trạng thái hiện tại</label>
+                    <div class="fw-bold fs-6 {% if 'Delivered' in t.currentStatus or 'Giao hàng thành công' in t.currentStatus %}text-success{% else %}text-dark{% endif %}">
+                        {{ t.currentStatus }}
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center text-muted small">
+                    <i class="bi bi-clock-history me-2"></i>
+                    Cập nhật: {{ t.lastCheckedAt | format_provider_time(t.carrierId) if t.lastCheckedAt else 'Đang chờ...' }}
+                </div>
+            </div>
+            <div class="card-footer bg-transparent p-4 pt-0 border-0">
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('tracking.detail', tracking_id=t.id) }}" class="btn btn-light flex-grow-1 border fw-bold text-dark">Chi tiết</a>
+                    {% if t.isActive %}
+                    <form action="{{ url_for('tracking.refresh', tracking_id=t.id) }}" method="POST" class="d-inline">
+                        <button class="btn btn-light border px-3" title="Làm mới ngay">
+                            <i class="bi bi-arrow-repeat text-muted"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12 text-center py-5">
+        <div class="bg-white rounded-5 p-5 shadow-sm d-inline-block">
+            <i class="bi bi-box2-heart text-primary opacity-25" style="font-size: 5rem;"></i>
+            <h4 class="fw-bold mt-4">Chưa có vận đơn nào</h4>
+            <p class="text-muted max-w-xs mx-auto">Bạn có thể theo dõi không giới hạn các đơn hàng Shopee Express tại đây.</p>
+            <a href="{{ url_for('tracking.add_tracking') }}" class="btn btn-primary px-5 mt-3 shadow">Bắt đầu ngay</a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<style>
+@keyframes pulse {
+    0% { transform: scale(0.95); opacity: 0.5; }
+    70% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(0.95); opacity: 0.5; }
+}
+</style>
+{% endblock %}

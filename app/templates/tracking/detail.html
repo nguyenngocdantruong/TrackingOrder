@@ -1,0 +1,163 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="px-1 px-md-3">
+    <!-- Header Section -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 mb-md-5 gap-3">
+        <div class="overflow-hidden">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{{ url_for('tracking.dashboard') }}" class="text-muted text-decoration-none small">Bảng điều khiển</a></li>
+                    <li class="breadcrumb-item active fw-bold text-primary small text-truncate d-inline-block shadow-none" style="max-width: 150px; vertical-align: bottom;">{{ tracking.alias or tracking.trackingNumber }}</li>
+                </ol>
+            </nav>
+            <h2 class="fw-bold mb-0 text-truncate" style="letter-spacing: -1px;">{{ tracking.alias or tracking.trackingNumber }}</h2>
+        </div>
+        <div class="d-flex gap-2">
+            {% if tracking.isActive %}
+            <form action="{{ url_for('tracking.refresh', tracking_id=tracking_id) }}" method="POST" class="flex-grow-1 flex-md-grow-0">
+                <button class="btn btn-primary shadow-sm w-100 px-4">
+                    <i class="bi bi-arrow-repeat me-2"></i>Làm mới
+                </button>
+            </form>
+            {% endif %}
+            <button type="button" class="btn btn-light border text-danger px-3" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Info Sidebar -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-4 d-flex align-items-center">
+                        <i class="bi bi-info-circle text-primary me-2"></i>Thông tin vận đơn
+                    </h5>
+
+                    <div class="mb-4">
+                        <label class="text-muted small fw-bold text-uppercase d-block mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Mã vận đơn</label>
+                        <div class="fs-5 font-monospace fw-bold text-break">{{ tracking.trackingNumber }}</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="text-muted small fw-bold text-uppercase d-block mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Hãng vận chuyển</label>
+                        <div class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-3 fw-bold">
+                            {{ t_carrier or tracking.carrierId.upper() }}
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="text-muted small fw-bold text-uppercase d-block mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Trạng thái hiện tại</label>
+                        <div class="fs-5 fw-bold {% if 'Delivered' in tracking.currentStatus or 'Giao hàng thành công' in tracking.currentStatus %}text-success{% else %}text-primary{% endif %}">
+                            <i class="bi bi- megaphone me-1"></i>{{ tracking.currentStatus }}
+                        </div>
+                    </div>
+
+                    <div class="mb-0">
+                        <label class="text-muted small fw-bold text-uppercase d-block mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Cập nhật cuối</label>
+                        <div class="text-dark fw-medium">
+                            <i class="bi bi-clock-history me-2 text-muted"></i>
+                            {{ tracking.lastCheckedAt | format_provider_time(tracking.carrierId) if tracking.lastCheckedAt else 'Chưa có dữ liệu' }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Content -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-4 d-flex align-items-center">
+                        <i class="bi bi-signpost-2 text-primary me-2"></i>Lịch sử hành trình
+                    </h5>
+
+                    <div class="timeline mt-2">
+                        {% if tracking.events %}
+                            {% for event in tracking.events %}
+                            <div class="timeline-item position-relative pb-4 ps-4 border-start border-2 border-primary-subtle">
+                                <!-- Dot -->
+                                <div class="timeline-dot position-absolute top-0 start-0 translate-middle bg-white border border-3 border-primary rounded-circle" style="width:14px; height:14px; margin-left: -1px; margin-top: 6px;"></div>
+
+                                <div class="mb-1">
+                                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-1 mb-2">
+                                        <h6 class="fw-bold mb-0 text-primary">{{ event.name }}</h6>
+                                        <div class="bg-light px-2 py-1 rounded small fw-bold text-muted font-monospace" style="font-size: 10px; width: fit-content;">
+                                            <i class="bi bi-calendar-event me-1"></i>{{ event.actualTime | format_provider_time(tracking.carrierId) }}
+                                        </div>
+                                    </div>
+                                    <p class="text-muted mb-2 small" style="line-height: 1.5;">{{ event.descBuyer }}</p>
+
+                                    {% if event.currentLocation and event.currentLocation.address %}
+                                    <div class="bg-light p-2 rounded-3 d-inline-block border">
+                                        <small class="text-muted" style="font-size: 0.75rem;">
+                                            <i class="bi bi-geo-alt-fill text-danger me-1"></i>{{ event.currentLocation.address }}
+                                        </small>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-5">
+                                <div class="bg-light rounded-circle d-inline-flex p-4 mb-3">
+                                    <i class="bi bi-box-seam text-muted fs-1 opacity-50"></i>
+                                </div>
+                                <p class="text-muted fw-medium">Chưa có thông tin cập nhật từ hãng vận chuyển.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modern Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered px-3">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-body p-4 p-md-5 text-center">
+                <div class="bg-danger bg-opacity-10 text-danger rounded-circle d-inline-flex p-3 mb-4">
+                    <i class="bi bi-exclamation-triangle fs-1"></i>
+                </div>
+                <h4 class="fw-bold mb-2">Xác nhận xóa vận đơn?</h4>
+                <p class="text-muted px-md-4">Hành động này sẽ ngưng theo dõi kiện hàng và xóa thông tin khỏi Hub. Không thể hoàn tác.</p>
+                <div class="d-grid gap-2 mt-4">
+                    <form action="{{ url_for('tracking.delete', tracking_id=tracking_id) }}" method="POST">
+                        <button type="submit" class="btn btn-danger btn-lg w-100 mb-2 py-3 fw-bold shadow-sm">Xóa vĩnh viễn</button>
+                    </form>
+                    <button type="button" class="btn btn-light btn-lg border py-3 fw-bold" data-bs-dismiss="modal">Quay lại</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* CSS Timeline Enhancements */
+.timeline-item:last-child {
+    border-left-color: transparent !important;
+}
+
+/* Base Responsive Fixes */
+@media (max-width: 575.98px) {
+    .px-1 { padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
+    h2 { font-size: 1.5rem !important; }
+    .card-body { padding: 1.25rem !important; }
+    .timeline { padding-left: 0.5rem !important; }
+}
+
+/* Smooth Pulse Animation for Recent Activity */
+.timeline-item:first-child .timeline-dot {
+    animation: timeline-pulse 2s infinite;
+}
+
+@keyframes timeline-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(79, 70, 229, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
+}
+</style>
+{% endblock %}

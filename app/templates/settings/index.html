@@ -1,0 +1,74 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="row justify-content-center px-2">
+    <div class="col-12 col-md-10 col-lg-7">
+        <div class="d-flex align-items-center mb-5 mt-3">
+            <div class="bg-primary text-white rounded-4 p-2 me-3 shadow">
+                <i class="bi bi-shield-lock-fill fs-3"></i>
+            </div>
+            <div>
+                <h2 class="fw-bold mb-0">Cài đặt tài khoản</h2>
+                <p class="text-muted mb-0">Quản lý cấu hình thông báo và Telegram</p>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4 overflow-hidden">
+            <div class="card-header bg-white p-4 border-0 pb-0">
+                <h5 class="fw-bold mb-0">Thông báo qua Telegram</h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="alert alert-warning border-0 rounded-4 mb-4 small">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <strong>Lưu ý:</strong> Vui lòng nhấn <strong>Bắt đầu (Start)</strong> hoặc chat với bot <a href="https://t.me/orderskibidi_bot" target="_blank" class="fw-bold">@orderskibidi_bot</a> trước khi cấu hình Telegram ID để Bot có quyền gửi tin nhắn cho bạn.
+                </div>
+                <form method="POST" action="">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-4">
+                        {{ form.telegram_chat_id.label(class="form-label fw-bold small") }}
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-hash"></i></span>
+                            {{ form.telegram_chat_id(class="form-control form-control-lg border-start-0", placeholder="Nhập Chat ID của bạn") }}
+                        </div>
+                        <div class="form-text mt-2">
+                            <i class="bi bi-info-circle me-1"></i> Để lấy Chat ID, hãy chat với bot <a href="https://t.me/userinfobot" target="_blank" class="text-decoration-none fw-bold">@userinfobot</a> trên Telegram.
+                        </div>
+                    </div>
+
+                    <div class="form-check form-switch mb-4 p-0">
+                        <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded-4">
+                            <div>
+                                <label class="form-check-label fw-bold d-block" for="{{ form.notify_enabled.id }}">Bật thông báo đẩy</label>
+                                <small class="text-muted">Tự động báo tin khi trạng thái đơn hàng thay đổi.</small>
+                            </div>
+                            <div class="form-check form-switch mb-0">
+                                {{ form.notify_enabled(class="form-check-input", style="width: 3rem; height: 1.5rem;") }}
+                            </div>
+                        </div>
+                    </div>
+
+                    {{ form.submit(class="btn btn-primary btn-lg w-100 shadow-sm") }}
+                </form>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm overflow-hidden mb-5" style="border-left: 5px solid #0088cc !important;">
+            <div class="card-body p-4">
+                <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-info bg-opacity-10 text-info rounded-circle p-3 me-3">
+                            <i class="bi bi-send-fill fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-1 text-dark">Kiểm tra kết nối Bot</h6>
+                            <p class="text-muted small mb-0">Gửi tin nhắn mẫu thử nghiệm đến Telegram của bạn.</p>
+                        </div>
+                    </div>
+                    <form action="{{ url_for('settings.test_telegram') }}" method="POST" class="w-100 w-sm-auto">
+                        <button type="submit" class="btn btn-outline-info rounded-pill px-4 fw-bold w-100">Gửi thử</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

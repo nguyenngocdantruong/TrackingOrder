@@ -1,0 +1,44 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="row justify-content-center px-2">
+    <div class="col-12 col-md-10 col-lg-7 text-dark">
+        <div class="card shadow-lg border-0 mt-3">
+            <div class="card-body p-4 p-md-5">
+                <div class="d-flex align-items-center mb-4">
+                    <div class="bg-success text-white rounded-3 p-2 me-3 shadow-sm">
+                        <i class="bi bi-plus-circle fs-3"></i>
+                    </div>
+                    <div>
+                        <h3 class="fw-bold mb-0">Thêm vận đơn mới</h3>
+                        <p class="text-muted mb-0 small">Chúng tôi sẽ tự động phát hiện nhà vận chuyển</p>
+                    </div>
+                </div>
+
+                <form method="POST" action="">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-4">
+                        {{ form.tracking_number.label(class="form-label fw-bold small") }}
+                        {{ form.tracking_number(class="form-control form-control-lg", placeholder="Ví dụ: SPXVN069155010...") }}
+                        <div class="form-text mt-2 small text-muted">Nhập mã vận đơn để bắt đầu.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        {{ form.carrier_id.label(class="form-label fw-bold small") }}
+                        {{ form.carrier_id(class="form-select form-select-lg") }}
+                    </div>
+
+                    <div class="mb-4">
+                        {{ form.alias.label(class="form-label fw-bold small") }}
+                        {{ form.alias(class="form-control form-control-lg", placeholder="Ví dụ: Giày thể thao, Đồ công nghệ...") }}
+                    </div>
+
+                    <div class="pt-2">
+                        {{ form.submit(class="btn btn-primary btn-lg w-100 mb-3 shadow") }}
+                        <a href="{{ url_for('tracking.dashboard') }}" class="btn btn-light btn-lg w-100 border text-muted">Quay lại Dashboard</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
