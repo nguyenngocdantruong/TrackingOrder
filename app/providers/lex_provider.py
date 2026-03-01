@@ -33,10 +33,15 @@ class LEXProvider(CarrierProvider):
         try:
             response = requests.post(url, json=payload, headers=headers, timeout=15)
             response.raise_for_status()
-            res_data = response.json()
+            
+            try:
+                res_data = response.json()
+            except ValueError:
+                raise Exception(f"LEX API returned invalid JSON. Status: {response.status_code}")
 
             if not res_data.get("success"):
-                raise Exception("LEX API Error: Request was not successful")
+                error_msg = res_data.get("error_msg") or res_data.get("message") or "Unknown error"
+                raise Exception(f"LEX API Error: {error_msg}")
 
             data = res_data.get("data", {})
             timeline = data.get("timeline", [])

@@ -25,6 +25,15 @@ class TrackingService:
                     'error': f'Mã vận đơn không hợp lệ cho đơn vị vận chuyển {provider.displayName}.'
                 }
 
+        # Check tracking first to ensure validity before creating record
+        try:
+            initial_result = provider.track(tracking_number)
+        except Exception as e:
+            return {
+                'success': False,
+                'error': f'Lỗi khi kiểm tra mã vận đơn: {str(e)}'
+            }
+
         tracking_data = {
             'userId': user.id,
             'trackingNumber': tracking_number,
@@ -48,7 +57,16 @@ class TrackingService:
                   f"Hệ thống sẽ bắt đầu đồng bộ dữ liệu ngay bây giờ."
             TelegramNotifier.send_message(user.settings['telegramChatId'], msg)
 
-        TrackingService.refresh_tracking(tracking_id)
+        # We already have the initial result, so update the record immediately without re-fetching
+        # But for simplicity and to reuse the logic in refresh_tracking (merging, sorting, saving),
+        # we can just call refresh_tracking. Since we just verified it works, it should work again.
+        # To avoid double request, we could pass initial_result to refresh_tracking if we refactor it,
+        # but one extra request is acceptable for now to keep code simple.
+        # Or better: catch exception here just in case it fails transiently
+        try:
+             TrackingService.refresh_tracking(tracking_id)
+        except Exception:
+             pass # Already warned user if initial check failed, this is background sync
 
         return {
             'success': True,
