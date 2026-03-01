@@ -13,7 +13,7 @@ def register():
     form = RegistrationForm()
     if form.validate_on_submit():
         UsersRepo.create(form.username.data, form.password.data)
-        flash('Your account has been created! You are now able to log in', 'success')
+        flash('Tài khoản đã được tạo thành công! Bạn có thể đăng nhập ngay bây giờ.', 'success')
         return redirect(url_for('auth.login'))
     return render_template('auth/register.html', title='Register', form=form)
 
@@ -29,7 +29,7 @@ def login():
             next_page = request.args.get('next')
             return redirect(next_page) if next_page else redirect(url_for('tracking.dashboard'))
         else:
-            flash('Login Unsuccessful. Please check username and password', 'danger')
+            flash('Đăng nhập không thành công. Vui lòng kiểm tra lại tên đăng nhập và mật khẩu.', 'danger')
     return render_template('auth/login.html', title='Login', form=form)
 
 @auth_bp.route("/logout")

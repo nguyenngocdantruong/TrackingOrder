@@ -17,6 +17,13 @@ class TrackingService:
                     'error': 'Không thể tự động nhận diện đơn vị vận chuyển cho mã vận đơn này.'
                 }
             selected_carrier_id = provider.id
+        else:
+            provider = registry.get_provider(selected_carrier_id)
+            if provider and not provider.supports(tracking_number):
+                return {
+                    'success': False,
+                    'error': f'Mã vận đơn không hợp lệ cho đơn vị vận chuyển {provider.displayName}.'
+                }
 
         tracking_data = {
             'userId': user.id,

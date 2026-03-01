@@ -25,11 +25,11 @@ def add_tracking():
             send_notification=True
         )
 
-        if not result['success']:
-            flash('Could not auto-detect carrier. Please select manually.', 'warning')
+        if not result.get('success'):
+            flash(result.get('error', 'Không thể thêm vận đơn mới.'), 'warning')
             return render_template('tracking/add_tracking.html', form=form)
 
-        flash('Tracking item added!', 'success')
+        flash('Thêm vận đơn thành công!', 'success')
         return redirect(url_for('tracking.dashboard'))
     return render_template('tracking/add_tracking.html', form=form)
 
@@ -49,9 +49,9 @@ def refresh(tracking_id):
         abort(403)
 
     if TrackingService.refresh_tracking(tracking_id):
-        flash('Tracking refreshed!', 'success')
+        flash('Cập nhật trạng thái vận đơn thành công!', 'success')
     else:
-        flash('Failed to refresh tracking.', 'danger')
+        flash('Không thể cập nhật trạng thái vận đơn.', 'danger')
     return redirect(url_for('tracking.detail', tracking_id=tracking_id))
 
 @tracking_bp.route("/tracking/<tracking_id>/delete", methods=['POST'])
@@ -61,5 +61,5 @@ def delete(tracking_id):
     if not tracking or tracking['userId'] != current_user.id:
         abort(403)
     TrackingsRepo.delete(tracking_id)
-    flash('Tracking deleted.', 'success')
+    flash('Vận đơn đã bị xóa.', 'success')
     return redirect(url_for('tracking.dashboard'))
