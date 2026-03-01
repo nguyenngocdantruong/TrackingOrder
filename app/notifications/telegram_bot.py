@@ -197,7 +197,7 @@ def _handle_message(app, message):
             return
 
         if command == '/author':
-            TelegramNotifier.send_message(chat_id, "Tác giả: Nguyễn Ngọc Dân Trường", parse_mode=None)
+            TelegramNotifier.send_message(chat_id, "Tác giả: Nguyễn Ngọc Đan Trường", parse_mode=None)
             _send_link_reminder_if_needed(app, user, chat_id)
             return
 
