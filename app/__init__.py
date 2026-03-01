@@ -27,11 +27,12 @@ def create_app(config_class=Config):
         return dt.strftime("%H:%M %d/%m/%Y") if dt else "N/A"
 
     # Register blueprints
-    from app.auth.routes import auth_bp
+    from app.auth.routes import auth_bp, link_bp
     from app.tracking.routes import tracking_bp
     from app.settings.routes import settings_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(link_bp)
     app.register_blueprint(tracking_bp)
     app.register_blueprint(settings_bp, url_prefix='/settings')
 

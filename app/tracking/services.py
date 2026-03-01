@@ -6,6 +6,50 @@ from app.notifications.telegram import TelegramNotifier
 
 class TrackingService:
     @staticmethod
+    def create_tracking_for_user(user, tracking_number, alias=None, carrier_id='auto', send_notification=True):
+        selected_carrier_id = carrier_id
+
+        if selected_carrier_id == 'auto':
+            provider = registry.find_provider_for(tracking_number)
+            if not provider:
+                return {
+                    'success': False,
+                    'error': 'Không thể tự động nhận diện đơn vị vận chuyển cho mã vận đơn này.'
+                }
+            selected_carrier_id = provider.id
+
+        tracking_data = {
+            'userId': user.id,
+            'trackingNumber': tracking_number,
+            'carrierId': selected_carrier_id,
+            'alias': alias,
+            'isActive': True,
+            'events': [],
+            'lastEventHash': None,
+            'currentStatus': 'Pending',
+            'lastEventTime': None,
+            'lastCheckedAt': None
+        }
+
+        tracking_id = TrackingsRepo.create(tracking_data)
+
+        if send_notification and user.settings.get('notifyEnabled') and user.settings.get('telegramChatId'):
+            msg = f"➕ *Đã thêm vận đơn mới thành công!*\n" \
+                  f"Mã: `{tracking_number}`\n" \
+                  f"Tên: {alias or 'Không có'}\n" \
+                  f"Hãng: {selected_carrier_id.upper()}\n\n" \
+                  f"Hệ thống sẽ bắt đầu đồng bộ dữ liệu ngay bây giờ."
+            TelegramNotifier.send_message(user.settings['telegramChatId'], msg)
+
+        TrackingService.refresh_tracking(tracking_id)
+
+        return {
+            'success': True,
+            'tracking_id': tracking_id,
+            'carrier_id': selected_carrier_id
+        }
+
+    @staticmethod
     def refresh_tracking(tracking_id):
         tracking = TrackingsRepo.get_by_id(tracking_id)
         if not tracking:

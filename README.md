@@ -127,6 +127,18 @@ run_tunnel.bat
 4. Xem dashboard để theo dõi trạng thái
 5. Cấu hình Telegram bot trong phần Settings để nhận thông báo
 
+### Sử dụng Telegram chat bot
+
+Sau khi đã cấu hình Telegram Chat ID trong Settings, bạn có thể chat trực tiếp với bot để thao tác nhanh:
+
+- `/add <mã vận đơn> [tên gợi nhớ]`: thêm đơn hàng mới
+- `/providers`: xem danh sách đơn vị vận chuyển đang hỗ trợ
+- `/list`: xem danh sách đơn hàng (`#<mã vận đơn> - <trạng thái hiện tại>`)
+- `/help`: hướng dẫn sử dụng
+- `/author`: thông tin tác giả
+
+Nếu user chat lần đầu mà chưa có tài khoản website, hệ thống sẽ tự tạo **tài khoản tạm theo Telegram ID** để vẫn lưu lịch sử tracking. Bot sẽ hiển thị nút **Liên kết tài khoản** mở endpoint `/link` để user nhập username/password và chuyển tài khoản tạm thành tài khoản website chính thức.
+
 ## 📁 Cấu trúc dự án
 
 ```

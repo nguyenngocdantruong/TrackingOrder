@@ -3,8 +3,6 @@ from flask_login import current_user, login_required
 from app.tracking.forms import AddTrackingForm
 from app.repos.trackings_repo import TrackingsRepo
 from app.tracking.services import TrackingService
-from app.providers.registry import registry
-from app.notifications.telegram import TelegramNotifier
 
 tracking_bp = Blueprint('tracking', __name__)
 
@@ -19,39 +17,17 @@ def dashboard():
 def add_tracking():
     form = AddTrackingForm()
     if form.validate_on_submit():
-        carrier_id = form.carrier_id.data
-        if carrier_id == 'auto':
-            provider = registry.find_provider_for(form.tracking_number.data)
-            if not provider:
-                flash('Could not auto-detect carrier. Please select manually.', 'warning')
-                return render_template('tracking/add_tracking.html', form=form)
-            carrier_id = provider.id
+        result = TrackingService.create_tracking_for_user(
+            user=current_user,
+            tracking_number=form.tracking_number.data,
+            alias=form.alias.data,
+            carrier_id=form.carrier_id.data,
+            send_notification=True
+        )
 
-        tracking_data = {
-            'userId': current_user.id,
-            'trackingNumber': form.tracking_number.data,
-            'carrierId': carrier_id,
-            'alias': form.alias.data,
-            'isActive': True,
-            'events': [],
-            'lastEventHash': None,
-            'currentStatus': 'Pending',
-            'lastEventTime': None,
-            'lastCheckedAt': None
-        }
-        tracking_id = TrackingsRepo.create(tracking_data)
-
-        # 1. Gửi thông báo xác nhận thêm đơn hàng trước
-        if current_user.settings.get('notifyEnabled') and current_user.settings.get('telegramChatId'):
-            msg = f"➕ *Đã thêm vận đơn mới thành công!*\n" \
-                  f"Mã: `{form.tracking_number.data}`\n" \
-                  f"Tên: {form.alias.data or 'Không có'}\n" \
-                  f"Hãng: {carrier_id.upper()}\n\n" \
-                  f"Hệ thống sẽ bắt đầu đồng bộ dữ liệu ngay bây giờ."
-            TelegramNotifier.send_message(current_user.settings['telegramChatId'], msg)
-
-        # 2. Sau đó mới thực hiện quét dữ liệu lần đầu
-        isSuccess = TrackingService.refresh_tracking(tracking_id)
+        if not result['success']:
+            flash('Could not auto-detect carrier. Please select manually.', 'warning')
+            return render_template('tracking/add_tracking.html', form=form)
 
         flash('Tracking item added!', 'success')
         return redirect(url_for('tracking.dashboard'))

@@ -3,7 +3,7 @@ from flask import current_app
 
 class TelegramNotifier:
     @staticmethod
-    def send_message(chat_id, text):
+    def send_message(chat_id, text, parse_mode='Markdown', reply_markup=None):
         token = current_app.config.get('TELEGRAM_BOT_TOKEN')
         if not token:
             return False
@@ -11,9 +11,14 @@ class TelegramNotifier:
         url = f"https://api.telegram.org/bot{token}/sendMessage"
         payload = {
             'chat_id': chat_id,
-            'text': text,
-            'parse_mode': 'Markdown'
+            'text': text
         }
+
+        if parse_mode:
+            payload['parse_mode'] = parse_mode
+
+        if reply_markup:
+            payload['reply_markup'] = reply_markup
 
         try:
             response = requests.post(url, json=payload, timeout=10)
