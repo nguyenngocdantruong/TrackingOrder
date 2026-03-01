@@ -1,9 +1,11 @@
 from app.providers.spx_vn_provider import SPXVNProvider
+from app.providers.lex_provider import LEXProvider
 
 class ProviderRegistry:
     def __init__(self):
         self._providers = {
-            'shopee_express_vn': SPXVNProvider()
+            'shopee_express_vn': SPXVNProvider(),
+            'lex': LEXProvider()
         }
 
     def get_provider(self, provider_id):

@@ -111,7 +111,7 @@ class SPXVNProvider(CarrierProvider):
 
         # Newest event is at index 0 (if sorted)
         # However, to be safe, we check if any event indicates completion
-        final_codes = ["F980", "F36999"]
+        final_codes = ["F980"]
         for event in events:
             if event.code in final_codes:
                 return True
