@@ -16,6 +16,82 @@ class LEXProvider(CarrierProvider):
     def displayName(self) -> str:
         return "LEX"
 
+    def get_info_from_status(self, status: str) -> list:
+        status = status.lower()
+
+        STATUS_MAP = {
+            "cb_pre_accept": [
+                "Đang tiếp nhận",
+                "LEX đã tiếp nhận đơn hàng của bạn và đang xử lý để đưa vào hệ thống vận chuyển."
+            ],
+            "cb_pre_delivering": [
+                "Đơn hàng sắp đến kho trung chuyển",
+                "Đơn hàng sắp đến kho trung chuyển"
+            ],
+            "cb_pre_sign": [
+                "Đơn hàng đã đến kho trung chuyển",
+                "Đơn hàng đã đến kho trung chuyển"
+            ],
+            "cb_ib_success_in_sort_center": [
+                "Đơn hàng đã đến trung tâm trung chuyển",
+                "Đơn hàng đã đến trung tâm trung chuyển"
+            ],
+            "cb_ob_success_in_sort_center": [
+                "Đơn hàng đã rời khỏi trung tâm trung chuyển",
+                "Đơn hàng đã rời trung tâm trung chuyển"
+            ],
+            "cb_handover": [
+                "Đơn hàng đã đến cảng và đang chờ thông quan xuất khẩu",
+                "Đơn hàng đã dến cảng và đang chờ thông quan xuất khẩu"
+            ],
+            "cb_uplifted": [
+                "Đơn hàng đã được thông quan xuất khẩu và được nhập khẩu vào Việt Nam",
+                "Đơn hàng đã được thông quan xuất khẩu và được nhập khẩu vào Việt Nam"
+            ],
+            "cb_submit_to_custom": [
+                "Đơn hàng đã bàn giao cho đơn vị vận chuyển trong nước",
+                "Đơn hàng đã bàn giao cho đơn vị vận chuyển trong nước"
+            ],
+            "domestic_delivered": [
+                "Đã giao",
+                "Kiện hàng của bạn đã được giao."
+            ],
+            "domestic_about_to_deliver": [
+                "Kiện hàng sắp đến!",
+                "Đơn vị vận chuyển sẽ giao hàng tới bạn trong khoảng 1 giờ tới. Hãy chú ý điện thoại giao hàng bạn nhé!"
+            ],
+            "domestic_out_for_delivery": [
+                "Đang giao hàng",
+                "LEX sẽ cố gắng giao đơn hàng của bạn hôm nay!"
+            ],
+            "domestic_package_stationed_out": [
+                "Hàng Đã Rời Hub Giao Hàng",
+                "Kiện hàng đã rời hub và đang vận chuyển tới địa chỉ nhận."
+            ],
+            "domestic_package_stationed_in": [
+                "Hàng Đã Về Hub Giao Hàng",
+                "Kiện hàng đã về Hub Giao Hàng và đang được xử lý để phát hàng."
+            ],
+            "domestic_ob_success_in_sort_center": [
+                "Rời khỏi trung tâm phân phối logistics",
+                "Đơn hàng của bạn đã rời khỏi trung tâm phân loại."
+            ],
+            "domestic_linehaul_packed": [
+                "Đã Điều Phối Chuyến Trung Chuyển",
+                "Kiện hàng của bạn đã được gom chuyến và xuất tuyến trung chuyển."
+            ],
+            "domestic_ib_success_in_sort_center": [
+                "Hàng tới trung tâm phân loại",
+                "Đơn hàng của bạn đã đến trung tâm phân loại của chúng tôi."
+            ],
+            "domestic_1st_attempt_failed": [
+                "Giao Hàng Thất Bại Lần 1",
+                "Chúng tôi sẽ lên lịch giao lại trong vài ngày tới."
+            ]
+        }
+
+        return STATUS_MAP.get(status, [status, status])
+
     def supports(self, tracking_number: str) -> bool:
         return tracking_number.upper().startswith("LEX")
 
@@ -70,20 +146,18 @@ class LEXProvider(CarrierProvider):
                         lng=None
                     )
 
-                desc = status
-                if provider:
-                    desc += f" - {provider}"
+                desc = self.get_info_from_status(status)[1]
                 if location:
-                    desc += f" @ {location}"
+                    desc += f" [{location}]"
 
                 events.append(TrackingEvent(
                     eventHash=event_hash,
                     code=status,
-                    name=status,
+                    name=self.get_info_from_status(status)[0],
                     descBuyer=desc,
                     descSeller=desc,
                     milestoneCode=0,
-                    milestoneName=status,
+                    milestoneName=self.get_info_from_status(status)[0],
                     actualTime=actual_time,
                     currentLocation=current_location,
                     nextLocation=None,
@@ -97,6 +171,7 @@ class LEXProvider(CarrierProvider):
             last_event_time = datetime.now(timezone.utc)
             if events:
                 current_status = events[0].code or current_status
+                current_status = self.get_info_from_status(current_status)[0]
                 last_event_time = events[0].actualTime
 
             return TrackingResult(

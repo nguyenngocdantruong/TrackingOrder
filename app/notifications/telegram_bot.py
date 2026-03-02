@@ -25,6 +25,7 @@ def _help_text():
         "🤖 Telegram Tracking Bot\n\n"
         "Các lệnh hỗ trợ:\n"
         "/add <mã vận đơn> [tên gợi nhớ] - thêm đơn hàng\n"
+        "/remove <mã vận đơn> - xóa đơn hàng\n"
         "/providers - hiển thị danh sách đơn vị vận chuyển\n"
         "/list - hiển thị danh sách đơn hàng\n"
         "/help - hướng dẫn sử dụng\n"
@@ -131,6 +132,53 @@ def _handle_add_command(app, chat_id, text):
     _send_link_reminder_if_needed(app, user, chat_id)
 
 
+def _handle_remove_command(app, chat_id, text):
+    user = _get_chat_user(app, chat_id)
+
+    parts = text.strip().split(maxsplit=1)
+    if len(parts) < 2:
+        TelegramNotifier.send_message(
+            chat_id,
+            "Cú pháp: /remove <mã vận đơn>",
+            parse_mode=None,
+        )
+        return
+
+    tracking_number = parts[1].strip()
+    
+    # Find tracking for user
+    trackings = TrackingsRepo.get_user_trackings(user.id)
+    found_tracking = None
+    for t in trackings:
+        if t.get('trackingNumber') == tracking_number:
+            found_tracking = t
+            break
+    
+    if not found_tracking:
+        TelegramNotifier.send_message(
+            chat_id,
+            f"Không tìm thấy đơn hàng với mã: {tracking_number}",
+            parse_mode=None,
+        )
+        return
+
+    try:
+        TrackingsRepo.delete(found_tracking['id'])
+        TelegramNotifier.send_message(
+            chat_id,
+            f"Đã xóa theo dõi đơn hàng: {tracking_number}",
+            parse_mode=None,
+        )
+    except Exception as e:
+        TelegramNotifier.send_message(
+            chat_id,
+            f"Lỗi khi xóa đơn hàng: {str(e)}",
+            parse_mode=None,
+        )
+
+    _send_link_reminder_if_needed(app, user, chat_id)
+
+
 def _handle_providers_command(app, chat_id, user=None):
     providers = registry.list_providers()
     if not providers:
@@ -211,6 +259,10 @@ def _handle_message(app, message):
 
         if command == '/add':
             _handle_add_command(app, chat_id, text)
+            return
+
+        if command == '/remove':
+            _handle_remove_command(app, chat_id, text)
             return
 
         TelegramNotifier.send_message(

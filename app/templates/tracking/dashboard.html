@@ -34,7 +34,7 @@
 
                 <div class="rounded-4 p-3 mb-4" style="background-color: #f3f4f6;">
                     <label class="d-block small text-muted text-uppercase fw-bold mb-1" style="font-size: 10px; letter-spacing: 1px;">Trạng thái hiện tại</label>
-                    <div class="fw-bold fs-6 {% if 'Delivered' in t.currentStatus or 'Giao hàng thành công' in t.currentStatus %}text-success{% else %}text-dark{% endif %}">
+                    <div class="fw-bold fs-6 {% if 'Delivered' in t.currentStatus or 'Giao hàng thành công' in t.currentStatus or 'Đã giao' in t.currentStatus %}text-success{% else %}text-dark{% endif %}">
                         {{ t.currentStatus }}
                     </div>
                 </div>
