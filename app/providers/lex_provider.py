@@ -101,13 +101,43 @@ class LEXProvider(CarrierProvider):
             "trackingNumber": tracking_number
         }
 
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Content-Type": "application/json"
+
+        cookies = {
+            'lwrid': 'AgGb0BRhc5DWENLn8lQ7X38RnEC3',
+            't_fv': '1768722555348',
+            't_uid': 'dZ1MhmueQktNqVKIkPDPJawkxR5B71Lw',
+            'lzd_cid': 'a8d4ed06-3db6-4a9a-961c-c90f069cb9a1',
+            '_lang': 'vi',
+            'lwrtk': 'AAIEaaTIe3kgCg2+7vdyimse5Z10Vf9oIrraCEqmSktn1Ge6mN3+RkA=',
+            't_sid': 'RP2L0tdO7y0QLYBdWE74EgZ757zeedCS',
+            'utm_origin': 'https://www.google.com/',
+            'utm_channel': 'SEO',
+            'JSESSIONID': '970EFA894751702BBDAA3E3760755F63',
+            'tfstk': 'gPuoEbOYq0r7skW2S9zWcLBBN8KYVzaQQvQLpyee0-ybJ83-2JPEev_8YvKWYyDsKkSK9zPUYvHQybhKy_ijBf7-y3ad-zaQ8dp9WFdSNyaUJ5LZn_a4TWIeJ7yP0zNKn6VQdFhSNs5lLCn2WeViOa2ULvrz0SP33MWrLkS2iWPdUM7rLjR0hW2ULkPF3iPQa9zU8vz2iWw4ayrrLjR0O-yEZN_UI2ujudAIgumYkYu0Zu2ZiE_NSCVABJlPANQsomquQFec8wu0ZX89Am7MvRo_eleZ3EQu-jPne-Hw7Z44jcGLtYYlzznqc4a-kdXLqv2zvqqcUgPgr8qZzo89GzqEmq4-zpssMj2zjrnvcLELrYm_Cu-Xhvc0evuu0TvYpchxzoDwHZDQxcGLtYYlzASPIiSaLg_QgB3VAMZzGS2OfKvrNK8yCxdDiGt74SNJBIAcAMZzGS29iIj1duPbwdC..',
+            'isg': 'BNXVAgJ3ELCz_zQEV1Gq35uS5NGP0onkOfwqoFd5bcybrvGgGye3tvsofKoYrqGc',
+            'epssw': '11*mmLtcmWjRrUmftvgEN0kdhCqJR1F7ktf8Gn5Aq3W227spL_pPKyCjPAfrw_8ByWi7mxoTCEySR52EijtartssmAzKkhZaRmmLu5XkxbiimmZ6CDfBTmmmHs7L3bpFxi3Mhjk8Enz2hgG1hHU2Cg2NiHimTmmgEAZoWEXfsMqPEoxCj7hutzjEmURVTN6TLKncESf6F0oLOHxmxWK1_c0jG5P7SzF001D2MnG1mmmuu3rimTT1V06ZDmI1_7tZ8ymmHxuuIBC0tamBZgEEsfYNjQqmCuuuRmmBjaYNBBmECuuLz8afDPrNtu_NZ5kdPDSoeD2sN4auu3.',
         }
 
+        headers = {
+            'accept': 'application/json, text/plain, */*',
+            'accept-language': 'en-US,en;q=0.9,vi;q=0.8',
+            'bx-v': '2.5.36',
+            'content-type': 'application/json',
+            'origin': 'https://logistics.lazada.vn',
+            'priority': 'u=1, i',
+            'referer': 'https://logistics.lazada.vn/tracking?references=LEXST1102384187VN',
+            'sec-ch-ua': '"Not:A-Brand";v="99", "Microsoft Edge";v="145", "Chromium";v="145"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Windows"',
+            'sec-fetch-dest': 'empty',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-site': 'same-origin',
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36 Edg/145.0.0.0',
+        }
+        
+
         try:
-            response = requests.post(url, json=payload, headers=headers, timeout=15)
+            response = requests.post(url, json=payload, headers=headers, cookies=cookies, timeout=15)
             response.raise_for_status()
             
             try:
