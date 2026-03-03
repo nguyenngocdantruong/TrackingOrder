@@ -28,6 +28,7 @@ def _help_text():
         "/remove <mã vận đơn> - xóa đơn hàng\n"
         "/providers - hiển thị danh sách đơn vị vận chuyển\n"
         "/list - hiển thị danh sách đơn hàng\n"
+        "/stats - xem thống kê cá nhân\n"
         "/help - hướng dẫn sử dụng\n"
         "/author - tác giả"
     )
@@ -213,6 +214,50 @@ def _handle_list_command(app, chat_id):
     _send_link_reminder_if_needed(app, user, chat_id)
 
 
+def _handle_stats_command(app, chat_id):
+    """Xử lý lệnh /stats để hiển thị thống kê"""
+    user = _get_chat_user(app, chat_id)
+    
+    # Lấy thống kê cá nhân
+    total_trackings = TrackingsRepo.count_user_trackings(user.id)
+    active_trackings = TrackingsRepo.count_user_active_trackings(user.id)
+    join_date = UsersRepo.get_user_created_date(user.id)
+    
+    # Tin nhắn thống kê cá nhân
+    personal_stats = (
+        "📊 Thống kê cá nhân\n\n"
+        f"👤 User: {user.username}\n"
+        f"📅 Ngày tham gia: {join_date}\n"
+        f"📦 Tổng số đơn hàng: {total_trackings}\n"
+        f"🚚 Đang theo dõi: {active_trackings}\n"
+        f"✅ Đã hoàn thành: {total_trackings - active_trackings}"
+    )
+    
+    TelegramNotifier.send_message(chat_id, personal_stats, parse_mode=None)
+    
+    # Kiểm tra xem có phải admin không
+    admin_id = app.config.get('ADMIN_TELEGRAM_USER_ID')
+    chat_id_str = str(chat_id)
+    
+    if admin_id and chat_id_str == str(admin_id):
+        # Lấy thống kê hệ thống nếu là admin
+        total_users = UsersRepo.count_all_users()
+        system_total_trackings = TrackingsRepo.count_all_trackings()
+        system_active_trackings = TrackingsRepo.count_all_active_trackings()
+        
+        system_stats = (
+            "🌐 Thống kê hệ thống (Admin)\n\n"
+            f"👥 Tổng số người dùng: {total_users}\n"
+            f"📦 Tổng số đơn hàng: {system_total_trackings}\n"
+            f"🚚 Đang theo dõi: {system_active_trackings}\n"
+            f"✅ Đã hoàn thành: {system_total_trackings - system_active_trackings}"
+        )
+        
+        TelegramNotifier.send_message(chat_id, system_stats, parse_mode=None)
+    
+    _send_link_reminder_if_needed(app, user, chat_id)
+
+
 def _handle_message(app, message):
     chat = message.get('chat') or {}
     chat_id = chat.get('id')
@@ -255,6 +300,10 @@ def _handle_message(app, message):
 
         if command == '/list':
             _handle_list_command(app, chat_id)
+            return
+
+        if command == '/stats':
+            _handle_stats_command(app, chat_id)
             return
 
         if command == '/add':

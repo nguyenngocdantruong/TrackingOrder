@@ -39,3 +39,34 @@ class TrackingsRepo:
         db = get_db()
         docs = db.collection(TrackingsRepo.COLLECTION).where(filter=FieldFilter('isActive', '==', True)).stream()
         return [{'id': doc.id, **doc.to_dict()} for doc in docs]
+
+    @staticmethod
+    def count_user_trackings(user_id):
+        """Đếm số tracking của user"""
+        db = get_db()
+        docs = db.collection(TrackingsRepo.COLLECTION).where(filter=FieldFilter('userId', '==', user_id)).stream()
+        return sum(1 for _ in docs)
+
+    @staticmethod
+    def count_user_active_trackings(user_id):
+        """Đếm số tracking đang hoạt động của user"""
+        db = get_db()
+        docs = db.collection(TrackingsRepo.COLLECTION)\
+            .where(filter=FieldFilter('userId', '==', user_id))\
+            .where(filter=FieldFilter('isActive', '==', True))\
+            .stream()
+        return sum(1 for _ in docs)
+
+    @staticmethod
+    def count_all_trackings():
+        """Đếm tổng số tracking trong hệ thống"""
+        db = get_db()
+        docs = db.collection(TrackingsRepo.COLLECTION).stream()
+        return sum(1 for _ in docs)
+
+    @staticmethod
+    def count_all_active_trackings():
+        """Đếm tổng số tracking đang hoạt động trong hệ thống"""
+        db = get_db()
+        docs = db.collection(TrackingsRepo.COLLECTION).where(filter=FieldFilter('isActive', '==', True)).stream()
+        return sum(1 for _ in docs)

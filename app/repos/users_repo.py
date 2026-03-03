@@ -159,3 +159,22 @@ class UsersRepo:
         db.collection(UsersRepo.COLLECTION).document(user_id).update({
             'settings': settings
         })
+
+    @staticmethod
+    def count_all_users():
+        """Đếm tổng số user trong hệ thống"""
+        db = get_db()
+        docs = db.collection(UsersRepo.COLLECTION).stream()
+        return sum(1 for _ in docs)
+
+    @staticmethod
+    def get_user_created_date(user_id):
+        """Lấy ngày tạo tài khoản của user"""
+        db = get_db()
+        doc = db.collection(UsersRepo.COLLECTION).document(user_id).get()
+        if doc.exists:
+            data = doc.to_dict()
+            created_at = data.get('createdAt')
+            if created_at:
+                return created_at.strftime('%d/%m/%Y') if hasattr(created_at, 'strftime') else str(created_at)
+        return 'N/A'

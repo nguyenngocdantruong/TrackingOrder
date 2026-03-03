@@ -13,4 +13,5 @@ class Config:
     POLL_INTERVAL_SECONDS = int(os.getenv('POLL_INTERVAL_SECONDS', 300))
 
     TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+    ADMIN_TELEGRAM_USER_ID = os.getenv('ADMIN_TELEGRAM_USER_ID')
     WEBSITE_URL = os.getenv('WEBSITE_URL', 'http://127.0.0.1:5000').rstrip('/')
