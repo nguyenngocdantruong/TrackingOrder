@@ -6,7 +6,7 @@
         <div class="overflow-hidden">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-1">
-                    <li class="breadcrumb-item"><a href="{{ url_for('tracking.dashboard') }}" class="text-muted text-decoration-none small">Bảng điều khiển</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('tracking.dashboard') }}" class="text-muted text-decoration-none small" data-i18n="detail.back">Back to Dashboard</a></li>
                     <li class="breadcrumb-item active fw-bold text-primary small text-truncate d-inline-block shadow-none" style="max-width: 150px; vertical-align: bottom;">{{ tracking.alias or tracking.trackingNumber }}</li>
                 </ol>
             </nav>
@@ -16,7 +16,7 @@
             {% if tracking.isActive %}
             <form action="{{ url_for('tracking.refresh', tracking_id=tracking_id) }}" method="POST" class="flex-grow-1 flex-md-grow-0">
                 <button class="btn btn-primary shadow-sm w-100 px-4">
-                    <i class="bi bi-arrow-repeat me-2"></i>Làm mới
+                    <i class="bi bi-arrow-repeat me-2"></i><span data-i18n="detail.refresh">Refresh Now</span>
                 </button>
             </form>
             {% endif %}
@@ -32,33 +32,33 @@
             <div class="card shadow-sm border-0">
                 <div class="card-body p-4">
                     <h5 class="fw-bold mb-4 d-flex align-items-center">
-                        <i class="bi bi-info-circle text-primary me-2"></i>Thông tin vận đơn
+                        <i class="bi bi-info-circle text-primary me-2"></i><span data-i18n="detail.info">Tracking Information</span>
                     </h5>
 
                     <div class="mb-4">
-                        <label class="text-muted small fw-bold text-uppercase d-block mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Mã vận đơn</label>
+                        <label class="text-muted small fw-bold text-uppercase d-block mb-1" style="font-size: 11px; letter-spacing: 0.5px;" data-i18n="detail.tracking_number">Tracking Number</label>
                         <div class="fs-5 font-monospace fw-bold text-break">{{ tracking.trackingNumber }}</div>
                     </div>
 
                     <div class="mb-4">
-                        <label class="text-muted small fw-bold text-uppercase d-block mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Hãng vận chuyển</label>
+                        <label class="text-muted small fw-bold text-uppercase d-block mb-1" style="font-size: 11px; letter-spacing: 0.5px;" data-i18n="detail.carrier">Carrier</label>
                         <div class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-3 fw-bold">
                             {{ t_carrier or tracking.carrierId.upper() }}
                         </div>
                     </div>
 
                     <div class="mb-4">
-                        <label class="text-muted small fw-bold text-uppercase d-block mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Trạng thái hiện tại</label>
+                        <label class="text-muted small fw-bold text-uppercase d-block mb-1" style="font-size: 11px; letter-spacing: 0.5px;" data-i18n="detail.status">Status</label>
                         <div class="fs-5 fw-bold {% if 'Delivered' in tracking.currentStatus or 'Giao hàng thành công' in tracking.currentStatus %}text-success{% else %}text-primary{% endif %}">
                             <i class="bi bi- megaphone me-1"></i>{{ tracking.currentStatus }}
                         </div>
                     </div>
 
                     <div class="mb-0">
-                        <label class="text-muted small fw-bold text-uppercase d-block mb-1" style="font-size: 11px; letter-spacing: 0.5px;">Cập nhật cuối</label>
+                        <label class="text-muted small fw-bold text-uppercase d-block mb-1" style="font-size: 11px; letter-spacing: 0.5px;" data-i18n="detail.updated">Last Updated</label>
                         <div class="text-dark fw-medium">
                             <i class="bi bi-clock-history me-2 text-muted"></i>
-                            {{ tracking.lastCheckedAt | format_provider_time(tracking.carrierId) if tracking.lastCheckedAt else 'Chưa có dữ liệu' }}
+                            {{ tracking.lastCheckedAt | format_provider_time(tracking.carrierId) if tracking.lastCheckedAt else '' }}
                         </div>
                     </div>
                 </div>
@@ -70,7 +70,7 @@
             <div class="card shadow-sm border-0">
                 <div class="card-body p-4">
                     <h5 class="fw-bold mb-4 d-flex align-items-center">
-                        <i class="bi bi-signpost-2 text-primary me-2"></i>Lịch sử hành trình
+                        <i class="bi bi-signpost-2 text-primary me-2"></i><span data-i18n="detail.history">Shipping History</span>
                     </h5>
 
                     <div class="timeline mt-2">
@@ -104,7 +104,7 @@
                                 <div class="bg-light rounded-circle d-inline-flex p-4 mb-3">
                                     <i class="bi bi-box-seam text-muted fs-1 opacity-50"></i>
                                 </div>
-                                <p class="text-muted fw-medium">Chưa có thông tin cập nhật từ hãng vận chuyển.</p>
+                                <p class="text-muted fw-medium" data-i18n="detail.no_history">No history yet</p>
                             </div>
                         {% endif %}
                     </div>
@@ -122,13 +122,13 @@
                 <div class="bg-danger bg-opacity-10 text-danger rounded-circle d-inline-flex p-3 mb-4">
                     <i class="bi bi-exclamation-triangle fs-1"></i>
                 </div>
-                <h4 class="fw-bold mb-2">Xác nhận xóa vận đơn?</h4>
-                <p class="text-muted px-md-4">Hành động này sẽ ngưng theo dõi kiện hàng và xóa thông tin khỏi Hub. Không thể hoàn tác.</p>
+                <h4 class="fw-bold mb-2" data-i18n="detail.delete">Delete Tracking</h4>
+                <p class="text-muted px-md-4" data-i18n="delete.confirm">This action will stop tracking the package and remove information from the Hub. Cannot be undone.</p>
                 <div class="d-grid gap-2 mt-4">
                     <form action="{{ url_for('tracking.delete', tracking_id=tracking_id) }}" method="POST">
-                        <button type="submit" class="btn btn-danger btn-lg w-100 mb-2 py-3 fw-bold shadow-sm">Xóa vĩnh viễn</button>
+                        <button type="submit" class="btn btn-danger btn-lg w-100 mb-2 py-3 fw-bold shadow-sm" data-i18n="delete.permanent">Delete Permanently</button>
                     </form>
-                    <button type="button" class="btn btn-light btn-lg border py-3 fw-bold" data-bs-dismiss="modal">Quay lại</button>
+                    <button type="button" class="btn btn-light btn-lg border py-3 fw-bold" data-bs-dismiss="modal" data-i18n="delete.cancel">Cancel</button>
                 </div>
             </div>
         </div>

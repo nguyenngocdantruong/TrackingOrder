@@ -3,17 +3,17 @@
 <div class="row align-items-center justify-content-center py-5 min-vh-75">
     <div class="col-lg-6 text-center text-lg-start">
         <h1 class="display-3 fw-extrabold tracking-tight mb-4" style="letter-spacing: -2px;">
-            Theo dõi đơn hàng <span class="text-primary">thông minh</span>
+            <span data-i18n="landing.hero.title">Track your orders</span> <span class="text-primary" data-i18n="landing.hero.smart">smartly</span>
         </h1>
-        <p class="lead text-muted mb-5 fs-4">
-            Giải pháp Hub tập trung giúp bạn quản lý tất cả kiện hàng với thông báo tức thì qua Telegram.
+        <p class="lead text-muted mb-5 fs-4" data-i18n="landing.hero.subtitle">
+            Centralized Hub solution helps you manage all packages with instant notifications via Telegram.
         </p>
         <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center justify-content-lg-start text-dark">
             {% if current_user.is_authenticated %}
-                <a href="{{ url_for('tracking.dashboard') }}" class="btn btn-primary btn-lg px-5 shadow-lg">Bảng điều khiển</a>
+                <a href="{{ url_for('tracking.dashboard') }}" class="btn btn-primary btn-lg px-5 shadow-lg" data-i18n="landing.cta.dashboard">Dashboard</a>
             {% else %}
-                <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg px-5 shadow-lg">Bắt đầu miễn phí</a>
-                <a href="{{ url_for('auth.login') }}" class="btn btn-light btn-lg px-5 border">Đăng nhập</a>
+                <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg px-5 shadow-lg" data-i18n="landing.cta.start">Get Started Free</a>
+                <a href="{{ url_for('auth.login') }}" class="btn btn-light btn-lg px-5 border" data-i18n="landing.cta.login">Login</a>
             {% endif %}
         </div>
     </div>
@@ -29,22 +29,22 @@
     <div class="col-md-4">
         <div class="p-4 rounded-4 bg-white shadow-sm h-100 border border-light">
             <i class="bi bi-lightning-charge-fill text-warning fs-1 mb-3 d-block"></i>
-            <h5 class="fw-bold">Tốc độ cực nhanh</h5>
-            <p class="text-muted">Cập nhật trạng thái đơn hàng mỗi 5 phút một lần từ API chính thức.</p>
+            <h5 class="fw-bold" data-i18n="landing.feature1.title">Super Fast</h5>
+            <p class="text-muted" data-i18n="landing.feature1.desc">Updates order status every 5 minutes from the official API.</p>
         </div>
     </div>
     <div class="col-md-4">
         <div class="p-4 rounded-4 bg-white shadow-sm h-100 border border-light">
             <i class="bi bi-telegram text-info fs-1 mb-3 d-block"></i>
-            <h5 class="fw-bold">Telegram Notify</h5>
-            <p class="text-muted">Nhận ngay thông báo về điện thoại khi shipper thay đổi trạng thái đơn hàng.</p>
+            <h5 class="fw-bold" data-i18n="landing.feature2.title">Telegram Notify</h5>
+            <p class="text-muted" data-i18n="landing.feature2.desc">Get instant notifications on your phone when the shipper changes the order status.</p>
         </div>
     </div>
     <div class="col-md-4">
         <div class="p-4 rounded-4 bg-white shadow-sm h-100 border border-light">
             <i class="bi bi-shield-check text-success fs-1 mb-3 d-block"></i>
-            <h5 class="fw-bold">Bảo mật & Riêng tư</h5>
-            <p class="text-muted">Mọi dữ liệu cá nhân của bạn được bảo mật trực tiếp trên Firebase Cloud.</p>
+            <h5 class="fw-bold" data-i18n="landing.feature3.title">Security & Privacy</h5>
+            <p class="text-muted" data-i18n="landing.feature3.desc">All your personal data is securely stored on Firebase Cloud.</p>
         </div>
     </div>
 </div>

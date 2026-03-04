@@ -8,29 +8,29 @@
                     <div class="text-primary">
                         <i class="bi bi-person-plus-fill fs-2"></i>
                     </div>
-                    <h3 class="fw-bold">Tạo tài khoản mới</h3>
-                    <p class="text-muted">Bắt đầu theo dõi đơn hàng miễn phí</p>
+                    <h3 class="fw-bold" data-i18n="register.title">Create new account</h3>
+                    <p class="text-muted" data-i18n="register.subtitle">Start tracking your orders</p>
                 </div>
 
                 <form method="POST" action="">
                     {{ form.hidden_tag() }}
                     <div class="mb-4">
-                        {{ form.username.label(class="form-label fw-bold small") }}
-                        {{ form.username(class="form-control form-control-lg", placeholder="Tên đăng nhập") }}
+                        <label class="form-label fw-bold small" data-i18n="register.username">Username</label>
+                        {{ form.username(class="form-control form-control-lg") }}
                     </div>
                     <div class="mb-4">
-                        {{ form.password.label(class="form-label fw-bold small") }}
-                        {{ form.password(class="form-control form-control-lg", placeholder="Mật khẩu ít nhất 6 ký tự") }}
+                        <label class="form-label fw-bold small" data-i18n="register.password">Password</label>
+                        {{ form.password(class="form-control form-control-lg") }}
                     </div>
                     <div class="mb-4">
-                        {{ form.confirm_password.label(class="form-label fw-bold small") }}
-                        {{ form.confirm_password(class="form-control form-control-lg", placeholder="Xác nhận lại mật khẩu") }}
+                        <label class="form-label fw-bold small" data-i18n="register.confirm_password">Confirm Password</label>
+                        {{ form.confirm_password(class="form-control form-control-lg") }}
                     </div>
-                    {{ form.submit(class="btn btn-primary btn-lg w-100 shadow mt-2") }}
+                    <button type="submit" class="btn btn-primary btn-lg w-100 shadow mt-2" data-i18n="register.submit">Register</button>
                 </form>
             </div>
             <div class="card-footer bg-light p-4 text-center border-0 rounded-bottom-4">
-                <p class="text-muted mb-0">Đã có tài khoản? <a href="{{ url_for('auth.login') }}" class="text-primary fw-bold text-decoration-none">Đăng nhập</a></p>
+                <p class="text-muted mb-0"><span data-i18n="register.has_account">Already have an account?</span> <a href="{{ url_for('auth.login') }}" class="text-primary fw-bold text-decoration-none" data-i18n="register.login_link">Login</a></p>
             </div>
         </div>
     </div>

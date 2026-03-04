@@ -8,25 +8,25 @@
                     <div class="text-primary">
                         <i class="bi bi-person-circle fs-2"></i>
                     </div>
-                    <h3 class="fw-bold">Chào mừng trở lại</h3>
-                    <p class="text-muted">Đăng nhập để xem các vận đơn của bạn</p>
+                    <h3 class="fw-bold" data-i18n="login.title">Welcome back</h3>
+                    <p class="text-muted" data-i18n="login.subtitle">Login to view your trackings</p>
                 </div>
 
                 <form method="POST" action="">
                     {{ form.hidden_tag() }}
                     <div class="mb-4">
-                        {{ form.username.label(class="form-label fw-bold small") }}
-                        {{ form.username(class="form-control form-control-lg", placeholder="Tên đăng nhập") }}
+                        <label class="form-label fw-bold small" data-i18n="login.username">Username</label>
+                        {{ form.username(class="form-control form-control-lg") }}
                     </div>
                     <div class="mb-4">
-                        {{ form.password.label(class="form-label fw-bold small") }}
+                        <label class="form-label fw-bold small" data-i18n="login.password">Password</label>
                         {{ form.password(class="form-control form-control-lg", placeholder="••••••••") }}
                     </div>
-                    {{ form.submit(class="btn btn-primary btn-lg w-100 shadow mt-2") }}
+                    <button type="submit" class="btn btn-primary btn-lg w-100 shadow mt-2" data-i18n="login.submit">Login</button>
                 </form>
             </div>
             <div class="card-footer bg-light p-4 text-center border-0 rounded-bottom-4">
-                <p class="text-muted mb-0">Chưa có tài khoản? <a href="{{ url_for('auth.register') }}" class="text-primary fw-bold text-decoration-none">Đăng ký ngay</a></p>
+                <p class="text-muted mb-0"><span data-i18n="login.no_account">Don't have an account?</span> <a href="{{ url_for('auth.register') }}" class="text-primary fw-bold text-decoration-none" data-i18n="login.register_link">Register now</a></p>
             </div>
         </div>
     </div>
