@@ -7,6 +7,7 @@ const translations = {
         'nav.logout': 'Thoát',
         'nav.login': 'Đăng nhập',
         'nav.register': 'Đăng ký',
+        'nav.donate': 'Ủng hộ',
         
         // Landing Page
         'landing.hero.title': 'Theo dõi đơn hàng',
@@ -115,6 +116,7 @@ const translations = {
         'nav.logout': 'Logout',
         'nav.login': 'Login',
         'nav.register': 'Register',
+        'nav.donate': 'Donate',
         
         // Landing Page
         'landing.hero.title': 'Track your orders',
