@@ -1,0 +1,60 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card p-4">
+            <div class="d-flex align-items-center mb-3">
+                <div class="bg-primary text-white rounded-3 p-2 me-3">
+                    <i class="bi bi-heart-fill"></i>
+                </div>
+                <div>
+                    <h4 class="mb-0">Ủng hộ</h4>
+                    <small class="text-muted">Cảm ơn bạn đã đồng hành cùng Order Tracker</small>
+                </div>
+            </div>
+            {% if not gateway_ready %}
+                <div class="alert alert-warning">Cổng thanh toán đang được cấu hình. Vui lòng thử lại sau.</div>
+            {% endif %}
+            <form method="POST" novalidate>
+                {{ form.hidden_tag() }}
+                <div class="mb-3">
+                    {{ form.name.label(class="form-label") }}
+                    {{ form.name(class="form-control", placeholder="Tên của bạn") }}
+                    {% for error in form.name.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                <div class="mb-3">
+                    {{ form.email.label(class="form-label") }}
+                    {{ form.email(class="form-control", placeholder="email@domain.com") }}
+                    {% for error in form.email.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                <div class="mb-3">
+                    {{ form.amount.label(class="form-label") }}
+                    <div class="input-group">
+                        {{ form.amount(class="form-control", min="1000", placeholder="Ví dụ: 50000") }}
+                        <span class="input-group-text">VND</span>
+                    </div>
+                    {% for error in form.amount.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                <div class="mb-3">
+                    {{ form.message.label(class="form-label") }}
+                    {{ form.message(class="form-control", placeholder="Lời nhắn dành cho đội ngũ", rows=3) }}
+                    {% for error in form.message.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="text-muted small">Cổng thanh toán</div>
+                    <span class="badge bg-light text-dark">Qua PayOS</span>
+                </div>
+                {{ form.submit(class="btn btn-primary w-100", disabled=not gateway_ready) }}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

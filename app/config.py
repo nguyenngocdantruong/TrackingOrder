@@ -15,3 +15,12 @@ class Config:
     TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
     ADMIN_TELEGRAM_USER_ID = os.getenv('ADMIN_TELEGRAM_USER_ID')
     WEBSITE_URL = os.getenv('WEBSITE_URL', 'http://127.0.0.1:5000').rstrip('/')
+
+    PAYOS_CLIENT_ID = os.getenv('PAYOS_CLIENT_ID')
+    PAYOS_API_KEY = os.getenv('PAYOS_API_KEY')
+    PAYOS_CHECKSUM_KEY = os.getenv('PAYOS_CHECKSUM_KEY')
+    PAYOS_RETURN_URL = os.getenv('PAYOS_RETURN_URL', f"{WEBSITE_URL}/payments/return")
+    PAYOS_CANCEL_URL = os.getenv('PAYOS_CANCEL_URL', f"{WEBSITE_URL}/payments/cancel")
+    PAYOS_DONATION_AMOUNT = int(os.getenv('PAYOS_DONATION_AMOUNT', 50000))
+
+    DONATE_NOTIFY_ALL = os.getenv('DONATE_NOTIFY_ALL', '0').lower() in ['1', 'true', 'yes']

@@ -2,6 +2,7 @@ from flask import Flask
 from flask_login import LoginManager
 from app.config import Config
 from app.firebase import init_firebase
+from app.payments.registry import init_gateways
 
 login_manager = LoginManager()
 login_manager.login_view = 'auth.login'
@@ -13,6 +14,9 @@ def create_app(config_class=Config):
 
     # Init Firebase
     init_firebase(app)
+
+    # Init payment gateways
+    init_gateways(app)
 
     # Init extensions
     login_manager.init_app(app)
@@ -30,11 +34,13 @@ def create_app(config_class=Config):
     from app.auth.routes import auth_bp, link_bp
     from app.tracking.routes import tracking_bp
     from app.settings.routes import settings_bp
+    from app.payments.routes import payments_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(link_bp)
     app.register_blueprint(tracking_bp)
     app.register_blueprint(settings_bp, url_prefix='/settings')
+    app.register_blueprint(payments_bp, url_prefix='/payments')
 
     @app.route('/')
     def index():

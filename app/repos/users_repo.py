@@ -161,6 +161,20 @@ class UsersRepo:
         })
 
     @staticmethod
+    def list_telegram_chat_ids():
+        """Return all Telegram chat IDs configured by users."""
+        db = get_db()
+        chat_ids = []
+        docs = db.collection(UsersRepo.COLLECTION).stream()
+        for doc in docs:
+            data = doc.to_dict()
+            settings = data.get('settings') or {}
+            chat_id = settings.get('telegramChatId')
+            if chat_id:
+                chat_ids.append(str(chat_id))
+        return chat_ids
+
+    @staticmethod
     def count_all_users():
         """Đếm tổng số user trong hệ thống"""
         db = get_db()
