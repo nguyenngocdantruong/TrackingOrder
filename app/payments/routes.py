@@ -11,7 +11,6 @@ payments_bp = Blueprint('payments', __name__)
 
 
 @payments_bp.route('/support', methods=['GET', 'POST'])
-@login_required
 def support():
     form = SupportForm()
     donation_default = current_app.config.get('PAYOS_DONATION_AMOUNT', 50000)
