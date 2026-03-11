@@ -1,3 +1,5 @@
+import json
+
 from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
@@ -8,6 +10,7 @@ from app.notifications.telegram import TelegramNotifier
 from app.repos.users_repo import UsersRepo
 
 payments_bp = Blueprint('payments', __name__)
+_pending_donations = {}
 
 
 @payments_bp.route('/support', methods=['GET', 'POST'])
@@ -39,6 +42,19 @@ def support():
             return redirect(url_for('payments.support'))
 
         current_app.logger.info("[Payment] Created donation link for %s amount=%s", donation.email, _format_amount(donation.amount))
+        # Store pending donation info by order_code for webhook enrichment
+        try:
+            order_code = getattr(payment_link, 'order_code', None)
+            if order_code:
+                _pending_donations[order_code] = {
+                    'name': donation.name,
+                    'email': donation.email,
+                    'message': donation.message,
+                    'amount': donation.amount,
+                }
+                current_app.logger.info('[Payment] Pending donation stored order_code=%s', order_code)
+        except Exception as exc:
+            current_app.logger.warning('[Payment] Failed to store pending donation: %s', exc)
         return redirect(payment_link.url)
 
     return render_template('payments/support.html', title='Ủng hộ', form=form, gateway_ready=bool(gateway))
@@ -72,6 +88,13 @@ def webhook():
         return {'error': 'Gateway not configured'}, 503
 
     raw_payload = request.get_data()
+    raw_json = None
+    try:
+        raw_decoded = raw_payload.decode('utf-8', errors='replace')
+        current_app.logger.info('[Payment] Webhook raw payload: %s', raw_decoded)
+        raw_json = json.loads(raw_decoded)
+    except Exception as exc:
+        current_app.logger.warning('[Payment] Unable to decode raw payload: %s', exc)
     try:
         result = gateway.verify_webhook(raw_payload)
     except Exception as exc:
@@ -84,6 +107,10 @@ def webhook():
         success = (code == '00')
     data = _get_attr(result, 'data', {}) or {}
 
+    if (not data) and isinstance(raw_json, dict):
+        data = raw_json.get('data', {}) or data
+        current_app.logger.info('[Payment] Fallback to raw_json data keys=%s', list(data.keys()) if isinstance(data, dict) else type(data))
+
     current_app.logger.info('[Payment] Webhook parsed code=%s success=%s data_keys=%s', code, success, list(data.keys()) if isinstance(data, dict) else type(data))
     try:
         current_app.logger.info('[Payment] Webhook data preview=%s', data)
@@ -94,8 +121,9 @@ def webhook():
         current_app.logger.info('Webhook not successful: code=%s success=%s payload=%s', code, success, data)
         return {'error': 'Webhook not successful'}, 400
 
-    current_app.logger.info('[Payment] Webhook verified: orderCode=%s amount=%s', _get_attr(data, 'orderCode'), _format_amount(_get_attr(data, 'amount', 0)))
-    _notify_donation_payload(data)
+    order_code = _get_attr(data, 'orderCode')
+    current_app.logger.info('[Payment] Webhook verified: orderCode=%s amount=%s', order_code, _format_amount(_get_attr(data, 'amount', 0)))
+    _notify_donation_payload(data, order_code)
     return {'status': 'ok'}
 
 
@@ -106,10 +134,23 @@ def _format_amount(amount: int) -> str:
         return f"{amount} VND"
 
 
-def _notify_donation_payload(data):
-    amount = _get_attr(data, 'amount', 0)
+def _notify_donation_payload(data, order_code=None):
+    raw_amount = _get_attr(data, 'amount', 0)
+    amount = _coerce_amount(raw_amount)
     name = _get_attr(data, 'buyerName') or _get_attr(data, 'buyer_name') or _get_attr(data, 'customerName') or 'bạn'
     note = _get_attr(data, 'description')
+
+    # Enrich from pending map if available
+    if order_code and order_code in _pending_donations:
+        pending = _pending_donations.pop(order_code, {})
+        name = pending.get('name') or name
+        note = pending.get('message') or note
+        if not raw_amount:
+            raw_amount = pending.get('amount', raw_amount)
+            amount = _coerce_amount(raw_amount)
+        current_app.logger.info('[Payment] Enriched from pending order_code=%s name=%s amount=%s note=%s', order_code, name, amount, note)
+
+    current_app.logger.info('[Payment] Notify payload: amount_raw=%s amount_parsed=%s name=%s note=%s', raw_amount, amount, name, note)
 
     msg_lines = [f"🎉 Cảm ơn đại gia {name} đã ủng hộ {_format_amount(amount)} cho tại hạ!"]
     if note:
@@ -124,6 +165,8 @@ def _notify_donation_payload(data):
         admin_id = current_app.config.get('ADMIN_TELEGRAM_USER_ID')
         if admin_id:
             recipients.add(str(admin_id))
+
+    current_app.logger.info('[Payment] Notify recipients: %s', list(recipients))
 
     for chat_id in recipients:
         TelegramNotifier.send_message(chat_id, msg, parse_mode=None)
@@ -144,3 +187,15 @@ def _get_attr(obj, key, default=None):
     if isinstance(obj, dict):
         return obj.get(key, default)
     return default
+
+
+def _coerce_amount(value):
+    try:
+        if value is None:
+            return 0
+        if isinstance(value, (int, float)):
+            return int(value)
+        value_str = str(value).strip().replace(',', '').replace('.', '')
+        return int(value_str)
+    except Exception:
+        return 0
