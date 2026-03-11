@@ -5,8 +5,13 @@
         <h1 class="display-3 fw-extrabold tracking-tight mb-4" style="letter-spacing: -2px;">
             <span data-i18n="landing.hero.title">Track your orders</span> <span class="text-primary" data-i18n="landing.hero.smart">smartly</span>
         </h1>
-        <p class="lead text-muted mb-5 fs-4" data-i18n="landing.hero.subtitle">
-            Centralized Hub solution helps you manage all packages with instant notifications via Telegram.
+        <p class="lead text-muted mb-5 fs-4">
+            <span data-i18n="landing.hero.subtitle.prefix">Giải pháp theo dõi đơn hàng tập trung giúp bạn quản lý tất cả kiện hàng của đơn vị</span>
+            <span id="provider-rotator" class="provider-rotator fw-semibold text-primary">
+                {{ providers[0].name if providers else 'Shopee Express VN' }}
+            </span>
+            <br>
+            <span data-i18n="landing.hero.subtitle.suffix">với thông báo tức thì qua Telegram.</span>
         </p>
         <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center justify-content-lg-start text-dark">
             {% if current_user.is_authenticated %}
@@ -52,5 +57,52 @@
 <style>
 .fw-extrabold { font-weight: 800; }
 .min-vh-75 { min-height: 75vh; }
+.provider-rotator { display: inline-flex; align-items: center; min-width: unset; transition: color 0.35s ease; }
+.provider-rotator.provider-animate { animation: providerSlide 0.65s ease; }
+@keyframes providerSlide {
+    0% { opacity: 1; transform: translateY(0); }
+    40% { opacity: 0; transform: translateY(-12px); }
+    60% { opacity: 0; transform: translateY(12px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
 </style>
+
+<script id="provider-data" type="application/json">{{ providers|default([], true)|tojson|safe }}</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const rotatorEl = document.getElementById('provider-rotator');
+    if (!rotatorEl) return;
+
+    const providerDataEl = document.getElementById('provider-data');
+    const providers = providerDataEl ? JSON.parse(providerDataEl.textContent || '[]') : [];
+    const names = providers.map(p => p.name).filter(Boolean);
+    const fallbackNames = ["Shopee Express VN", "LEX", "J&T Express"];
+    const activeNames = names.length ? names : fallbackNames;
+    const colors = ["#2563eb", "#16a34a", "#f59e0b", "#0ea5e9", "#e11d48", "#9333ea"];
+    let idx = 0;
+
+    const applyProvider = (nextIdx) => {
+        rotatorEl.textContent = activeNames[nextIdx];
+        rotatorEl.style.color = colors[nextIdx % colors.length];
+    };
+
+    applyProvider(0);
+    if (activeNames.length <= 1) return;
+
+    const animate = () => {
+        rotatorEl.classList.remove('provider-animate');
+        void rotatorEl.offsetWidth; // restart animation
+        rotatorEl.classList.add('provider-animate');
+
+        const nextIdx = (idx + 1) % activeNames.length;
+        setTimeout(() => {
+            applyProvider(nextIdx);
+            idx = nextIdx;
+        }, 300);
+    };
+
+    setInterval(animate, 4000);
+});
+</script>
 {% endblock %}

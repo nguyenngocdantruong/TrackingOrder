@@ -52,7 +52,11 @@ def create_app(config_class=Config):
     @app.route('/')
     def index():
         from flask import render_template
-        return render_template('landing.html')
+        providers_for_landing = [
+            {"id": provider_id, "name": display_name}
+            for provider_id, display_name in registry.list_providers()
+        ]
+        return render_template('landing.html', providers=providers_for_landing)
 
     @app.errorhandler(HTTPException)
     def handle_http_exception(err: HTTPException):
