@@ -80,11 +80,19 @@ def webhook():
         return {'error': 'Invalid signature'}, 400
 
     code = _get_attr(result, 'code')
-    success = _get_attr(result, 'success', False)
+    success = _get_attr(result, 'success', None)
+    if success is None:
+        success = (code == '00')
     data = _get_attr(result, 'data', {}) or {}
 
+    current_app.logger.info('[Payment] Webhook parsed code=%s success=%s data_keys=%s', code, success, list(data.keys()) if isinstance(data, dict) else type(data))
+    try:
+        current_app.logger.info('[Payment] Webhook data preview=%s', data)
+    except Exception:
+        pass
+
     if code != '00' or not success:
-        current_app.logger.info('Webhook not successful: code=%s success=%s', code, success)
+        current_app.logger.info('Webhook not successful: code=%s success=%s payload=%s', code, success, data)
         return {'error': 'Webhook not successful'}, 400
 
     current_app.logger.info('[Payment] Webhook verified: orderCode=%s amount=%s', _get_attr(data, 'orderCode'), _format_amount(_get_attr(data, 'amount', 0)))
