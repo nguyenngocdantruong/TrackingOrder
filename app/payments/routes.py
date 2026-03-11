@@ -39,6 +39,7 @@ def support():
             flash('Không thể tạo liên kết thanh toán. Vui lòng thử lại.', 'danger')
             return redirect(url_for('payments.support'))
 
+        current_app.logger.info("[Payment] Created donation link for %s amount=%s", donation.email, _format_amount(donation.amount))
         return redirect(payment_link.url)
 
     return render_template('payments/support.html', title='Ủng hộ', form=form, gateway_ready=bool(gateway))
@@ -86,6 +87,7 @@ def webhook():
         current_app.logger.info('Webhook not successful: code=%s success=%s', code, success)
         return {'error': 'Webhook not successful'}, 400
 
+    current_app.logger.info('[Payment] Webhook verified: orderCode=%s amount=%s', _get_attr(data, 'orderCode'), _format_amount(_get_attr(data, 'amount', 0)))
     _notify_donation_payload(data)
     return {'status': 'ok'}
 

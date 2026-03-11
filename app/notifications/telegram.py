@@ -22,6 +22,7 @@ class TelegramNotifier:
 
         try:
             response = requests.post(url, json=payload, timeout=10)
+            current_app.logger.info("[BOT] Telegram send message to %s with content: %s", chat_id, text)
             return response.status_code == 200
         except Exception as e:
             current_app.logger.error(f"Telegram error: {e}")
