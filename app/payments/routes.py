@@ -62,10 +62,9 @@ def cancel():
 
 @payments_bp.route('/webhook', methods=['POST'])
 def webhook():
-    website_url = current_app.config.get('WEBSITE_URL', '')
-    if not website_url.startswith('https://'):
-        current_app.logger.warning('Rejecting webhook because WEBSITE_URL is not HTTPS: %s', website_url)
-        return {'error': 'Webhook requires HTTPS'}, 400
+    if not _is_secure_webhook_request():
+        current_app.logger.warning('Rejecting webhook: insecure transport and not localhost testing')
+        return {'error': 'Webhook requires HTTPS or localhost testing'}, 400
 
     gateway = registry.get_gateway('payos') or get_default_gateway()
     if not gateway:
@@ -119,6 +118,15 @@ def _notify_donation_payload(data):
 
     for chat_id in recipients:
         TelegramNotifier.send_message(chat_id, msg, parse_mode=None)
+
+
+def _is_secure_webhook_request() -> bool:
+    website_url = current_app.config.get('WEBSITE_URL', '')
+    if website_url.startswith('https://'):
+        return True
+
+    host = (request.host or '').split(':')[0]
+    return host in ['127.0.0.1', 'localhost']
 
 
 def _get_attr(obj, key, default=None):

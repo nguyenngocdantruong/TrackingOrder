@@ -1,4 +1,9 @@
+import logging
+import os
+from logging.handlers import RotatingFileHandler
+
 from flask import Flask
+from werkzeug.exceptions import HTTPException
 from flask_login import LoginManager
 from app.config import Config
 from app.firebase import init_firebase
@@ -11,6 +16,8 @@ login_manager.login_message_category = 'info'
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
+
+    _configure_logging(app)
 
     # Init Firebase
     init_firebase(app)
@@ -47,7 +54,42 @@ def create_app(config_class=Config):
         from flask import render_template
         return render_template('landing.html')
 
+    @app.errorhandler(HTTPException)
+    def handle_http_exception(err: HTTPException):
+        if err.code >= 500:
+            app.logger.exception("HTTP %s error", err.code, exc_info=err)
+        else:
+            app.logger.warning("HTTP %s error: %s", err.code, err.description)
+        return err
+
+    @app.errorhandler(Exception)
+    def handle_unexpected_exception(err: Exception):
+        app.logger.exception("Unhandled exception", exc_info=err)
+        from flask import jsonify
+        return jsonify({'error': 'Internal Server Error'}), 500
+
     return app
+
+
+def _configure_logging(app: Flask):
+    log_file = app.config.get('LOG_FILE', 'logs/app.log')
+    log_level_name = str(app.config.get('LOG_LEVEL', 'INFO')).upper()
+    log_level = getattr(logging, log_level_name, logging.INFO)
+
+    app.logger.setLevel(log_level)
+
+    try:
+        os.makedirs(os.path.dirname(log_file), exist_ok=True)
+        if not any(isinstance(h, RotatingFileHandler) and getattr(h, 'baseFilename', None) == os.path.abspath(log_file) for h in app.logger.handlers):
+            file_handler = RotatingFileHandler(log_file, maxBytes=1_000_000, backupCount=3, encoding='utf-8')
+            file_handler.setLevel(log_level)
+            formatter = logging.Formatter('%(asctime)s %(levelname)s %(name)s %(message)s')
+            file_handler.setFormatter(formatter)
+            app.logger.addHandler(file_handler)
+    except Exception as exc:
+        app.logger.warning("Failed to set up file logging: %s", exc)
+
+    logging.getLogger('werkzeug').setLevel(log_level)
 
 from app.repos.users_repo import User
 @login_manager.user_loader

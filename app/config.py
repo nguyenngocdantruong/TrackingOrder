@@ -24,3 +24,6 @@ class Config:
     PAYOS_DONATION_AMOUNT = int(os.getenv('PAYOS_DONATION_AMOUNT', 50000))
 
     DONATE_NOTIFY_ALL = os.getenv('DONATE_NOTIFY_ALL', '0').lower() in ['1', 'true', 'yes']
+
+    LOG_FILE = os.getenv('LOG_FILE', 'logs/app.log')
+    LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
