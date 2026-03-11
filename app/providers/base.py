@@ -59,6 +59,11 @@ class CarrierProvider(ABC):
         pass
 
     @abstractmethod
+    def tracking_placeholder(self) -> str:
+        """Example format hint for the tracking number input."""
+        pass
+
+    @abstractmethod
     def supports(self, tracking_number: str) -> bool:
         pass
 

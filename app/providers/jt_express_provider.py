@@ -20,6 +20,9 @@ class JTExpressProvider(CarrierProvider):
     def displayName(self) -> str:
         return "J&T Express"
 
+    def tracking_placeholder(self) -> str:
+        return "Định dạng: <mã vận đơn>-<4 số cuối SĐT> (vd: 842594172358-9880)"
+
     def supports(self, tracking_number: str) -> bool:
         if not tracking_number:
             return False

@@ -18,7 +18,7 @@
                     {{ form.hidden_tag() }}
                     <div class="mb-4">
                         <label class="form-label fw-bold small" data-i18n="add.tracking_number">Tracking Number</label>
-                        {{ form.tracking_number(class="form-control form-control-lg") }}
+                        {{ form.tracking_number(class="form-control form-control-lg", placeholder=default_placeholder) }}
                         <div class="form-text mt-2 small text-muted" data-i18n="add.tracking_help">Enter tracking number to start.</div>
                     </div>
 
@@ -41,4 +41,22 @@
         </div>
     </div>
 </div>
+<script>
+    (() => {
+        const placeholders = {{ placeholders | tojson }};
+        const defaultPlaceholder = {{ default_placeholder | tojson }};
+        const trackingInput = document.getElementById("tracking_number");
+        const carrierSelect = document.getElementById("carrier_id");
+
+        if (!trackingInput || !carrierSelect) return;
+
+        const applyPlaceholder = () => {
+            const key = carrierSelect.value;
+            trackingInput.placeholder = placeholders[key] || defaultPlaceholder;
+        };
+
+        carrierSelect.addEventListener("change", applyPlaceholder);
+        applyPlaceholder();
+    })();
+</script>
 {% endblock %}

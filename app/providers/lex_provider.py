@@ -16,6 +16,9 @@ class LEXProvider(CarrierProvider):
     def displayName(self) -> str:
         return "LEX"
 
+    def tracking_placeholder(self) -> str:
+        return "Nhập mã bắt đầu bằng LEX..., ví dụ: LEXSTVN012345678"
+
     def get_info_from_status(self, status: str) -> list:
         status = status.lower()
 

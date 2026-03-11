@@ -3,6 +3,7 @@ from flask_login import current_user, login_required
 from app.tracking.forms import AddTrackingForm
 from app.repos.trackings_repo import TrackingsRepo
 from app.tracking.services import TrackingService
+from app.providers.registry import registry
 
 tracking_bp = Blueprint('tracking', __name__)
 
@@ -16,6 +17,8 @@ def dashboard():
 @login_required
 def add_tracking():
     form = AddTrackingForm()
+    placeholders = registry.placeholder_map()
+    default_placeholder = "Nhập mã vận đơn (vd: SPXVN..., LEX..., J&T: 842594172358-9880)"
     if form.validate_on_submit():
         result = TrackingService.create_tracking_for_user(
             user=current_user,
@@ -27,11 +30,11 @@ def add_tracking():
 
         if not result.get('success'):
             flash(result.get('error', 'Không thể thêm vận đơn mới.'), 'warning')
-            return render_template('tracking/add_tracking.html', form=form)
+            return render_template('tracking/add_tracking.html', form=form, placeholders=placeholders, default_placeholder=default_placeholder)
 
         flash('Thêm vận đơn thành công!', 'success')
         return redirect(url_for('tracking.dashboard'))
-    return render_template('tracking/add_tracking.html', form=form)
+    return render_template('tracking/add_tracking.html', form=form, placeholders=placeholders, default_placeholder=default_placeholder)
 
 @tracking_bp.route("/tracking/<tracking_id>")
 @login_required

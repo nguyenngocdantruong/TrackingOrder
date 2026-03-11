@@ -13,6 +13,9 @@ class SPXVNProvider(CarrierProvider):
     def displayName(self) -> str:
         return "Shopee Express VN"
 
+    def tracking_placeholder(self) -> str:
+        return "Nhập mã bắt đầu bằng SPXVN..., ví dụ: SPXVN0123456789"
+
     def supports(self, tracking_number: str) -> bool:
         return tracking_number.upper().startswith("SPXVN")
 

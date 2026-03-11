@@ -22,4 +22,7 @@ class ProviderRegistry:
     def list_providers(self):
         return [(p.id, p.displayName) for p in self._providers.values()]
 
+    def placeholder_map(self):
+        return {p.id: p.tracking_placeholder() for p in self._providers.values()}
+
 registry = ProviderRegistry()
