@@ -8,6 +8,7 @@ from flask_login import LoginManager
 from app.config import Config
 from app.firebase import init_firebase
 from app.payments.registry import init_gateways
+from app.notifications.registry import init_notification_providers
 
 login_manager = LoginManager()
 login_manager.login_view = 'auth.login'
@@ -24,6 +25,9 @@ def create_app(config_class=Config):
 
     # Init payment gateways
     init_gateways(app)
+
+    # Init notification providers
+    init_notification_providers(app)
 
     # Init extensions
     login_manager.init_app(app)

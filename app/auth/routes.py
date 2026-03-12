@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, url_for, flash, redirect, request
 from flask_login import login_user, current_user, logout_user, login_required
-from app.auth.forms import RegistrationForm, LoginForm, LinkTelegramForm
+from app.auth.forms import RegistrationForm, LoginForm, LinkTelegramForm, LinkZaloForm
 from app.repos.users_repo import UsersRepo
 
 auth_bp = Blueprint('auth', __name__)
@@ -70,3 +70,50 @@ def link_account():
             return redirect(url_for('auth.login'))
 
     return render_template('auth/link.html', title='Liên kết tài khoản', form=form, chat_id=chat_id, token=token)
+
+
+@link_bp.route("/link/zalo", methods=['GET', 'POST'])
+def link_zalo_account():
+    zalo_id = request.values.get('zalo_id')
+    token = request.values.get('token')
+
+    if not zalo_id or not token:
+        flash('Thiếu thông tin liên kết. Vui lòng thao tác lại từ Zalo bot.', 'danger')
+        return redirect(url_for('auth.login'))
+
+    user = UsersRepo.get_or_create_temp_by_zalo_account_id(zalo_id)
+
+    if not user.link_token or user.link_token != token:
+        flash('Liên kết không hợp lệ hoặc đã hết hạn.', 'danger')
+        return redirect(url_for('auth.login'))
+
+    if not user.is_temporary and user.settings.get('zaloAccountId'):
+        flash('Tài khoản Zalo này đã được liên kết.', 'info')
+        return redirect(url_for('auth.login'))
+
+    form = LinkZaloForm()
+    if form.validate_on_submit():
+        if form.mode.data == 'existing':
+            existing_user = UsersRepo.get_by_username(form.existing_username.data)
+            if not existing_user or not existing_user.verify_password(form.existing_password.data):
+                form.existing_password.errors.append('Sai tên đăng nhập hoặc mật khẩu.')
+            else:
+                from app.repos.trackings_repo import TrackingsRepo
+
+                UsersRepo.attach_zalo_account(existing_user.id, zalo_id)
+                if user.is_temporary and existing_user.id != user.id:
+                    TrackingsRepo.reassign_user(user.id, existing_user.id)
+                    UsersRepo.delete(user.id)
+
+                flash('Đã liên kết Zalo với tài khoản hiện có.', 'success')
+                return redirect(url_for('auth.login'))
+        else:
+            existed = UsersRepo.get_by_username(form.new_username.data)
+            if existed and existed.id != user.id:
+                form.new_username.errors.append('Tên đăng nhập đã tồn tại. Vui lòng chọn tên khác.')
+            else:
+                UsersRepo.link_temp_account_zalo(zalo_id, form.new_username.data, form.new_password.data)
+                flash('Tạo tài khoản mới và liên kết Zalo thành công!', 'success')
+                return redirect(url_for('auth.login'))
+
+    return render_template('auth/link_zalo.html', title='Liên kết Zalo', form=form, zalo_id=zalo_id, token=token)

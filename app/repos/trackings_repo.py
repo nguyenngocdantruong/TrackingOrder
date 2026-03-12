@@ -35,6 +35,20 @@ class TrackingsRepo:
         db.collection(TrackingsRepo.COLLECTION).document(tracking_id).delete()
 
     @staticmethod
+    def reassign_user(from_user_id, to_user_id):
+        """Move all trackings from one user to another."""
+        if from_user_id == to_user_id:
+            return
+
+        db = get_db()
+        docs = db.collection(TrackingsRepo.COLLECTION) \
+            .where(filter=FieldFilter('userId', '==', from_user_id)) \
+            .stream()
+
+        for doc in docs:
+            db.collection(TrackingsRepo.COLLECTION).document(doc.id).update({'userId': to_user_id})
+
+    @staticmethod
     def get_active_trackings():
         db = get_db()
         docs = db.collection(TrackingsRepo.COLLECTION).where(filter=FieldFilter('isActive', '==', True)).stream()

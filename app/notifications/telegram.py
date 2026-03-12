@@ -1,29 +1,40 @@
-import requests
-from flask import current_app
+"""
+Backward compatibility wrapper for TelegramNotifier.
+This class is deprecated - use NotificationService instead.
+"""
+from app.notifications.service import NotificationService
+
 
 class TelegramNotifier:
+    """
+    Deprecated: Use NotificationService instead.
+    This class is maintained for backward compatibility.
+    """
+    
     @staticmethod
     def send_message(chat_id, text, parse_mode='Markdown', reply_markup=None):
-        token = current_app.config.get('TELEGRAM_BOT_TOKEN')
-        if not token:
-            return False
-
-        url = f"https://api.telegram.org/bot{token}/sendMessage"
-        payload = {
-            'chat_id': chat_id,
-            'text': text
-        }
-
-        if parse_mode:
-            payload['parse_mode'] = parse_mode
-
+        """
+        Send a Telegram message (backward compatibility method).
+        
+        Args:
+            chat_id: Telegram chat ID
+            text: Message text
+            parse_mode: Parse mode (Markdown, HTML, or None)
+            reply_markup: Optional reply markup
+            
+        Returns:
+            Boolean indicating success (for backward compatibility)
+        """
+        kwargs = {}
         if reply_markup:
-            payload['reply_markup'] = reply_markup
+            kwargs['reply_markup'] = reply_markup
+        
+        result = NotificationService.send_to_chat_id(
+            chat_id,
+            text,
+            parse_mode,
+            **kwargs
+        )
+        
+        return result.success if result else False
 
-        try:
-            response = requests.post(url, json=payload, timeout=10)
-            current_app.logger.info("[BOT] Telegram send message to %s with content: %s", chat_id, text)
-            return response.status_code == 200
-        except Exception as e:
-            current_app.logger.error(f"Telegram error: {e}")
-            return False

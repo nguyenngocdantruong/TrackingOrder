@@ -14,8 +14,9 @@ class User(UserMixin):
         self.link_token = link_token
         self.settings = settings or {
             'telegramChatId': None,
+            'zaloAccountId': None,
             'notifyEnabled': True,
-            'channels': ['telegram']
+            'channels': ['telegram', 'zalo']
         }
 
     def verify_password(self, password):
@@ -23,6 +24,14 @@ class User(UserMixin):
 
 class UsersRepo:
     COLLECTION = 'users'
+
+    @staticmethod
+    def _ensure_channels(settings, *channels):
+        current_channels = list(settings.get('channels') or [])
+        for channel in channels:
+            if channel not in current_channels:
+                current_channels.append(channel)
+        return current_channels
 
     @staticmethod
     def get_by_id(user_id):
@@ -102,8 +111,51 @@ class UsersRepo:
             'linkToken': link_token,
             'settings': {
                 'telegramChatId': chat_id_str,
+                'zaloAccountId': None,
                 'notifyEnabled': True,
                 'channels': ['telegram']
+            }
+        }
+
+        update_time, doc_ref = db.collection(UsersRepo.COLLECTION).add(user_data)
+        return User(
+            doc_ref.id,
+            user_data['username'],
+            user_data['password_hash'],
+            user_data['settings'],
+            True,
+            link_token
+        )
+
+    @staticmethod
+    def get_or_create_temp_by_zalo_account_id(zalo_account_id):
+        zalo_id_str = str(zalo_account_id)
+        existing = UsersRepo.get_by_zalo_account_id(zalo_id_str)
+        if existing:
+            if not existing.link_token:
+                # ensure a fresh token so the link URL stays valid
+                db = get_db()
+                link_token = secrets.token_urlsafe(24)
+                db.collection(UsersRepo.COLLECTION).document(existing.id).update({'linkToken': link_token})
+                existing.link_token = link_token
+            return existing
+
+        db = get_db()
+        suffix = secrets.token_hex(4)
+        random_password = secrets.token_urlsafe(24)
+        link_token = secrets.token_urlsafe(24)
+
+        user_data = {
+            'username': f'zalo_{zalo_id_str}_{suffix}',
+            'password_hash': generate_password_hash(random_password),
+            'createdAt': firestore.SERVER_TIMESTAMP,
+            'isTemporary': True,
+            'linkToken': link_token,
+            'settings': {
+                'telegramChatId': None,
+                'zaloAccountId': zalo_id_str,
+                'notifyEnabled': True,
+                'channels': ['zalo']
             }
         }
 
@@ -145,8 +197,9 @@ class UsersRepo:
             'isTemporary': False,
             'settings': {
                 'telegramChatId': None,
+                'zaloAccountId': None,
                 'notifyEnabled': True,
-                'channels': ['telegram']
+                'channels': ['telegram', 'zalo']
             }
         }
         # App-level unique check is done in routes/services
@@ -161,6 +214,70 @@ class UsersRepo:
         })
 
     @staticmethod
+    def get_by_zalo_account_id(zalo_account_id):
+        """Get user by Zalo account ID."""
+        db = get_db()
+        if not zalo_account_id:
+            return None
+        
+        docs = db.collection(UsersRepo.COLLECTION) \
+            .where(filter=FieldFilter('settings.zaloAccountId', '==', str(zalo_account_id))) \
+            .limit(1) \
+            .stream()
+        
+        for doc in docs:
+            data = doc.to_dict()
+            return User(
+                doc.id,
+                data['username'],
+                data['password_hash'],
+                data.get('settings'),
+                data.get('isTemporary', False),
+                data.get('linkToken')
+            )
+        return None
+
+    @staticmethod
+    def link_temp_account_zalo(zalo_account_id, username, password):
+        user = UsersRepo.get_or_create_temp_by_zalo_account_id(zalo_account_id)
+        db = get_db()
+        password_hash = generate_password_hash(password)
+        channels = UsersRepo._ensure_channels(user.settings or {}, 'zalo')
+
+        db.collection(UsersRepo.COLLECTION).document(user.id).update({
+            'username': username,
+            'password_hash': password_hash,
+            'isTemporary': False,
+            'linkToken': firestore.DELETE_FIELD,
+            'settings.zaloAccountId': str(zalo_account_id),
+            'settings.channels': channels
+        })
+
+        updated = UsersRepo.get_by_id(user.id)
+        return updated
+
+    @staticmethod
+    def attach_zalo_account(user_id, zalo_account_id):
+        user = UsersRepo.get_by_id(user_id)
+        if not user:
+            return None
+
+        channels = UsersRepo._ensure_channels(user.settings or {}, 'zalo')
+        db = get_db()
+        db.collection(UsersRepo.COLLECTION).document(user.id).update({
+            'settings.zaloAccountId': str(zalo_account_id),
+            'settings.channels': channels,
+            'linkToken': firestore.DELETE_FIELD,
+            'isTemporary': False,
+        })
+        return UsersRepo.get_by_id(user.id)
+
+    @staticmethod
+    def delete(user_id):
+        db = get_db()
+        db.collection(UsersRepo.COLLECTION).document(user_id).delete()
+
+    @staticmethod
     def list_telegram_chat_ids():
         """Return all Telegram chat IDs configured by users."""
         db = get_db()
@@ -173,6 +290,20 @@ class UsersRepo:
             if chat_id:
                 chat_ids.append(str(chat_id))
         return chat_ids
+
+    @staticmethod
+    def list_zalo_account_ids():
+        """Return all Zalo account IDs configured by users."""
+        db = get_db()
+        account_ids = []
+        docs = db.collection(UsersRepo.COLLECTION).stream()
+        for doc in docs:
+            data = doc.to_dict()
+            settings = data.get('settings') or {}
+            zalo_id = settings.get('zaloAccountId')
+            if zalo_id:
+                account_ids.append(str(zalo_id))
+        return account_ids
 
     @staticmethod
     def count_all_users():

@@ -1,6 +1,7 @@
 from app import create_app
 from app.scheduler import init_scheduler
 from app.notifications.telegram_bot import start_telegram_chat_bot
+from app.notifications.zalo_bot import start_zalo_bot
 import os
 
 app = create_app()
@@ -46,6 +47,7 @@ if __name__ == "__main__":
         # Initialize background services AFTER reading config.conf
         init_scheduler(app)
         start_telegram_chat_bot(app)
+        start_zalo_bot(app)
 
     print(f" * Ứng dụng đang khởi chạy tại {host}:{port} (Debug: {debug_mode})")
     print(f" * Scheduler: {'Bật' if app.config.get('SCHEDULER_ENABLED') else 'Tắt'} (Interval: {app.config.get('POLL_INTERVAL_SECONDS')}s)")

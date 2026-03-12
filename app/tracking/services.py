@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from flask import current_app
 from app.repos.trackings_repo import TrackingsRepo
 from app.providers.registry import registry
-from app.notifications.telegram import TelegramNotifier
+from app.notifications.service import NotificationService
 
 class TrackingService:
     @staticmethod
@@ -49,13 +49,13 @@ class TrackingService:
 
         tracking_id = TrackingsRepo.create(tracking_data)
 
-        if send_notification and user.settings.get('notifyEnabled') and user.settings.get('telegramChatId'):
+        if send_notification and user.settings.get('notifyEnabled'):
             msg = f"➕ *Đã thêm vận đơn mới thành công!*\n" \
                   f"Mã: `{tracking_number}`\n" \
                   f"Tên: {alias or 'Không có'}\n" \
                   f"Hãng: {selected_carrier_id.upper()}\n\n" \
                   f"Hệ thống sẽ bắt đầu đồng bộ dữ liệu ngay bây giờ."
-            TelegramNotifier.send_message(user.settings['telegramChatId'], msg)
+            NotificationService.send_to_user(user, msg)
 
         # We already have the initial result, so update the record immediately without re-fetching
         # But for simplicity and to reuse the logic in refresh_tracking (merging, sorting, saving),
@@ -131,7 +131,7 @@ class TrackingService:
             # Trigger notification
             from app.repos.users_repo import UsersRepo
             user = UsersRepo.get_by_id(tracking['userId'])
-            if user and user.settings.get('notifyEnabled') and user.settings.get('telegramChatId'):
+            if user and user.settings.get('notifyEnabled'):
                 status_emoji = "✅" if is_final and result.currentStatus != "Cancelled" else "📦"
                 if "Cancel" in result.currentStatus or "Hủy" in result.currentStatus:
                     status_emoji = "❌"
@@ -145,7 +145,7 @@ class TrackingService:
                 if is_final:
                     msg += "\n\n🏁 *Đơn hàng này đã hoàn tất. Ngừng theo dõi.*"
 
-                TelegramNotifier.send_message(user.settings['telegramChatId'], msg)
+                NotificationService.send_to_user(user, msg)
 
         TrackingsRepo.update(tracking_id, update_data)
         return True

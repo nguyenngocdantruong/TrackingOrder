@@ -6,7 +6,7 @@ from flask_login import current_user, login_required
 from app.payments.base import DonationRequest
 from app.payments.forms import SupportForm
 from app.payments.registry import get_default_gateway, registry
-from app.notifications.telegram import TelegramNotifier
+from app.notifications.service import NotificationService
 from app.repos.users_repo import UsersRepo
 
 payments_bp = Blueprint('payments', __name__)
@@ -169,7 +169,7 @@ def _notify_donation_payload(data, order_code=None):
     current_app.logger.info('[Payment] Notify recipients: %s', list(recipients))
 
     for chat_id in recipients:
-        TelegramNotifier.send_message(chat_id, msg, parse_mode=None)
+        NotificationService.send_to_chat_id(chat_id, msg, parse_mode=None)
 
 
 def _is_secure_webhook_request() -> bool:
