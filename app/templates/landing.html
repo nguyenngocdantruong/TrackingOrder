@@ -7,7 +7,7 @@
         </h1>
         <p class="lead text-muted mb-5 fs-4">
             <span data-i18n="landing.hero.subtitle.prefix">Giải pháp theo dõi đơn hàng tập trung giúp bạn quản lý tất cả kiện hàng của đơn vị</span>
-            <span id="provider-rotator" class="provider-rotator fw-semibold text-primary">
+            <span id="provider-rotator" class="provider-rotator fw-semibold">
                 {{ providers[0].name if providers else 'Shopee Express VN' }}
             </span>
             <br>
@@ -83,6 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let idx = 0;
 
     const applyProvider = (nextIdx) => {
+        console.log("Index:", nextIdx, "Name:", activeNames[nextIdx], "Color:", colors[nextIdx % colors.length]);
         rotatorEl.textContent = activeNames[nextIdx];
         rotatorEl.style.color = colors[nextIdx % colors.length];
     };
