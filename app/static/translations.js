@@ -70,6 +70,12 @@ const translations = {
         'settings.test.title': 'Kiểm tra kết nối Bot',
         'settings.test.desc': 'Gửi tin nhắn mẫu thử nghiệm đến Telegram của bạn.',
         'settings.test.button': 'Gửi thử',
+        'settings.zalo.chat_id_label': 'Zalo Chat ID',
+        'settings.zalo.chat_id_placeholder': 'Nhập chat id',
+        'settings.zalo.chat_id_help': 'Dán chat_id đã lấy thủ công khi tạo bot slash command.',
+        'settings.zalo_test.title': 'Test Zalo Bot',
+        'settings.zalo_test.desc': 'Gửi tin nhắn test tới Zalo Chat ID đã lưu.',
+        'settings.zalo_test.button': 'Gửi thử',
         
         // Auth
         'login.title': 'Chào mừng trở lại',
@@ -181,6 +187,12 @@ const translations = {
         'settings.test.title': 'Test Bot Connection',
         'settings.test.desc': 'Send a test message to your Telegram.',
         'settings.test.button': 'Send Test',
+        'settings.zalo.chat_id_label': 'Zalo Chat ID',
+        'settings.zalo.chat_id_placeholder': 'Enter chat id',
+        'settings.zalo.chat_id_help': 'Paste the chat_id you obtained when creating the slash-command bot.',
+        'settings.zalo_test.title': 'Test Zalo Bot',
+        'settings.zalo_test.desc': 'Send a test message to the saved Zalo Chat ID.',
+        'settings.zalo_test.button': 'Send Test',
         
         // Auth
         'login.title': 'Welcome back',

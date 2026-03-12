@@ -13,7 +13,11 @@ def index():
     if form.validate_on_submit():
         settings = {
             'telegramChatId': form.telegram_chat_id.data,
-            'zaloAccountId': form.zalo_account_id.data,
+            'zaloAccountId': form.zalo_chat_id.data,  # backward compatible key
+            'zalo': {
+                'name': None,
+                'chatId': form.zalo_chat_id.data,
+            },
             'notifyEnabled': form.notify_enabled.data,
             'channels': current_user.settings.get('channels', ['telegram'])
         }
@@ -22,7 +26,8 @@ def index():
         return redirect(url_for('settings.index'))
     elif request.method == 'GET':
         form.telegram_chat_id.data = current_user.settings.get('telegramChatId')
-        form.zalo_account_id.data = current_user.settings.get('zaloAccountId')
+        zalo_settings = current_user.settings.get('zalo') or {}
+        form.zalo_chat_id.data = zalo_settings.get('chatId') or current_user.settings.get('zaloAccountId')
         form.notify_enabled.data = current_user.settings.get('notifyEnabled')
     return render_template('settings/index.html', title='Settings', form=form)
 
@@ -45,4 +50,27 @@ def test_telegram():
             flash('Telegram provider not configured', 'danger')
     else:
         flash('Please set a Telegram Chat ID first.', 'warning')
+    return redirect(url_for('settings.index'))
+
+
+@settings_bp.route("/test-zalo", methods=['POST'])
+@login_required
+def test_zalo():
+    zalo_settings = current_user.settings.get('zalo') or {}
+    chat_id = zalo_settings.get('chatId') or current_user.settings.get('zaloAccountId')
+    if chat_id:
+        zalo_provider = registry.get_provider('zalo')
+        if zalo_provider and zalo_provider.is_configured():
+            result = zalo_provider.send_message(
+                chat_id,
+                "🔔 Test notification from Order Tracking Hub!"
+            )
+            if result.success:
+                flash('Test Zalo notification sent!', 'success')
+            else:
+                flash(f'Failed to send Zalo notification: {result.error_message}', 'danger')
+        else:
+            flash('Zalo provider not configured', 'danger')
+    else:
+        flash('Please set a Zalo Chat ID first.', 'warning')
     return redirect(url_for('settings.index'))

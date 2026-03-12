@@ -53,12 +53,13 @@ class NotificationService:
                 results.append(result)
         
         # Send via Zalo if configured
-        zalo_account_id = user.settings.get('zaloAccountId')
-        if zalo_account_id:
+        zalo_settings = user.settings.get('zalo') or {}
+        zalo_chat_id = zalo_settings.get('chatId') or user.settings.get('zaloAccountId')
+        if zalo_chat_id:
             zalo_provider = registry.get_provider('zalo')
             if zalo_provider and zalo_provider.is_configured():
                 result = zalo_provider.send_message(
-                    zalo_account_id,
+                    zalo_chat_id,
                     message,
                     parse_mode,
                     **kwargs

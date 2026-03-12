@@ -15,9 +15,13 @@ class User(UserMixin):
         self.settings = settings or {
             'telegramChatId': None,
             'zaloAccountId': None,
+            'zalo': {'name': None, 'chatId': None},
             'notifyEnabled': True,
             'channels': ['telegram', 'zalo']
         }
+        self.settings.setdefault('zalo', {'name': None, 'chatId': None})
+        if self.settings.get('zaloAccountId') and not self.settings['zalo'].get('chatId'):
+            self.settings['zalo']['chatId'] = str(self.settings.get('zaloAccountId'))
 
     def verify_password(self, password):
         return check_password_hash(self.password_hash, password)
@@ -112,6 +116,7 @@ class UsersRepo:
             'settings': {
                 'telegramChatId': chat_id_str,
                 'zaloAccountId': None,
+                'zalo': {'name': None, 'chatId': None},
                 'notifyEnabled': True,
                 'channels': ['telegram']
             }
@@ -138,6 +143,20 @@ class UsersRepo:
                 link_token = secrets.token_urlsafe(24)
                 db.collection(UsersRepo.COLLECTION).document(existing.id).update({'linkToken': link_token})
                 existing.link_token = link_token
+            # Backfill Zalo contact structure if missing
+            if not (existing.settings or {}).get('zalo'):
+                db = get_db()
+                db.collection(UsersRepo.COLLECTION).document(existing.id).update({
+                    'settings.zalo.chatId': zalo_id_str,
+                    'settings.zalo.name': firestore.DELETE_FIELD,
+                })
+                existing.settings.setdefault('zalo', {'name': None, 'chatId': zalo_id_str})
+            elif not existing.settings['zalo'].get('chatId'):
+                db = get_db()
+                db.collection(UsersRepo.COLLECTION).document(existing.id).update({
+                    'settings.zalo.chatId': zalo_id_str,
+                })
+                existing.settings['zalo']['chatId'] = zalo_id_str
             return existing
 
         db = get_db()
@@ -154,6 +173,7 @@ class UsersRepo:
             'settings': {
                 'telegramChatId': None,
                 'zaloAccountId': zalo_id_str,
+                'zalo': {'name': None, 'chatId': zalo_id_str},
                 'notifyEnabled': True,
                 'channels': ['zalo']
             }
@@ -198,6 +218,7 @@ class UsersRepo:
             'settings': {
                 'telegramChatId': None,
                 'zaloAccountId': None,
+                'zalo': {'name': None, 'chatId': None},
                 'notifyEnabled': True,
                 'channels': ['telegram', 'zalo']
             }
@@ -219,22 +240,24 @@ class UsersRepo:
         db = get_db()
         if not zalo_account_id:
             return None
-        
-        docs = db.collection(UsersRepo.COLLECTION) \
-            .where(filter=FieldFilter('settings.zaloAccountId', '==', str(zalo_account_id))) \
-            .limit(1) \
-            .stream()
-        
-        for doc in docs:
-            data = doc.to_dict()
-            return User(
-                doc.id,
-                data['username'],
-                data['password_hash'],
-                data.get('settings'),
-                data.get('isTemporary', False),
-                data.get('linkToken')
-            )
+
+        search_paths = ['settings.zaloAccountId', 'settings.zalo.chatId']
+        for path in search_paths:
+            docs = db.collection(UsersRepo.COLLECTION) \
+                .where(filter=FieldFilter(path, '==', str(zalo_account_id))) \
+                .limit(1) \
+                .stream()
+
+            for doc in docs:
+                data = doc.to_dict()
+                return User(
+                    doc.id,
+                    data['username'],
+                    data['password_hash'],
+                    data.get('settings'),
+                    data.get('isTemporary', False),
+                    data.get('linkToken')
+                )
         return None
 
     @staticmethod
@@ -250,6 +273,7 @@ class UsersRepo:
             'isTemporary': False,
             'linkToken': firestore.DELETE_FIELD,
             'settings.zaloAccountId': str(zalo_account_id),
+            'settings.zalo.chatId': str(zalo_account_id),
             'settings.channels': channels
         })
 
@@ -266,6 +290,7 @@ class UsersRepo:
         db = get_db()
         db.collection(UsersRepo.COLLECTION).document(user.id).update({
             'settings.zaloAccountId': str(zalo_account_id),
+            'settings.zalo.chatId': str(zalo_account_id),
             'settings.channels': channels,
             'linkToken': firestore.DELETE_FIELD,
             'isTemporary': False,
@@ -300,10 +325,11 @@ class UsersRepo:
         for doc in docs:
             data = doc.to_dict()
             settings = data.get('settings') or {}
-            zalo_id = settings.get('zaloAccountId')
+            zalo_settings = settings.get('zalo') or {}
+            zalo_id = zalo_settings.get('chatId') or settings.get('zaloAccountId')
             if zalo_id:
                 account_ids.append(str(zalo_id))
-        return account_ids
+        return list(dict.fromkeys(account_ids))
 
     @staticmethod
     def count_all_users():

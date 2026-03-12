@@ -35,13 +35,14 @@
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label fw-bold small" data-i18n="settings.zalo_id">Zalo Account ID</label>
+                        <label class="form-label fw-bold small" data-i18n="settings.zalo.chat_id_label">Zalo Chat ID</label>
                         <div class="input-group">
-                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-person-badge"></i></span>
-                            {{ form.zalo_account_id(class="form-control form-control-lg border-start-0") }}
+                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-hash"></i></span>
+                            {{ form.zalo_chat_id(class="form-control form-control-lg border-start-0", placeholder="Nhập chat id") }}
                         </div>
                         <div class="form-text mt-2">
-                            <i class="bi bi-info-circle me-1"></i> <span data-i18n="settings.zalo_help">Enter your Zalo account ID to receive notifications via Zalo.</span>
+                            <i class="bi bi-info-circle me-1"></i>
+                            <span data-i18n="settings.zalo.chat_id_help">Dán chat_id đã lấy thủ công khi tạo bot slash command.</span>
                         </div>
                     </div>
 
@@ -76,6 +77,25 @@
                     </div>
                     <form action="{{ url_for('settings.test_telegram') }}" method="POST" class="w-100 w-sm-auto">
                         <button type="submit" class="btn btn-outline-info rounded-pill px-4 fw-bold w-100" data-i18n="settings.test.button">Send Test</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm overflow-hidden mb-5" style="border-left: 5px solid #0a7cff !important;">
+            <div class="card-body p-4">
+                <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-3 me-3">
+                            <i class="bi bi-chat-dots-fill fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-1 text-dark" data-i18n="settings.zalo_test.title">Test Zalo Bot</h6>
+                            <p class="text-muted small mb-0" data-i18n="settings.zalo_test.desc">Gửi tin nhắn test tới Zalo Chat ID đã lưu.</p>
+                        </div>
+                    </div>
+                    <form action="{{ url_for('settings.test_zalo') }}" method="POST" class="w-100 w-sm-auto">
+                        <button type="submit" class="btn btn-outline-primary rounded-pill px-4 fw-bold w-100" data-i18n="settings.zalo_test.button">Send Test</button>
                     </form>
                 </div>
             </div>

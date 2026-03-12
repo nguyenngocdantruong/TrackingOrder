@@ -1,7 +1,6 @@
-import asyncio
 from typing import Optional
+import requests
 from flask import current_app
-import zalo_bot
 
 from app.notifications.base import NotificationProvider, NotificationResult
 
@@ -30,22 +29,28 @@ class ZaloBotProvider(NotificationProvider):
         if not self.is_configured():
             return NotificationResult(success=False, error_message="Zalo bot not configured")
 
-        async def _send():
-            bot = zalo_bot.Bot(self._token)
-            async with bot:
-                return await bot.send_message(str(recipient_id), text)
+        url = f"https://bot-api.zaloplatforms.com/bot{self._token}/sendMessage"
+        payload = {
+            'chat_id': str(recipient_id),
+            'text': text,
+        }
 
         try:
-            message = asyncio.run(_send())
-            response_data = None
-            if message:
-                response_data = {
-                    "message_id": getattr(message, "id", None),
-                    "chat_id": getattr(message.chat, "id", None) if getattr(message, "chat", None) else None,
-                }
+            response = requests.post(url, json=payload, timeout=10)
+            data = response.json() if response.text else {}
+
             if current_app:
-                current_app.logger.info("[Zalo] Message sent to %s", recipient_id)
-            return NotificationResult(success=True, response_data=response_data)
+                preview = text[:50] + "..." if len(text) > 50 else text
+                current_app.logger.info("[Zalo] Message sent to %s: %s", recipient_id, preview)
+
+            if response.status_code == 200 and data.get('ok', False):
+                return NotificationResult(success=True, response_data=data.get('result'))
+
+            return NotificationResult(
+                success=False,
+                error_message=data.get('description') or f"Zalo API error: {response.status_code}",
+                response_data=data or None,
+            )
         except Exception as exc:  # pragma: no cover - network errors
             if current_app:
                 current_app.logger.error("Zalo bot error: %s", exc)

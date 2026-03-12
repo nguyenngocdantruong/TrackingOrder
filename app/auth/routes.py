@@ -87,7 +87,8 @@ def link_zalo_account():
         flash('Liên kết không hợp lệ hoặc đã hết hạn.', 'danger')
         return redirect(url_for('auth.login'))
 
-    if not user.is_temporary and user.settings.get('zaloAccountId'):
+    zalo_settings = user.settings.get('zalo') or {}
+    if not user.is_temporary and (user.settings.get('zaloAccountId') or zalo_settings.get('chatId')):
         flash('Tài khoản Zalo này đã được liên kết.', 'info')
         return redirect(url_for('auth.login'))
 
