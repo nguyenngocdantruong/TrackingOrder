@@ -112,7 +112,19 @@ async def _handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     with flask_app.app_context():
         user = UsersRepo.get_or_create_temp_by_zalo_account_id(zalo_id)
+        zalo_settings = user.settings.get('zalo') or {}
+
+        # Nếu đã liên kết rồi thì trả lời ngắn gọn, không gửi lại link
+        if not user.is_temporary and (user.settings.get('zaloAccountId') or zalo_settings.get('chatId')):
+            await _send_simple_reply(update, (
+                "🤖 Zalo Tracking Bot\n"
+                "Tài khoản Zalo này đã được liên kết.\n"
+                "Dùng /help để xem danh sách lệnh, /list để xem đơn hàng."
+            ))
+            return
+
         link_url = _build_link_url(flask_app, zalo_id, user.link_token)
+
     await _send_simple_reply(update, (
         "🤖 Zalo Tracking Bot\n"
         "Nhấn liên kết bên dưới để gắn Zalo vào tài khoản.\n"

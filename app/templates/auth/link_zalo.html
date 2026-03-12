@@ -32,7 +32,7 @@
                         {% endfor %}
                     </div>
 
-                    <div class="border rounded-4 p-3 mb-3">
+                    <div class="border rounded-4 p-3 mb-3" id="link-existing">
                         <div class="d-flex align-items-center mb-3">
                             <span class="badge bg-secondary me-2">Tùy chọn 1</span>
                             <h6 class="mb-0">Liên kết tài khoản hiện có</h6>
@@ -54,7 +54,7 @@
                         <p class="text-muted small mb-0">Sử dụng nếu bạn đã có tài khoản trên website và muốn gắn Zalo vào.</p>
                     </div>
 
-                    <div class="border rounded-4 p-3 mb-4">
+                    <div class="border rounded-4 p-3 mb-4" id="link-new">
                         <div class="d-flex align-items-center mb-3">
                             <span class="badge bg-info me-2">Tùy chọn 2</span>
                             <h6 class="mb-0">Tạo tài khoản mới</h6>
@@ -89,4 +89,40 @@
         </div>
     </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const modeInputs = document.querySelectorAll('input[name="mode"]');
+    const existingSection = document.getElementById('link-existing');
+    const newSection = document.getElementById('link-new');
+    const existingFields = ['existing_username', 'existing_password'];
+    const newFields = ['new_username', 'new_password', 'confirm_new_password'];
+
+    const setRequired = (fieldIds, required) => {
+        fieldIds.forEach((id) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (required) {
+                el.setAttribute('required', 'required');
+            } else {
+                el.removeAttribute('required');
+            }
+        });
+    };
+
+    const syncMode = () => {
+        const selected = document.querySelector('input[name="mode"]:checked');
+        const useExisting = !selected || selected.value === 'existing';
+        existingSection.classList.toggle('d-none', !useExisting);
+        newSection.classList.toggle('d-none', useExisting);
+        setRequired(existingFields, useExisting);
+        setRequired(newFields, !useExisting);
+    };
+
+    modeInputs.forEach((input) => {
+        input.addEventListener('change', syncMode);
+    });
+
+    syncMode();
+});
+</script>
 {% endblock %}
