@@ -158,18 +158,32 @@ def _notify_donation_payload(data, order_code=None):
     msg = "\n".join(msg_lines)
 
     notify_all = current_app.config.get('DONATE_NOTIFY_ALL', False)
-    recipients = set()
+
     if notify_all:
-        recipients.update(UsersRepo.list_telegram_chat_ids())
+        try:
+            users = UsersRepo.list_all_users()
+            current_app.logger.info('[Payment] Notifying all users count=%s', len(users))
+            for user in users:
+                NotificationService.send_to_user(user, msg, parse_mode=None)
+        except Exception as exc:
+            current_app.logger.error('[Payment] Failed to notify all users: %s', exc)
     else:
         admin_id = current_app.config.get('ADMIN_TELEGRAM_USER_ID')
+        admin_user = None
         if admin_id:
-            recipients.add(str(admin_id))
+            try:
+                admin_user = UsersRepo.get_by_telegram_chat_id(admin_id)
+            except Exception as exc:
+                current_app.logger.warning('[Payment] Unable to lookup admin user via Telegram ID %s: %s', admin_id, exc)
 
-    current_app.logger.info('[Payment] Notify recipients: %s', list(recipients))
-
-    for chat_id in recipients:
-        NotificationService.send_to_chat_id(chat_id, msg, parse_mode=None)
+        if admin_user:
+            current_app.logger.info('[Payment] Notifying admin user %s via configured channels', admin_user.id)
+            NotificationService.send_to_user(admin_user, msg, parse_mode=None)
+        elif admin_id:
+            current_app.logger.info('[Payment] Notifying admin via Telegram chat_id=%s', admin_id)
+            NotificationService.send_to_chat_id(str(admin_id), msg, parse_mode=None)
+        else:
+            current_app.logger.warning('[Payment] No admin recipient configured for donation notification')
 
 
 def _is_secure_webhook_request() -> bool:

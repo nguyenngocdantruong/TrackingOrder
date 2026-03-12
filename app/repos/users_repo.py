@@ -332,6 +332,26 @@ class UsersRepo:
         return list(dict.fromkeys(account_ids))
 
     @staticmethod
+    def list_all_users():
+        """Return all users with their settings populated."""
+        db = get_db()
+        users = []
+        docs = db.collection(UsersRepo.COLLECTION).stream()
+        for doc in docs:
+            data = doc.to_dict() or {}
+            users.append(
+                User(
+                    doc.id,
+                    data.get('username'),
+                    data.get('password_hash'),
+                    data.get('settings'),
+                    data.get('isTemporary', False),
+                    data.get('linkToken'),
+                )
+            )
+        return users
+
+    @staticmethod
     def count_all_users():
         """Đếm tổng số user trong hệ thống"""
         db = get_db()
