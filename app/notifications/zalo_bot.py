@@ -25,6 +25,17 @@ def _build_link_url(app, zalo_id, link_token):
     return f"{base_url}/link/zalo?{query}"
 
 
+def _linking_message(zalo_id: str, link_url: str) -> str:
+    return (
+        "🤖 Zalo Tracking Bot\n"
+        "Nhấn liên kết bên dưới để gắn Zalo vào tài khoản.\n"
+        "Bạn có thể đăng nhập tài khoản sẵn có hoặc tạo tài khoản mới.\n"
+        f"{link_url}\n\n"
+        "Hoặc dán Chat ID này vào trang Cài đặt trên web:\n"
+        f"Chat ID: {zalo_id}"
+    )
+
+
 def _help_text():
     return (
         "🤖 Zalo Tracking Bot\n\n"
@@ -77,10 +88,7 @@ async def _send_link_reminder_if_needed(flask_app, update: Update, user):
 
     link_url = _build_link_url(flask_app, _extract_chat_id(update), user.link_token)
     if update.message:
-        await update.message.reply_text(
-            "Bạn đang dùng tài khoản tạm. Nhấn liên kết để gắn tài khoản website:\n"
-            f"{link_url}"
-        )
+        await update.message.reply_text(_linking_message(_extract_chat_id(update), link_url))
 
 
 async def _send_simple_reply(update: Update, text: str):
@@ -125,12 +133,7 @@ async def _handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         link_url = _build_link_url(flask_app, zalo_id, user.link_token)
 
-    await _send_simple_reply(update, (
-        "🤖 Zalo Tracking Bot\n"
-        "Nhấn liên kết bên dưới để gắn Zalo vào tài khoản.\n"
-        "Bạn có thể đăng nhập tài khoản sẵn có hoặc tạo tài khoản mới.\n"
-        f"{link_url}"
-    ))
+        await _send_simple_reply(update, _linking_message(zalo_id, link_url))
 
 
 async def _handle_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -322,10 +325,13 @@ async def _handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = UsersRepo.get_or_create_temp_by_zalo_account_id(zalo_id)
         link_url = _build_link_url(flask_app, zalo_id, user.link_token)
 
-    await _send_simple_reply(update, (
-        "Mình đã nhận tin nhắn. Dùng /help để xem danh sách lệnh hỗ trợ.\n"
-        f"Liên kết tài khoản tại: {link_url}"
-    ))
+    if user.is_temporary:
+        await _send_simple_reply(update, _linking_message(zalo_id, link_url))
+    else:
+        await _send_simple_reply(update, (
+            "Mình đã nhận tin nhắn. Dùng /help để xem danh sách lệnh hỗ trợ.\n"
+            f"Liên kết tài khoản tại: {link_url}"
+        ))
 
 
 def _build_application(flask_app, token: str):

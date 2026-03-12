@@ -19,7 +19,7 @@
             <div class="card-body p-4">
                 <div class="alert alert-warning border-0 rounded-4 mb-4 small">
                     <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                    <strong><span data-i18n="settings.telegram.warning">Please click</span>:</strong> <span data-i18n="settings.telegram.warning">Please click</span> <strong><span data-i18n="settings.telegram.start">Start</span></strong> <span data-i18n="settings.telegram.warning2">or chat with bot</span> <a href="https://t.me/orderskibidi_bot" target="_blank" class="fw-bold">@orderskibidi_bot</a> <span data-i18n="settings.telegram.warning3">before configuring Telegram ID so the Bot can send you messages.</span>
+                    <strong><span data-i18n="settings.telegram.warning">Please click</span>:</strong> <span data-i18n="settings.telegram.warning">Please click</span> <strong><span data-i18n="settings.telegram.start">Start</span></strong> <span data-i18n="settings.telegram.warning2">or chat with bot</span> <a href="{{ telegram_link }}" target="_blank" class="fw-bold">{{ telegram_handle }}</a> <span data-i18n="settings.telegram.warning3">before configuring Telegram ID so the Bot can send you messages.</span>
                 </div>
                 <form method="POST" action="">
                     {{ form.hidden_tag() }}
@@ -43,6 +43,11 @@
                         <div class="form-text mt-2">
                             <i class="bi bi-info-circle me-1"></i>
                             <span data-i18n="settings.zalo.chat_id_help">Dán chat_id đã lấy thủ công khi tạo bot slash command.</span>
+                        </div>
+                        <div class="alert alert-info border-0 rounded-4 mt-3 small">
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                            <span data-i18n="settings.zalo.chat_id_notice.prefix">Vui lòng chat với bot để lấy chat id cho Zalo. Mở bot tại</span>
+                            <a href="{{ zalo_bot_link }}" target="_blank" class="fw-bold text-decoration-none" data-i18n="settings.zalo.chat_id_notice.link">zalo.me/{{ zalo_bot_uid }}</a>.
                         </div>
                     </div>
 
