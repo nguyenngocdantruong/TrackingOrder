@@ -28,6 +28,7 @@ def _help_text():
         "/remove <mã vận đơn> - xóa đơn hàng\n"
         "/providers - hiển thị danh sách đơn vị vận chuyển\n"
         "/list - hiển thị danh sách đơn hàng\n"
+        "/oil - nhận giá xăng dầu hôm nay\n"
         "/stats - xem thống kê cá nhân\n"
         "/help - hướng dẫn sử dụng\n"
         "/author - tác giả"
@@ -258,6 +259,24 @@ def _handle_stats_command(app, chat_id):
     _send_link_reminder_if_needed(app, user, chat_id)
 
 
+def _handle_oil_command(app, chat_id):
+    from app.notifications.oil_price_service import OilPriceService
+
+    try:
+        with app.app_context():
+            data = OilPriceService.fetch_latest(app)
+            message = OilPriceService.build_message(data)
+    except Exception as exc:
+        TelegramNotifier.send_message(chat_id, f"Không lấy được giá xăng dầu: {exc}", parse_mode=None)
+        return
+
+    if not message:
+        TelegramNotifier.send_message(chat_id, "Chưa có dữ liệu giá xăng dầu.", parse_mode=None)
+        return
+
+    TelegramNotifier.send_message(chat_id, message, parse_mode='Markdown')
+
+
 def _handle_message(app, message):
     chat = message.get('chat') or {}
     chat_id = chat.get('id')
@@ -304,6 +323,10 @@ def _handle_message(app, message):
 
         if command == '/stats':
             _handle_stats_command(app, chat_id)
+            return
+
+        if command == '/oil':
+            _handle_oil_command(app, chat_id)
             return
 
         if command == '/add':

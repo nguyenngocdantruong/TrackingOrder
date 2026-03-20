@@ -14,6 +14,10 @@ class Config:
     POWER_OUTAGE_ENABLED = os.getenv('POWER_OUTAGE_ENABLED', 'true').lower() == 'true'
     POWER_OUTAGE_INTERVAL_SECONDS = int(os.getenv('POWER_OUTAGE_INTERVAL_SECONDS', 21600))
 
+    OIL_PRICE_URL = os.getenv('OIL_PRICE_URL', 'https://giaxanghomnay.com/tinh-tp/ha-noi')
+    OIL_NOTIFY_ENABLED = os.getenv('OIL_NOTIFY_ENABLED', 'true').lower() == 'true'
+    TIME_NOTIFY_OIL = os.getenv('TIME_NOTIFY_OIL', '07:30')
+
     TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
     TELEGRAM_BOT_USERNAME = os.getenv('TELEGRAM_BOT_USERNAME', 'orderskibidi_bot')
     ZALO_BOT_TOKEN = os.getenv('ZALO_BOT_TOKEN')

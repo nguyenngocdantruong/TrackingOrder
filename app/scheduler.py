@@ -1,4 +1,6 @@
 import atexit
+from datetime import timedelta, timezone
+
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import current_app
 from app.repos.trackings_repo import TrackingsRepo
@@ -20,8 +22,8 @@ def refresh_all_active_trackings(app):
 def init_scheduler(app):
     if not app.config.get('SCHEDULER_ENABLED'):
         return None
-        
-    scheduler = BackgroundScheduler()
+    
+    scheduler = BackgroundScheduler(timezone=timezone.utc)
     interval = app.config.get('POLL_INTERVAL_SECONDS', 300)
 
     scheduler.add_job(
@@ -41,6 +43,22 @@ def init_scheduler(app):
             args=[app]
         )
 
+    oil_enabled = app.config.get('OIL_NOTIFY_ENABLED', True)
+    oil_time_str = app.config.get('TIME_NOTIFY_OIL', '07:30')
+    if oil_enabled:
+        hour_min = _parse_time(oil_time_str)
+        if hour_min:
+            scheduler.add_job(
+                func=_notify_oil_price,
+                trigger="cron",
+                hour=hour_min[0],
+                minute=hour_min[1],
+                timezone=timezone(timedelta(hours=7)),
+                args=[app]
+            )
+        else:
+            app.logger.warning("Invalid TIME_NOTIFY_OIL format: %s", oil_time_str)
+
     scheduler.start()
 
     # Shut down the scheduler when exiting the app
@@ -55,3 +73,31 @@ def _refresh_power_outage(app):
             current_app.logger.info(
                 "[POLLING POWER] Sent %s notifications", processed
             )
+
+
+def _notify_oil_price(app):
+    with app.app_context():
+        from app.notifications.oil_price_service import OilPriceService
+
+        processed = OilPriceService.notify_all(app)
+        if current_app:
+            current_app.logger.info(
+                "[POLLING OIL] Sent %s notifications", processed
+            )
+
+
+def _parse_time(time_str):
+    """Parse HH:MM to (hour, minute)."""
+    if not time_str or not isinstance(time_str, str):
+        return None
+    parts = time_str.strip().split(":")
+    if len(parts) != 2:
+        return None
+    try:
+        hour = int(parts[0])
+        minute = int(parts[1])
+        if 0 <= hour <= 23 and 0 <= minute <= 59:
+            return hour, minute
+    except ValueError:
+        return None
+    return None
