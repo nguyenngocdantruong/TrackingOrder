@@ -83,8 +83,10 @@ class OilPriceService:
     def _fmt_delta(value: Optional[int]) -> str:
         if value is None:
             return "N/A"
+        arrow = "▲" if value > 0 else ("▼" if value < 0 else "➖")
         sign = "+" if value > 0 else ""
-        return f"{sign}{value:,} đ"
+        color_dot = "🔴" if value > 0 else ("🟢" if value < 0 else "⚪")
+        return f"{color_dot} {arrow} {sign}{value:,} đ"
 
     @staticmethod
     def _fmt_price(value: Optional[int]) -> str:
@@ -102,17 +104,20 @@ class OilPriceService:
         def section(title: str, items: List[Dict]) -> List[str]:
             if not items:
                 return []
-            lines = [f"{title}:"]
+            lines = [f"*{title}*:"]
             for item in items:
+                price_text = OilPriceService._fmt_price(item.get('price'))
+                delta_today = OilPriceService._fmt_delta(item.get('change_today'))
+                delta_prev = OilPriceService._fmt_delta(item.get('change_prev'))
                 lines.append(
-                    f"- {item.get('name')}: {OilPriceService._fmt_price(item.get('price'))} "
-                    f"| Hôm nay: {OilPriceService._fmt_delta(item.get('change_today'))} "
-                    f"| Kỳ trước: {OilPriceService._fmt_delta(item.get('change_prev'))}"
+                    f"- {item.get('name')}: `{price_text}`\n"
+                    f"  • Hôm nay: {delta_today}\n"
+                    f"  • Kỳ trước: {delta_prev}"
                 )
             return lines
 
         message_lines: List[str] = [
-            f"📢 Giá xăng dầu Hà Nội ({date_label})",
+            f"📢 *Giá xăng dầu Hà Nội* ({date_label})",
             "",
         ]
         message_lines += section("⛽ Petrolimex", data.get("petrolimex") or [])
