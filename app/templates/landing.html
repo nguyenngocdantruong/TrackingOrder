@@ -11,7 +11,11 @@
                 {{ providers[0].name if providers else 'Shopee Express VN' }}
             </span>
             <br>
-            <span data-i18n="landing.hero.subtitle.suffix">với thông báo tức thì qua Telegram.</span>
+            <span data-i18n="landing.hero.subtitle.suffix">với thông báo tức thì qua</span>
+            <span class="notification-icons align-middle" aria-label="Telegram và Zalo">
+                <img src="{{ url_for('static', filename='telegram.webp') }}" alt="Telegram" class="notification-icon">
+                <img src="{{ url_for('static', filename='zalo.webp') }}" alt="Zalo" class="notification-icon ms-2">
+            </span>
         </p>
         <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center justify-content-lg-start text-dark">
             {% if current_user.is_authenticated %}
@@ -59,6 +63,8 @@
 .min-vh-75 { min-height: 75vh; }
 .provider-rotator { display: inline-flex; align-items: center; min-width: unset; transition: color 0.35s ease; }
 .provider-rotator.provider-animate { animation: providerSlide 0.65s ease; }
+.notification-icons { display: inline-flex; align-items: center; gap: 8px; }
+.notification-icon { height: 28px; width: auto; }
 @keyframes providerSlide {
     0% { opacity: 1; transform: translateY(0); }
     40% { opacity: 0; transform: translateY(-12px); }

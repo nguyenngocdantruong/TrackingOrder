@@ -57,7 +57,7 @@ class JTExpressProvider(CarrierProvider):
     def _status_from_description(self, description: str) -> Tuple[str, str, int, str]:
         text = (description or "").lower()
 
-        if any(k in text for k in ["đã giao", "giao thành công", "phát thành công", "delivered"]):
+        if any(k in text for k in ["đơn hàng đã ký nhận", "người ký nhận là", "ký nhận"]):
             return "DELIVERED", "Đã giao", 980, "Completed"
         if any(k in text for k in ["đã hủy", "hủy", "hoàn hàng", "cancel"]):
             return "CANCELLED", "Đã hủy", 990, "Cancelled"
