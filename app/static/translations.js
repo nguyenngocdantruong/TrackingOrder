@@ -8,6 +8,8 @@ const translations = {
         'nav.login': 'Đăng nhập',
         'nav.register': 'Đăng ký',
         'nav.donate': 'Ủng hộ',
+        'nav.settings_notifications': 'Thông báo',
+        'nav.settings_power_outage': 'Lịch cắt điện',
         
         // Landing Page
         'landing.hero.title': 'Theo dõi đơn hàng',
@@ -55,6 +57,8 @@ const translations = {
         // Settings
         'settings.title': 'Cài đặt tài khoản',
         'settings.subtitle': 'Quản lý cấu hình thông báo và Telegram',
+        'settings.notify_page.title': 'Thông báo',
+        'settings.notify_page.subtitle': 'Quản lý kênh nhận thông báo và thử kết nối bot.',
         'settings.telegram.title': 'Thông báo qua Telegram',
         'settings.telegram.warning': 'Vui lòng nhấn',
         'settings.telegram.start': 'Bắt đầu (Start)',
@@ -64,6 +68,7 @@ const translations = {
         'settings.telegram_placeholder': 'Nhập Chat ID của bạn',
         'settings.telegram_help': 'Để lấy Chat ID, hãy chat với bot',
         'settings.telegram_help2': 'trên Telegram.',
+        'settings.telegram_enabled': 'Bật nhận qua Telegram',
         'settings.notify_enabled': 'Bật thông báo đẩy',
         'settings.notify_desc': 'Tự động báo tin khi trạng thái đơn hàng thay đổi.',
         'settings.save': 'Lưu cài đặt',
@@ -73,9 +78,24 @@ const translations = {
         'settings.zalo.chat_id_label': 'Zalo Chat ID',
         'settings.zalo.chat_id_placeholder': 'Nhập chat id',
         'settings.zalo.chat_id_help': 'Dán chat_id đã lấy thủ công khi tạo bot slash command.',
+        'settings.zalo.enabled': 'Bật nhận qua Zalo',
         'settings.zalo_test.title': 'Test Zalo Bot',
         'settings.zalo_test.desc': 'Gửi tin nhắn test tới Zalo Chat ID đã lưu.',
         'settings.zalo_test.button': 'Gửi thử',
+
+        // Power Outage
+        'power.title': 'Lịch cắt điện',
+        'power.subtitle': 'Chọn khu vực để nhận lịch cắt điện mỗi 6 giờ.',
+        'power.form.title': 'Theo dõi khu vực',
+        'power.form.desc': 'Chọn tỉnh/thành và quận/huyện (nếu có) để nhận thông báo.',
+        'power.form.province': 'Tỉnh/Thành phố',
+        'power.form.province_placeholder': 'Chọn tỉnh/thành',
+        'power.form.district': 'Quận/Huyện/Phường',
+        'power.form.district_placeholder': 'Chọn quận/huyện (tùy chọn)',
+        'power.form.submit': 'Thêm khu vực',
+        'power.list.title': 'Danh sách khu vực đang theo dõi',
+        'power.list.empty': 'Chưa đăng ký khu vực nào.',
+        'power.list.delete': 'Xóa',
         
         // Auth
         'login.title': 'Chào mừng trở lại',
@@ -125,6 +145,8 @@ const translations = {
         'nav.login': 'Login',
         'nav.register': 'Register',
         'nav.donate': 'Donate',
+        'nav.settings_notifications': 'Notifications',
+        'nav.settings_power_outage': 'Power outage',
         
         // Landing Page
         'landing.hero.title': 'Track your orders',
@@ -172,6 +194,8 @@ const translations = {
         // Settings
         'settings.title': 'Account Settings',
         'settings.subtitle': 'Manage notification settings and Telegram',
+        'settings.notify_page.title': 'Notifications',
+        'settings.notify_page.subtitle': 'Manage notification channels and test bots.',
         'settings.telegram.title': 'Telegram Notifications',
         'settings.telegram.warning': 'Please click',
         'settings.telegram.start': 'Start',
@@ -181,6 +205,7 @@ const translations = {
         'settings.telegram_placeholder': 'Enter your Chat ID',
         'settings.telegram_help': 'To get Chat ID, chat with bot',
         'settings.telegram_help2': 'on Telegram.',
+        'settings.telegram_enabled': 'Enable Telegram delivery',
         'settings.notify_enabled': 'Enable Push Notifications',
         'settings.notify_desc': 'Automatically notify when order status changes.',
         'settings.save': 'Save Settings',
@@ -190,9 +215,24 @@ const translations = {
         'settings.zalo.chat_id_label': 'Zalo Chat ID',
         'settings.zalo.chat_id_placeholder': 'Enter chat id',
         'settings.zalo.chat_id_help': 'Paste the chat_id you obtained when creating the slash-command bot.',
+        'settings.zalo.enabled': 'Enable Zalo delivery',
         'settings.zalo_test.title': 'Test Zalo Bot',
         'settings.zalo_test.desc': 'Send a test message to the saved Zalo Chat ID.',
         'settings.zalo_test.button': 'Send Test',
+
+        // Power Outage
+        'power.title': 'Power Outage Alerts',
+        'power.subtitle': 'Choose your area to receive outage schedules every 6 hours.',
+        'power.form.title': 'Follow an area',
+        'power.form.desc': 'Select province/city and district (optional) to get notifications.',
+        'power.form.province': 'Province/City',
+        'power.form.province_placeholder': 'Select province/city',
+        'power.form.district': 'District/Ward',
+        'power.form.district_placeholder': 'Select district (optional)',
+        'power.form.submit': 'Add area',
+        'power.list.title': 'Subscribed areas',
+        'power.list.empty': 'No areas subscribed yet.',
+        'power.list.delete': 'Remove',
         
         // Auth
         'login.title': 'Welcome back',

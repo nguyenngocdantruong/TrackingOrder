@@ -28,7 +28,7 @@ class NotificationService:
         if not user or not user.settings:
             return []
         
-        # Check if notifications are enabled
+        # Check if notifications are enabled globally
         if not user.settings.get('notifyEnabled', True):
             if current_app:
                 current_app.logger.info(
@@ -40,8 +40,9 @@ class NotificationService:
         results = []
         
         # Send via Telegram if configured
+        telegram_enabled = user.settings.get('telegramEnabled', True)
         telegram_chat_id = user.settings.get('telegramChatId')
-        if telegram_chat_id:
+        if telegram_chat_id and telegram_enabled:
             telegram_provider = registry.get_provider('telegram')
             if telegram_provider and telegram_provider.is_configured():
                 result = telegram_provider.send_message(
@@ -54,8 +55,11 @@ class NotificationService:
         
         # Send via Zalo if configured
         zalo_settings = user.settings.get('zalo') or {}
+        zalo_enabled = zalo_settings.get('enabled')
+        if zalo_enabled is None:
+            zalo_enabled = user.settings.get('zaloEnabled', True)
         zalo_chat_id = zalo_settings.get('chatId') or user.settings.get('zaloAccountId')
-        if zalo_chat_id:
+        if zalo_chat_id and zalo_enabled:
             zalo_provider = registry.get_provider('zalo')
             if zalo_provider and zalo_provider.is_configured():
                 result = zalo_provider.send_message(

@@ -1,8 +1,22 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, BooleanField, SubmitField
+from wtforms import StringField, BooleanField, SubmitField, HiddenField
+from wtforms.validators import DataRequired, Optional
 
 class SettingsForm(FlaskForm):
     telegram_chat_id = StringField('Telegram Chat ID')
     zalo_chat_id = StringField('Zalo Chat ID')
     notify_enabled = BooleanField('Enable Notifications')
+    telegram_enabled = BooleanField('Enable Telegram', default=True)
+    zalo_enabled = BooleanField('Enable Zalo', default=True)
     submit = SubmitField('Save Settings')
+
+
+class PowerOutageSubscriptionForm(FlaskForm):
+    province_id = StringField('Province', validators=[DataRequired()])
+    district_id = StringField('District', validators=[Optional()])
+    submit = SubmitField('Theo dõi khu vực')
+
+
+class DeletePowerOutageSubscriptionForm(FlaskForm):
+    subscription_id = HiddenField(validators=[DataRequired()])
+    submit = SubmitField('Xóa')

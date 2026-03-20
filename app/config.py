@@ -11,6 +11,8 @@ class Config:
     MAX_EVENTS_PER_TRACKING = int(os.getenv('MAX_EVENTS_PER_TRACKING', 50))
     SCHEDULER_ENABLED = os.getenv('SCHEDULER_ENABLED', 'true').lower() == 'true'
     POLL_INTERVAL_SECONDS = int(os.getenv('POLL_INTERVAL_SECONDS', 300))
+    POWER_OUTAGE_ENABLED = os.getenv('POWER_OUTAGE_ENABLED', 'true').lower() == 'true'
+    POWER_OUTAGE_INTERVAL_SECONDS = int(os.getenv('POWER_OUTAGE_INTERVAL_SECONDS', 21600))
 
     TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
     ZALO_BOT_TOKEN = os.getenv('ZALO_BOT_TOKEN')

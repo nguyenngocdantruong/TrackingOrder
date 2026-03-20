@@ -41,6 +41,13 @@ if __name__ == "__main__":
                             app.config['POLL_INTERVAL_SECONDS'] = int(value)
                         except ValueError:
                             pass
+                    elif key == 'POWER_OUTAGE_ENABLED':
+                        app.config['POWER_OUTAGE_ENABLED'] = (value == '1' or value.lower() == 'true')
+                    elif key == 'POWER_OUTAGE_INTERVAL_SECONDS':
+                        try:
+                            app.config['POWER_OUTAGE_INTERVAL_SECONDS'] = int(value)
+                        except ValueError:
+                            pass
 
     should_start_background = (not debug_mode) or os.environ.get("WERKZEUG_RUN_MAIN") == "true"
     if should_start_background:
@@ -51,4 +58,8 @@ if __name__ == "__main__":
 
     print(f" * Ứng dụng đang khởi chạy tại {host}:{port} (Debug: {debug_mode})")
     print(f" * Scheduler: {'Bật' if app.config.get('SCHEDULER_ENABLED') else 'Tắt'} (Interval: {app.config.get('POLL_INTERVAL_SECONDS')}s)")
+    print(
+        f" * Power outage polling: {'Bật' if app.config.get('POWER_OUTAGE_ENABLED') else 'Tắt'} "
+        f"(Interval: {app.config.get('POWER_OUTAGE_INTERVAL_SECONDS')}s)"
+    )
     app.run(host=host, port=port, debug=debug_mode)

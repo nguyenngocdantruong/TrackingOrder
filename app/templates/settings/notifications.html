@@ -32,7 +32,13 @@
                     <form method="POST" action="">
                         {{ form.hidden_tag() }}
                         <div class="mb-4">
-                            <label class="form-label fw-bold small" data-i18n="settings.telegram_id">Telegram Chat ID</label>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label fw-bold small mb-0" data-i18n="settings.telegram_id">Telegram Chat ID</label>
+                                <div class="form-check form-switch mb-0">
+                                    {{ form.telegram_enabled(class="form-check-input", style="width: 3rem; height: 1.5rem;") }}
+                                    <label class="form-check-label ms-2 small" for="{{ form.telegram_enabled.id }}" data-i18n="settings.telegram_enabled">Bật nhận qua Telegram</label>
+                                </div>
+                            </div>
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-end-0"><i class="bi bi-hash"></i></span>
                                 {{ form.telegram_chat_id(class="form-control form-control-lg border-start-0", placeholder="", **{"data-i18n":"settings.telegram_placeholder", "data-i18n-attr":"placeholder"}) }}
@@ -46,7 +52,13 @@
                         </div>
 
                         <div class="mb-4">
-                            <label class="form-label fw-bold small" data-i18n="settings.zalo.chat_id_label">Zalo Chat ID</label>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label fw-bold small mb-0" data-i18n="settings.zalo.chat_id_label">Zalo Chat ID</label>
+                                <div class="form-check form-switch mb-0">
+                                    {{ form.zalo_enabled(class="form-check-input", style="width: 3rem; height: 1.5rem;") }}
+                                    <label class="form-check-label ms-2 small" for="{{ form.zalo_enabled.id }}" data-i18n="settings.zalo.enabled">Bật nhận qua Zalo</label>
+                                </div>
+                            </div>
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-end-0"><i class="bi bi-hash"></i></span>
                                 {{ form.zalo_chat_id(class="form-control form-control-lg border-start-0", placeholder="", **{"data-i18n":"settings.zalo.chat_id_placeholder", "data-i18n-attr":"placeholder"}) }}
