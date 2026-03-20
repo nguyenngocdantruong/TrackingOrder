@@ -10,6 +10,7 @@ const translations = {
         'nav.donate': 'Ủng hộ',
         'nav.settings_notifications': 'Thông báo',
         'nav.settings_power_outage': 'Lịch cắt điện',
+        'nav.settings_oil': 'Giá xăng dầu',
         
         // Landing Page
         'landing.hero.title': 'Theo dõi đơn hàng',
@@ -85,6 +86,19 @@ const translations = {
         'settings.zalo_test.desc': 'Gửi tin nhắn test tới Zalo Chat ID đã lưu.',
         'settings.zalo_test.button': 'Gửi thử',
 
+        // Oil Prices
+        'oil.title': 'Thông báo giá xăng dầu',
+        'oil.subtitle': 'Chọn đại lý và loại xăng/dầu bạn muốn nhận mỗi ngày.',
+        'oil.enable': 'Bật thông báo giá xăng dầu hàng ngày',
+        'oil.enable_hint': 'Thông báo sẽ được gửi vào giờ đã cấu hình.',
+        'oil.suppliers': 'Chọn đại lý muốn theo dõi',
+        'oil.petrolimex': 'Petrolimex',
+        'oil.pvoil': 'PVOIL',
+        'oil.no_data': 'Chưa có dữ liệu.',
+        'oil.save': 'Lưu cài đặt',
+        'oil.preview': 'Bản xem nhanh hôm nay',
+        'oil.preview_hint': 'Dữ liệu mới nhất từ nguồn hiện tại.',
+
         // Power Outage
         'power.title': 'Lịch cắt điện',
         'power.subtitle': 'Chọn khu vực để nhận lịch cắt điện mỗi 6 giờ.',
@@ -138,6 +152,23 @@ const translations = {
         'delete.confirm': 'Hành động này sẽ ngưng theo dõi kiện hàng và xóa thông tin khỏi Hub. Không thể hoàn tác.',
         'delete.permanent': 'Xóa vĩnh viễn',
         'delete.cancel': 'Quay lại',
+
+        // Support
+        'support.title': 'Ủng hộ',
+        'support.subtitle': 'Cảm ơn bạn đã đồng hành cùng Order Tracker',
+        'support.gateway_pending': 'Cổng thanh toán đang được cấu hình. Vui lòng thử lại sau.',
+        'support.name_label': 'Tên của bạn',
+        'support.name_placeholder': 'Tên của bạn',
+        'support.email_label': 'Email',
+        'support.email_placeholder': 'email@domain.com',
+        'support.amount_label': 'Số tiền',
+        'support.amount_placeholder': 'Ví dụ: 50000',
+        'support.amount_currency': 'VND',
+        'support.message_label': 'Lời nhắn',
+        'support.message_placeholder': 'Lời nhắn dành cho đội ngũ',
+        'support.gateway_label': 'Cổng thanh toán',
+        'support.gateway_value': 'Qua PayOS',
+        'support.submit': 'Gửi ủng hộ',
     },
     en: {
         // Navbar
@@ -149,6 +180,7 @@ const translations = {
         'nav.donate': 'Donate',
         'nav.settings_notifications': 'Notifications',
         'nav.settings_power_outage': 'Power outage',
+        'nav.settings_oil': 'Fuel prices',
         
         // Landing Page
         'landing.hero.title': 'Track your orders',
@@ -224,6 +256,19 @@ const translations = {
         'settings.zalo_test.desc': 'Send a test message to the saved Zalo Chat ID.',
         'settings.zalo_test.button': 'Send Test',
 
+        // Oil Prices
+        'oil.title': 'Fuel price alerts',
+        'oil.subtitle': 'Pick suppliers and fuel types to receive daily.',
+        'oil.enable': 'Enable daily fuel price alerts',
+        'oil.enable_hint': 'We will send prices at your scheduled time.',
+        'oil.suppliers': 'Choose suppliers to follow',
+        'oil.petrolimex': 'Petrolimex',
+        'oil.pvoil': 'PVOIL',
+        'oil.no_data': 'No data yet.',
+        'oil.save': 'Save settings',
+        'oil.preview': "Today's quick preview",
+        'oil.preview_hint': 'Latest data from the source.',
+
         // Power Outage
         'power.title': 'Power Outage Alerts',
         'power.subtitle': 'Choose your area to receive outage schedules every 6 hours.',
@@ -277,5 +322,22 @@ const translations = {
         'delete.confirm': 'This action will stop tracking the package and remove information from the Hub. Cannot be undone.',
         'delete.permanent': 'Delete Permanently',
         'delete.cancel': 'Cancel',
+
+        // Support
+        'support.title': 'Support',
+        'support.subtitle': 'Thanks for supporting Order Tracker',
+        'support.gateway_pending': 'Payment gateway is being configured. Please try again later.',
+        'support.name_label': 'Your name',
+        'support.name_placeholder': 'Your name',
+        'support.email_label': 'Email',
+        'support.email_placeholder': 'email@domain.com',
+        'support.amount_label': 'Amount',
+        'support.amount_placeholder': 'e.g: 50000',
+        'support.amount_currency': 'VND',
+        'support.message_label': 'Message',
+        'support.message_placeholder': 'A note for the team',
+        'support.gateway_label': 'Payment gateway',
+        'support.gateway_value': 'Via PayOS',
+        'support.submit': 'Send support',
     }
 };

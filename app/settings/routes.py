@@ -4,10 +4,12 @@ from app.settings.forms import (
     SettingsForm,
     PowerOutageSubscriptionForm,
     DeletePowerOutageSubscriptionForm,
+    OilSettingsForm,
 )
 from app.repos.users_repo import UsersRepo
 from app.notifications.registry import registry
 from app.power_outage.service import PowerOutageService
+from app.notifications.oil_price_service import OilPriceService
 
 settings_bp = Blueprint('settings', __name__)
 
@@ -142,3 +144,55 @@ def test_zalo():
     else:
         flash('Please set a Zalo Chat ID first.', 'warning')
     return redirect(url_for('settings.index'))
+
+
+@settings_bp.route("/oil", methods=['GET', 'POST'])
+@login_required
+def oil_settings():
+    form = OilSettingsForm()
+
+    latest_data = None
+    products_petrolimex = []
+    products_pvoil = []
+    suppliers_choices = [('petrolimex', 'Petrolimex'), ('pvoil', 'PVOIL')]
+
+    try:
+        latest_data = OilPriceService.fetch_latest(current_app)
+        products_petrolimex = [row.get('name') for row in (latest_data.get('petrolimex') or [])]
+        products_pvoil = [row.get('name') for row in (latest_data.get('pvoil') or [])]
+    except Exception as exc:
+        flash(f'Không lấy được dữ liệu giá xăng dầu: {exc}', 'warning')
+
+    form.suppliers.choices = suppliers_choices
+    form.petrolimex_products.choices = [(p, p) for p in products_petrolimex]
+    form.pvoil_products.choices = [(p, p) for p in products_pvoil]
+
+    settings = current_user.settings or {}
+    oil_enabled_default = settings.get('oilNotifyEnabled', True)
+    selected_suppliers = settings.get('oilSuppliers') or ['petrolimex', 'pvoil']
+    selected_products = settings.get('oilProducts') or {}
+
+    if form.validate_on_submit():
+        new_settings = dict(settings)
+        new_settings['oilNotifyEnabled'] = form.oil_enabled.data
+        new_settings['oilSuppliers'] = form.suppliers.data or []
+        new_settings['oilProducts'] = {
+            'petrolimex': form.petrolimex_products.data or [],
+            'pvoil': form.pvoil_products.data or [],
+        }
+        UsersRepo.update_settings(current_user.id, new_settings)
+        flash('Đã lưu cài đặt thông báo giá xăng dầu.', 'success')
+        return redirect(url_for('settings.oil_settings'))
+
+    elif request.method == 'GET':
+        form.oil_enabled.data = oil_enabled_default
+        form.suppliers.data = selected_suppliers
+        form.petrolimex_products.data = selected_products.get('petrolimex') or products_petrolimex
+        form.pvoil_products.data = selected_products.get('pvoil') or products_pvoil
+
+    return render_template(
+        'settings/oil.html',
+        title='Giá xăng dầu',
+        form=form,
+        latest_data=latest_data,
+    )
