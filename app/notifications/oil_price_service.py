@@ -132,19 +132,57 @@ class OilPriceService:
         return "\n".join([line for line in message_lines if line is not None])
 
     @staticmethod
+    def _filter_data_for_user(data: Dict, suppliers: List[str], product_map: Dict) -> Dict:
+        if not data:
+            return {}
+
+        suppliers_set = set(suppliers or [])
+
+        def filter_items(key: str) -> List[Dict]:
+            if key not in suppliers_set:
+                return []
+            items = data.get(key) or []
+            if key in product_map:
+                selected_names = product_map.get(key) or []
+                if not selected_names:
+                    return []
+                selected_name_set = set(selected_names)
+                return [item for item in items if item.get('name') in selected_name_set]
+            return items
+
+        return {
+            "date": data.get("date"),
+            "source": data.get("source"),
+            "petrolimex": filter_items("petrolimex"),
+            "pvoil": filter_items("pvoil"),
+        }
+
+    @staticmethod
     def notify_all(app=None) -> int:
         app_ctx = app or current_app
         if not app_ctx:
             raise RuntimeError("App context required to notify users")
 
         data = OilPriceService.fetch_latest(app_ctx)
-        message = OilPriceService.build_message(data)
-        if not message:
-            return 0
 
         users = UsersRepo.list_all_users()
         notified = 0
         for user in users:
+            settings = user.settings or {}
+            if not settings.get('oilNotifyEnabled', True):
+                continue
+
+            suppliers = settings.get('oilSuppliers') or ['petrolimex', 'pvoil']
+            product_map = settings.get('oilProducts') or {}
+            filtered_data = OilPriceService._filter_data_for_user(data, suppliers, product_map)
+
+            if not ((filtered_data.get('petrolimex') or filtered_data.get('pvoil'))):
+                continue
+
+            message = OilPriceService.build_message(filtered_data)
+            if not message:
+                continue
+
             results = NotificationService.send_to_user(user, message, parse_mode="Markdown")
             if results:
                 notified += 1
