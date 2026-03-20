@@ -259,19 +259,26 @@ def _handle_stats_command(app, chat_id):
     _send_link_reminder_if_needed(app, user, chat_id)
 
 
-def _handle_oil_command(app, chat_id):
+def _handle_oil_command(app, chat_id, user=None):
     from app.notifications.oil_price_service import OilPriceService
 
     try:
         with app.app_context():
             data = OilPriceService.fetch_latest(app)
+
+            if user and (user.settings or {}):
+                settings = user.settings or {}
+                suppliers = settings.get('oilSuppliers') or ['petrolimex', 'pvoil']
+                product_map = settings.get('oilProducts') or {}
+                data = OilPriceService._filter_data_for_user(data, suppliers, product_map)
+
             message = OilPriceService.build_message(data)
     except Exception as exc:
         TelegramNotifier.send_message(chat_id, f"Không lấy được giá xăng dầu: {exc}", parse_mode=None)
         return
 
     if not message:
-        TelegramNotifier.send_message(chat_id, "Chưa có dữ liệu giá xăng dầu.", parse_mode=None)
+        TelegramNotifier.send_message(chat_id, "Chưa có dữ liệu giá xăng dầu theo lựa chọn của bạn.", parse_mode=None)
         return
 
     TelegramNotifier.send_message(chat_id, message, parse_mode='Markdown')
@@ -326,7 +333,7 @@ def _handle_message(app, message):
             return
 
         if command == '/oil':
-            _handle_oil_command(app, chat_id)
+            _handle_oil_command(app, chat_id, user)
             return
 
         if command == '/add':
