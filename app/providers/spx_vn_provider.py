@@ -26,8 +26,9 @@ class SPXVNProvider(CarrierProvider):
             "language_code": "vi"
         }
 
+        # Keep requests' native User-Agent: claiming Chrome causes SPX to
+        # reject this client with HTTP 403 (gateway error 90309999).
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Referer": "https://spx.vn/"
         }
 
