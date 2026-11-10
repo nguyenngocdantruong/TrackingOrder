@@ -9,8 +9,6 @@ const translations = {
         'nav.register': 'Đăng ký',
         'nav.donate': 'Ủng hộ',
         'nav.settings_notifications': 'Thông báo',
-        'nav.settings_power_outage': 'Lịch cắt điện',
-        'nav.settings_oil': 'Giá xăng dầu',
         
         // Landing Page
         'landing.hero.title': 'Theo dõi đơn hàng',
@@ -87,31 +85,8 @@ const translations = {
         'settings.zalo_test.button': 'Gửi thử',
 
         // Oil Prices
-        'oil.title': 'Thông báo giá xăng dầu',
-        'oil.subtitle': 'Chọn đại lý và loại xăng/dầu bạn muốn nhận mỗi ngày.',
-        'oil.enable': 'Bật thông báo giá xăng dầu hàng ngày',
-        'oil.enable_hint': 'Thông báo sẽ được gửi vào giờ đã cấu hình.',
-        'oil.suppliers': 'Chọn đại lý muốn theo dõi',
-        'oil.petrolimex': 'Petrolimex',
-        'oil.pvoil': 'PVOIL',
-        'oil.no_data': 'Chưa có dữ liệu.',
-        'oil.save': 'Lưu cài đặt',
-        'oil.preview': 'Bản xem nhanh hôm nay',
-        'oil.preview_hint': 'Dữ liệu mới nhất từ nguồn hiện tại.',
 
         // Power Outage
-        'power.title': 'Lịch cắt điện',
-        'power.subtitle': 'Chọn khu vực để nhận lịch cắt điện mỗi 6 giờ.',
-        'power.form.title': 'Theo dõi khu vực',
-        'power.form.desc': 'Chọn tỉnh/thành và quận/huyện (nếu có) để nhận thông báo.',
-        'power.form.province': 'Tỉnh/Thành phố',
-        'power.form.province_placeholder': 'Chọn tỉnh/thành',
-        'power.form.district': 'Quận/Huyện/Phường',
-        'power.form.district_placeholder': 'Chọn quận/huyện (tùy chọn)',
-        'power.form.submit': 'Thêm khu vực',
-        'power.list.title': 'Danh sách khu vực đang theo dõi',
-        'power.list.empty': 'Chưa đăng ký khu vực nào.',
-        'power.list.delete': 'Xóa',
         
         // Auth
         'login.title': 'Chào mừng trở lại',
@@ -179,8 +154,6 @@ const translations = {
         'nav.register': 'Register',
         'nav.donate': 'Donate',
         'nav.settings_notifications': 'Notifications',
-        'nav.settings_power_outage': 'Power outage',
-        'nav.settings_oil': 'Fuel prices',
         
         // Landing Page
         'landing.hero.title': 'Track your orders',
@@ -257,31 +230,8 @@ const translations = {
         'settings.zalo_test.button': 'Send Test',
 
         // Oil Prices
-        'oil.title': 'Fuel price alerts',
-        'oil.subtitle': 'Pick suppliers and fuel types to receive daily.',
-        'oil.enable': 'Enable daily fuel price alerts',
-        'oil.enable_hint': 'We will send prices at your scheduled time.',
-        'oil.suppliers': 'Choose suppliers to follow',
-        'oil.petrolimex': 'Petrolimex',
-        'oil.pvoil': 'PVOIL',
-        'oil.no_data': 'No data yet.',
-        'oil.save': 'Save settings',
-        'oil.preview': "Today's quick preview",
-        'oil.preview_hint': 'Latest data from the source.',
 
         // Power Outage
-        'power.title': 'Power Outage Alerts',
-        'power.subtitle': 'Choose your area to receive outage schedules every 6 hours.',
-        'power.form.title': 'Follow an area',
-        'power.form.desc': 'Select province/city and district (optional) to get notifications.',
-        'power.form.province': 'Province/City',
-        'power.form.province_placeholder': 'Select province/city',
-        'power.form.district': 'District/Ward',
-        'power.form.district_placeholder': 'Select district (optional)',
-        'power.form.submit': 'Add area',
-        'power.list.title': 'Subscribed areas',
-        'power.list.empty': 'No areas subscribed yet.',
-        'power.list.delete': 'Remove',
         
         // Auth
         'login.title': 'Welcome back',

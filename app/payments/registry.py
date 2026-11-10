@@ -21,6 +21,10 @@ def init_gateways(app):
     """Initialize and register available gateways once the app config is ready."""
     from app.payments.payos_gateway import PayOSGateway
 
+    registry._gateways.clear()
+    if not app.config.get('PAYOS_ENABLED', True):
+        return
+
     default_return = app.config.get("PAYOS_RETURN_URL")
     default_cancel = app.config.get("PAYOS_CANCEL_URL")
 

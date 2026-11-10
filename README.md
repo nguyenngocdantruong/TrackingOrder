@@ -217,3 +217,21 @@ Mọi đóng góp đều được hoan nghênh! Vui lòng tạo issue hoặc pul
 ## 📧 Liên hệ
 
 https://www.facebook.com/dantruong.2025/
+
+## Docker và quản trị
+
+Chạy `docker compose up -d --build`, truy cập http://localhost:8084. Container dùng `restart: always` để tự chạy khi Docker Engine khởi động. Docker Desktop cần được bật nếu muốn ứng dụng chạy sau khi đăng nhập Windows.
+
+`.env` và `config.conf` tại thư mục dự án được bind mount có quyền ghi; khóa Firebase được mount chỉ đọc, không nằm trong image. Không commit `.env` hoặc khóa Firebase. Cổng bên ngoài đổi trong `compose.yaml`; ứng dụng trong container nghe cổng 8084 và không dùng DEBUG.
+
+Admin: đăng nhập tài khoản đã liên kết Telegram có ID khớp `ADMIN_TELEGRAM_USER_ID`. Với tài khoản cũ, gửi `/admin` cho bot bằng chính Telegram đó, mở liên kết và xác nhận trong tài khoản website. Bằng chứng sở hữu Telegram lưu riêng, không lấy quyền admin từ Chat ID tự nhập. Sau đó mở `/admin/`.
+
+Trang admin quản lý tracking, scheduler, PayOS, Telegram và Zalo. Khóa bí mật không được trả về trình duyệt; để trống giữ nguyên khóa. Lưu ghi vào file ngoài container rồi thay worker để nhận cấu hình mới. Thao tác đang chạy có thể bị gián đoạn khi áp dụng. Nếu sửa file trực tiếp, chạy `docker compose restart app`. Khi chạy `python run.py`, tự khởi động lại tiến trình sau khi lưu.
+
+Lịch cắt điện và giá xăng dầu đã bị gỡ. Dữ liệu đăng ký cũ trong Firestore không bị xóa; không còn tác vụ sử dụng chúng.
+
+Kiểm thử: `docker compose run --rm --no-deps -v "${PWD}/tests:/tests:ro" app python -m unittest discover -s /tests`.
+
+### Master password
+
+Đặt `MASTER_PASSWORD` trong `.env`, rồi chạy `docker compose restart app`. Nhập username của tài khoản hiện có và master password tại trang đăng nhập để đăng nhập tài khoản đó; mật khẩu riêng vẫn dùng bình thường. Để trống biến này để tắt. Master password không tạo tài khoản và không đổi mật khẩu tài khoản. Phiên đăng nhập nhận quyền của tài khoản đã chọn, kể cả quyền admin nếu tài khoản đó đủ điều kiện. Khóa này không hiển thị trong giao diện admin.

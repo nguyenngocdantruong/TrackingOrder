@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-10T14:55:09.795456+00:00",
+  "title": "Design System: Order Tracker",
+  "extensions": {
+    "shadows": [
+      {
+        "name": "shared-card",
+        "value": "0 4px 6px -1px rgba(0,0,0,0.03), 0 2px 4px -1px rgba(0,0,0,0.02)",
+        "purpose": "Incumbent cards at rest."
+      },
+      {
+        "name": "shared-card-hover",
+        "value": "0 20px 25px -5px rgba(0,0,0,0.05), 0 10px 10px -5px rgba(0,0,0,0.02)",
+        "purpose": "Incumbent card hover; not admin sections."
+      }
+    ],
+    "motion": [
+      {
+        "name": "shared-controls",
+        "value": "all 0.2s",
+        "purpose": "Existing shared navigation and buttons."
+      },
+      {
+        "name": "admin-anchor",
+        "value": "smooth",
+        "purpose": "Anchor scrolling; auto with prefers-reduced-motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "shared-navigation-collapse",
+        "value": "991.98px"
+      },
+      {
+        "name": "admin-single-column-settings",
+        "value": "1000px"
+      },
+      {
+        "name": "admin-mobile-shell",
+        "value": "650px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Admin save button",
+      "kind": "button",
+      "refersTo": "admin-button",
+      "description": "Persistent action with submission feedback.",
+      "html": "<button class=\"ds-save\">Lưu &amp; áp dụng</button>",
+      "css": ".ds-save{font:600 16px/1.55 Inter,\"Segoe UI\",sans-serif;background:var(--accent,#4f46e5);color:#fff;border:0;padding:13px 24px;border-radius:8px;min-height:48px;cursor:pointer}.ds-save:hover{background:#3730a3}.ds-save:focus-visible{outline:3px solid var(--accent,#4f46e5);outline-offset:4px}.ds-save:disabled{opacity:.65;cursor:wait}"
+    },
+    {
+      "name": "Admin secret field",
+      "kind": "input",
+      "refersTo": "admin-input",
+      "description": "Blank value preserves an existing secret.",
+      "html": "<div class=\"ds-field\"><label for=\"ds-secret\">API key</label><input id=\"ds-secret\" type=\"password\" autocomplete=\"new-password\" aria-describedby=\"ds-hint\"><small id=\"ds-hint\">Đã cấu hình · Để trống để giữ khóa hiện tại.</small></div>",
+      "css": ".ds-field{font:16px/1.55 Inter,\"Segoe UI\",sans-serif;color:var(--ink,#202838)}.ds-field label{display:block;font-size:14px;font-weight:600;margin-bottom:8px}.ds-field input{font:inherit;width:100%;border:1px solid #aab2c1;border-radius:8px;background:var(--paper,#fff);padding:11px 12px;color:inherit;min-height:46px}.ds-field input:focus-visible{outline:3px solid var(--accent,#4f46e5);outline-offset:4px}.ds-field small{display:block;color:var(--muted,#586174);font-size:12px;margin-top:6px}"
+    },
+    {
+      "name": "Admin section navigation",
+      "kind": "nav",
+      "description": "Anchor index of configuration sections.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Cấu hình\"><a href=\"#tracking\">Theo dõi đơn hàng</a><a href=\"#payos\">PayOS</a></nav>",
+      "css": ".ds-nav{display:grid;gap:8px;font:16px/1.55 Inter,\"Segoe UI\",sans-serif}.ds-nav a{padding:10px 12px;color:var(--ink,#202838);text-decoration:none;border-radius:8px}.ds-nav a:hover{background:#efedff;color:var(--accent,#4f46e5)}.ds-nav a:focus-visible{outline:3px solid var(--accent,#4f46e5);outline-offset:4px}"
+    },
+    {
+      "name": "Shared primary button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Incumbent app primary action.",
+      "html": "<button class=\"ds-primary\">Continue</button>",
+      "css": ".ds-primary{font:600 16px/1.5 Inter,sans-serif;background:var(--primary-color,#4f46e5);color:white;border:none;border-radius:10px;padding:.6rem 1.2rem;transition:all .2s;cursor:pointer}.ds-primary:hover{background:var(--primary-hover,#4338ca);transform:scale(1.02)}.ds-primary:focus-visible{outline:3px solid var(--primary-color,#4f46e5);outline-offset:4px}"
+    },
+    {
+      "name": "Shared card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Incumbent white content surface with hover elevation.",
+      "html": "<div class=\"ds-card\"><strong>Order details</strong><p>Shipment information</p></div>",
+      "css": ".ds-card{font:16px/1.5 Inter,sans-serif;color:#1f2937;border:1px solid var(--card-border,rgba(0,0,0,.05));border-radius:var(--radius-lg,16px);background:#fff;box-shadow:0 4px 6px -1px rgba(0,0,0,.03),0 2px 4px -1px rgba(0,0,0,.02);transition:all .3s cubic-bezier(.4,0,.2,1)}.ds-card:hover{transform:translateY(-4px);box-shadow:0 20px 25px -5px rgba(0,0,0,.05),0 10px 10px -5px rgba(0,0,0,.02)}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Operate",
+    "overview": "Preserve the incumbent indigo and light neutral interface. The system emphasizes readable information, familiar controls, and clear action feedback. Administration extends this identity with quieter, divided settings rows and persistent save feedback.\n\nThis is a scan of the implemented system, not a new visual identity. Source authority is `app/templates/layout.html`, with the admin extension in `app/static/admin.css` and `app/templates/admin/index.html`.",
+    "keyCharacteristics": [
+      "Indigo actions on light neutral backgrounds.",
+      "Inter typography with system sans-serif fallbacks.",
+      "Rounded controls and restrained structural borders.",
+      "Visible labels, status feedback, and responsive settings."
+    ],
+    "rules": [],
+    "dos": [
+      "Do preserve the incumbent indigo and light neutral system when extending the app.",
+      "Do keep labels, helper text, keyboard focus, and save feedback visible.",
+      "Do retain blank secret inputs and explicit keep-current instructions.",
+      "Do check desktop and narrow mobile layouts with realistic long content."
+    ],
+    "donts": [
+      "Don't introduce a new visual identity for the admin extension.",
+      "Don't add card lift or decorative shadows to flat admin settings sections.",
+      "Don't treat the admin layout as a mandatory composition for every product surface.",
+      "Don't present synthetic screenshot review as production authentication or persistence validation."
+    ]
+  }
+}

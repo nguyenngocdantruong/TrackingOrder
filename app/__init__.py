@@ -47,6 +47,10 @@ def create_app(config_class=Config):
     from app.settings.routes import settings_bp
     from app.payments.routes import payments_bp
 
+    from app.admin import admin_bp, is_admin
+    app.register_blueprint(admin_bp, url_prefix='/admin')
+    app.context_processor(lambda: {'is_system_admin': is_admin()})
+
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(link_bp)
     app.register_blueprint(tracking_bp)

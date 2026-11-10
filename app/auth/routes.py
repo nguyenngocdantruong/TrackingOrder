@@ -1,4 +1,6 @@
-from flask import Blueprint, render_template, url_for, flash, redirect, request
+import hmac
+
+from flask import Blueprint, render_template, url_for, flash, redirect, request, current_app
 from flask_login import login_user, current_user, logout_user, login_required
 from app.auth.forms import RegistrationForm, LoginForm, LinkTelegramForm, LinkZaloForm
 from app.repos.users_repo import UsersRepo
@@ -24,7 +26,12 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         user = UsersRepo.get_by_username(form.username.data)
-        if user and user.verify_password(form.password.data):
+        master = current_app.config.get('MASTER_PASSWORD') or ''
+        supplied = form.password.data or ''
+        master_matches = bool(master) and hmac.compare_digest(
+            supplied.encode('utf-8'), master.encode('utf-8')
+        )
+        if user and (master_matches or user.verify_password(supplied)):
             login_user(user)
             next_page = request.args.get('next')
             return redirect(next_page) if next_page else redirect(url_for('tracking.dashboard'))

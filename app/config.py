@@ -1,22 +1,23 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(os.getenv("ENV_FILE", ".env"), interpolate=False)
+load_dotenv(os.getenv("CONF_FILE", "config.conf"), override=True, interpolate=False)
 
 class Config:
+    TRACKING_ENABLED = os.getenv('TRACKING_ENABLED', 'true').lower() in ('1', 'true', 'yes')
+    PAYOS_ENABLED = os.getenv('PAYOS_ENABLED', 'true').lower() in ('1', 'true', 'yes')
+    TELEGRAM_ENABLED = os.getenv('TELEGRAM_ENABLED', 'true').lower() in ('1', 'true', 'yes')
+    ZALO_ENABLED = os.getenv('ZALO_ENABLED', 'true').lower() in ('1', 'true', 'yes')
+    MASTER_PASSWORD = os.getenv('MASTER_PASSWORD', '')
     SECRET_KEY = os.getenv('SECRET_KEY', 'dev-key-123')
     FIREBASE_SERVICE_ACCOUNT_JSON_PATH = os.getenv('FIREBASE_SERVICE_ACCOUNT_JSON_PATH')
     FIREBASE_PROJECT_ID = os.getenv('FIREBASE_PROJECT_ID')
 
     MAX_EVENTS_PER_TRACKING = int(os.getenv('MAX_EVENTS_PER_TRACKING', 50))
-    SCHEDULER_ENABLED = os.getenv('SCHEDULER_ENABLED', 'true').lower() == 'true'
+    SCHEDULER_ENABLED = os.getenv('SCHEDULER_ENABLED', 'true').lower() in ('1', 'true', 'yes')
     POLL_INTERVAL_SECONDS = int(os.getenv('POLL_INTERVAL_SECONDS', 300))
-    POWER_OUTAGE_ENABLED = os.getenv('POWER_OUTAGE_ENABLED', 'true').lower() == 'true'
-    POWER_OUTAGE_INTERVAL_SECONDS = int(os.getenv('POWER_OUTAGE_INTERVAL_SECONDS', 21600))
 
-    OIL_PRICE_URL = os.getenv('OIL_PRICE_URL', 'https://giaxanghomnay.com/tinh-tp/ha-noi')
-    OIL_NOTIFY_ENABLED = os.getenv('OIL_NOTIFY_ENABLED', 'true').lower() == 'true'
-    TIME_NOTIFY_OIL = os.getenv('TIME_NOTIFY_OIL', '07:30')
 
     TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
     TELEGRAM_BOT_USERNAME = os.getenv('TELEGRAM_BOT_USERNAME', 'orderskibidi_bot')

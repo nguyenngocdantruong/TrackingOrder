@@ -7,6 +7,8 @@ from app.notifications.service import NotificationService
 class TrackingService:
     @staticmethod
     def create_tracking_for_user(user, tracking_number, alias=None, carrier_id='auto', send_notification=True):
+        if not current_app.config.get('TRACKING_ENABLED', True):
+            return {'success': False, 'error': 'Theo dõi đơn hàng đang tạm dừng.'}
         selected_carrier_id = carrier_id
 
         if selected_carrier_id == 'auto':
@@ -76,6 +78,8 @@ class TrackingService:
 
     @staticmethod
     def refresh_tracking(tracking_id):
+        if not current_app.config.get("TRACKING_ENABLED", True):
+            return False
         tracking = TrackingsRepo.get_by_id(tracking_id)
         if not tracking:
             return False

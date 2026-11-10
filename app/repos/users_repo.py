@@ -6,7 +6,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import secrets
 
 class User(UserMixin):
-    def __init__(self, user_id, username, password_hash, settings=None, is_temporary=False, link_token=None):
+    def __init__(self, user_id, username, password_hash, settings=None, is_temporary=False, link_token=None, telegram_verified_id=None):
+        self.telegram_verified_id = telegram_verified_id
         self.id = user_id
         self.username = username
         self.password_hash = password_hash
@@ -49,7 +50,8 @@ class UsersRepo:
                 data['password_hash'],
                 data.get('settings'),
                 data.get('isTemporary', False),
-                data.get('linkToken')
+                data.get('linkToken'),
+                data.get('telegramVerifiedId')
             )
         return None
 
@@ -65,7 +67,8 @@ class UsersRepo:
                 data['password_hash'],
                 data.get('settings'),
                 data.get('isTemporary', False),
-                data.get('linkToken')
+                data.get('linkToken'),
+                data.get('telegramVerifiedId')
             )
         return None
 
@@ -91,7 +94,8 @@ class UsersRepo:
                     data['password_hash'],
                     data.get('settings'),
                     data.get('isTemporary', False),
-                    data.get('linkToken')
+                    data.get('linkToken'),
+                    data.get('telegramVerifiedId')
                 )
         return None
 
@@ -200,6 +204,7 @@ class UsersRepo:
             'password_hash': password_hash,
             'isTemporary': False,
             'linkToken': firestore.DELETE_FIELD,
+            'telegramVerifiedId': str(chat_id),
             'settings.telegramChatId': str(chat_id)
         })
 
@@ -256,7 +261,8 @@ class UsersRepo:
                     data['password_hash'],
                     data.get('settings'),
                     data.get('isTemporary', False),
-                    data.get('linkToken')
+                    data.get('linkToken'),
+                    data.get('telegramVerifiedId')
                 )
         return None
 
@@ -347,6 +353,7 @@ class UsersRepo:
                     data.get('settings'),
                     data.get('isTemporary', False),
                     data.get('linkToken'),
+                    data.get('telegramVerifiedId'),
                 )
             )
         return users

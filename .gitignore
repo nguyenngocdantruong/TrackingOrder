@@ -1,3 +1,6 @@
 .venv
 __pycache__
 logs/
+.env
+*firebase-adminsdk*.json
+.impeccable/review/

@@ -28,8 +28,8 @@ def _help_text():
         "/remove <mã vận đơn> - xóa đơn hàng\n"
         "/providers - hiển thị danh sách đơn vị vận chuyển\n"
         "/list - hiển thị danh sách đơn hàng\n"
-        "/oil - nhận giá xăng dầu hôm nay\n"
         "/stats - xem thống kê cá nhân\n"
+        "/admin - xác nhận quyền quản trị\n"
         "/help - hướng dẫn sử dụng\n"
         "/author - tác giả"
     )
@@ -259,35 +259,13 @@ def _handle_stats_command(app, chat_id):
     _send_link_reminder_if_needed(app, user, chat_id)
 
 
-def _handle_oil_command(app, chat_id, user=None):
-    from app.notifications.oil_price_service import OilPriceService
-
-    try:
-        with app.app_context():
-            data = OilPriceService.fetch_latest(app)
-
-            if user and (user.settings or {}):
-                settings = user.settings or {}
-                suppliers = settings.get('oilSuppliers') or ['petrolimex', 'pvoil']
-                product_map = settings.get('oilProducts') or {}
-                data = OilPriceService._filter_data_for_user(data, suppliers, product_map)
-
-            message = OilPriceService.build_message(data)
-    except Exception as exc:
-        TelegramNotifier.send_message(chat_id, f"Không lấy được giá xăng dầu: {exc}", parse_mode=None)
-        return
-
-    if not message:
-        TelegramNotifier.send_message(chat_id, "Chưa có dữ liệu giá xăng dầu theo lựa chọn của bạn.", parse_mode=None)
-        return
-
-    TelegramNotifier.send_message(chat_id, message, parse_mode='Markdown')
-
-
 def _handle_message(app, message):
     chat = message.get('chat') or {}
     chat_id = chat.get('id')
     text = (message.get('text') or '').strip()
+
+    if chat.get('type') != 'private' or str((message.get('from') or {}).get('id')) != str(chat_id):
+        return
 
     if not chat_id or not text:
         return
@@ -301,6 +279,13 @@ def _handle_message(app, message):
                 parse_mode=None,
                 reply_markup=_link_button_markup(app, user, chat_id),
             )
+            return
+
+        if text.split()[0].lower() == '/admin':
+            from app.admin import create_admin_link
+            link = create_admin_link(app, chat_id)
+            if link:
+                TelegramNotifier.send_message(chat_id, 'Xác nhận quyền quản trị (hết hạn sau 10 phút): ' + link, parse_mode=None)
             return
 
         command = _normalize_command(text)
@@ -332,9 +317,6 @@ def _handle_message(app, message):
             _handle_stats_command(app, chat_id)
             return
 
-        if command == '/oil':
-            _handle_oil_command(app, chat_id, user)
-            return
 
         if command == '/add':
             _handle_add_command(app, chat_id, text)
@@ -389,6 +371,8 @@ def _poll_updates_loop(app):
 
 
 def start_telegram_chat_bot(app):
+    if not app.config.get('TELEGRAM_ENABLED', True):
+        return None
     global _bot_thread
 
     if _bot_thread and _bot_thread.is_alive():

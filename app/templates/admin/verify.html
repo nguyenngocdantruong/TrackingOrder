@@ -1,0 +1,1 @@
+{% extends "layout.html" %}{% block content %}<h1>Xác nhận quyền quản trị</h1><p>Liên kết từ bot sẽ xác nhận Telegram của tài khoản đang đăng nhập.</p><form method="post">{{ form.csrf_token }}<input type="hidden" name="token" value="{{ token }}"><button class="btn btn-primary">Xác nhận & mở admin</button></form>{% endblock %}

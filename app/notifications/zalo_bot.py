@@ -45,7 +45,6 @@ def _help_text():
         "/remove <mã vận đơn>\n"
         "/providers - danh sách đơn vị vận chuyển\n"
         "/list - danh sách đơn hàng\n"
-        "/oil - nhận giá xăng dầu hôm nay\n"
         "/stats - thống kê cá nhân\n"
         "/help - hướng dẫn sử dụng\n"
         "/author - tác giả"
@@ -308,29 +307,6 @@ async def _handle_remove(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _send_link_reminder_if_needed(flask_app, update, user)
 
 
-async def _handle_oil(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    flask_app = _flask_app
-    zalo_id = _extract_chat_id(update)
-    if not flask_app or not zalo_id:
-        return
-
-    from app.notifications.oil_price_service import OilPriceService
-
-    try:
-        with flask_app.app_context():
-            data = OilPriceService.fetch_latest(flask_app)
-            message = OilPriceService.build_message(data)
-    except Exception as exc:
-        await _send_simple_reply(update, f"Không lấy được giá xăng dầu: {exc}")
-        return
-
-    if not message:
-        await _send_simple_reply(update, "Chưa có dữ liệu giá xăng dầu.")
-        return
-
-    await _send_simple_reply(update, message)
-
-
 async def _handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     flask_app = _flask_app
     zalo_id = _extract_chat_id(update)
@@ -370,7 +346,6 @@ def _build_application(flask_app, token: str):
     application.add_handler(CommandHandler('stats', _handle_stats))
     application.add_handler(CommandHandler('add', _handle_add))
     application.add_handler(CommandHandler('remove', _handle_remove))
-    application.add_handler(CommandHandler('oil', _handle_oil))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, _handle_text))
     try:
         application.add_handler(MessageHandler(filters.ALL, _log_update))
@@ -401,8 +376,6 @@ async def _dispatch_command(update: Update, context: ContextTypes.DEFAULT_TYPE, 
     elif cmd == '/remove':
         context.args = text.split()[1:]
         await _handle_remove(update, context)
-    elif cmd == '/oil':
-        await _handle_oil(update, context)
     elif cmd == '/test':
         await _handle_test(update, context)
 
@@ -430,6 +403,8 @@ def _run_polling(flask_app, token: str):
 
 
 def start_zalo_bot(app):
+    if not app.config.get('ZALO_ENABLED', True):
+        return None
     global _bot_thread
 
     token = app.config.get('ZALO_BOT_TOKEN')
@@ -443,6 +418,7 @@ def start_zalo_bot(app):
     _stop_event.clear()
 
     def _run():
+        asyncio.set_event_loop(asyncio.new_event_loop())
         _run_polling(app, token)
 
     _bot_thread = threading.Thread(target=_run, daemon=True)

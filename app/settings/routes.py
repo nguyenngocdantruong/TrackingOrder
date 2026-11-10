@@ -1,15 +1,8 @@
 from flask import Blueprint, render_template, url_for, flash, redirect, request, current_app
 from flask_login import current_user, login_required
-from app.settings.forms import (
-    SettingsForm,
-    PowerOutageSubscriptionForm,
-    DeletePowerOutageSubscriptionForm,
-    OilSettingsForm,
-)
+from app.settings.forms import SettingsForm
 from app.repos.users_repo import UsersRepo
 from app.notifications.registry import registry
-from app.power_outage.service import PowerOutageService
-from app.notifications.oil_price_service import OilPriceService
 
 settings_bp = Blueprint('settings', __name__)
 
@@ -49,57 +42,6 @@ def index():
         form=form,
     )
 
-
-@settings_bp.route("/power-outage", methods=['GET', 'POST'])
-@login_required
-def power_outage_settings():
-    form = PowerOutageSubscriptionForm()
-    delete_power_form = DeletePowerOutageSubscriptionForm()
-    power_units = PowerOutageService.list_units()
-    power_subscriptions = PowerOutageService.list_subscriptions(current_user.id)
-
-    if request.method == 'POST':
-        if form.validate_on_submit():
-            result = PowerOutageService.add_subscription(
-                current_user,
-                form.province_id.data,
-                form.district_id.data or None,
-            )
-            if result.get('success'):
-                flash('Đã thêm khu vực cắt điện cần theo dõi.', 'success')
-            else:
-                flash(result.get('error') or 'Không thể thêm khu vực.', 'danger')
-        else:
-            flash('Vui lòng chọn tỉnh/thành và quận/huyện hợp lệ.', 'warning')
-        return redirect(url_for('settings.power_outage_settings'))
-
-    return render_template(
-        'settings/power_outage.html',
-        title='Lịch cắt điện',
-        power_form=form,
-        delete_power_form=delete_power_form,
-        power_units=power_units,
-        power_subscriptions=power_subscriptions,
-    )
-
-
-@settings_bp.route("/power-outage/<subscription_id>/delete", methods=['POST'])
-@login_required
-def delete_power_outage(subscription_id):
-    form = DeletePowerOutageSubscriptionForm()
-    if form.validate_on_submit():
-        if form.subscription_id.data and form.subscription_id.data != subscription_id:
-            flash('Thông tin không khớp, vui lòng thử lại.', 'danger')
-            return redirect(url_for('settings.power_outage_settings'))
-
-        result = PowerOutageService.remove_subscription(current_user, subscription_id)
-        if result.get('success'):
-            flash('Đã xóa khu vực khỏi danh sách theo dõi.', 'success')
-        else:
-            flash(result.get('error') or 'Không thể xóa khu vực.', 'danger')
-    else:
-        flash('Yêu cầu không hợp lệ.', 'warning')
-    return redirect(url_for('settings.power_outage_settings'))
 
 @settings_bp.route("/test-telegram", methods=['POST'])
 @login_required
@@ -144,55 +86,3 @@ def test_zalo():
     else:
         flash('Please set a Zalo Chat ID first.', 'warning')
     return redirect(url_for('settings.index'))
-
-
-@settings_bp.route("/oil", methods=['GET', 'POST'])
-@login_required
-def oil_settings():
-    form = OilSettingsForm()
-
-    latest_data = None
-    products_petrolimex = []
-    products_pvoil = []
-    suppliers_choices = [('petrolimex', 'Petrolimex'), ('pvoil', 'PVOIL')]
-
-    try:
-        latest_data = OilPriceService.fetch_latest(current_app)
-        products_petrolimex = [row.get('name') for row in (latest_data.get('petrolimex') or [])]
-        products_pvoil = [row.get('name') for row in (latest_data.get('pvoil') or [])]
-    except Exception as exc:
-        flash(f'Không lấy được dữ liệu giá xăng dầu: {exc}', 'warning')
-
-    form.suppliers.choices = suppliers_choices
-    form.petrolimex_products.choices = [(p, p) for p in products_petrolimex]
-    form.pvoil_products.choices = [(p, p) for p in products_pvoil]
-
-    settings = current_user.settings or {}
-    oil_enabled_default = settings.get('oilNotifyEnabled', True)
-    selected_suppliers = settings.get('oilSuppliers') or ['petrolimex', 'pvoil']
-    selected_products = settings.get('oilProducts') or {}
-
-    if form.validate_on_submit():
-        new_settings = dict(settings)
-        new_settings['oilNotifyEnabled'] = form.oil_enabled.data
-        new_settings['oilSuppliers'] = form.suppliers.data or []
-        new_settings['oilProducts'] = {
-            'petrolimex': form.petrolimex_products.data or [],
-            'pvoil': form.pvoil_products.data or [],
-        }
-        UsersRepo.update_settings(current_user.id, new_settings)
-        flash('Đã lưu cài đặt thông báo giá xăng dầu.', 'success')
-        return redirect(url_for('settings.oil_settings'))
-
-    elif request.method == 'GET':
-        form.oil_enabled.data = oil_enabled_default
-        form.suppliers.data = selected_suppliers
-        form.petrolimex_products.data = selected_products.get('petrolimex') or products_petrolimex
-        form.pvoil_products.data = selected_products.get('pvoil') or products_pvoil
-
-    return render_template(
-        'settings/oil.html',
-        title='Giá xăng dầu',
-        form=form,
-        latest_data=latest_data,
-    )

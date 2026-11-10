@@ -31,10 +31,11 @@ def init_notification_providers(app):
     from app.notifications.telegram_provider import TelegramProvider
     from app.notifications.zalo_bot_provider import ZaloBotProvider
 
+    registry._providers.clear()
     # Register Telegram provider
     try:
         telegram_token = app.config.get('TELEGRAM_BOT_TOKEN')
-        if telegram_token:
+        if telegram_token and app.config.get('TELEGRAM_ENABLED', True):
             telegram = TelegramProvider(token=telegram_token)
             registry.register(telegram)
             app.logger.info("Registered Telegram notification provider")
@@ -44,7 +45,7 @@ def init_notification_providers(app):
     # Register Zalo bot provider
     try:
         zalo_bot_token = app.config.get('ZALO_BOT_TOKEN')
-        if zalo_bot_token:
+        if zalo_bot_token and app.config.get('ZALO_ENABLED', True):
             zalo_bot = ZaloBotProvider(token=zalo_bot_token)
             registry.register(zalo_bot)
             app.logger.info("Registered Zalo Bot notification provider")
