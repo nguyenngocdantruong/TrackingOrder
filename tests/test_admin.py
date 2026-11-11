@@ -5,7 +5,8 @@ from pathlib import Path
 from unittest.mock import patch
 from flask import Flask
 from flask_login import LoginManager, login_user
-from app.admin import admin_bp, GROUPS, revision, update_text
+from app.admin import admin_bp, GROUPS, revision, update_text, create_admin_link
+from urllib.parse import urlsplit
 from app.repos.users_repo import User
 from dotenv import dotenv_values
 
@@ -28,6 +29,23 @@ class AdminTests(unittest.TestCase):
  def test_denies_spoofed_id(self):
   self.login();self.user.telegram_verified_id=None
   self.assertEqual(self.client.get('/admin/').status_code,403)
+ def test_verify_accepts_copied_trailing_slash_and_consumes_token(self):
+  self.login();self.user.telegram_verified_id=None
+  self.app.config['WEBSITE_URL']='http://localhost'
+  link=urlsplit(create_admin_link(self.app,'123'))
+  path=link.path+'?'+link.query+'/'
+  with patch('app.admin.get_db') as db:
+   response=self.client.post(path)
+   self.assertEqual(response.status_code,302)
+   db.return_value.collection.return_value.document.return_value.update.assert_called_once_with({'telegramVerifiedId':'123'})
+   self.assertEqual(self.client.post(path).status_code,403)
+ def test_verify_rejects_wrong_account(self):
+  self.login();self.app.config['WEBSITE_URL']='http://localhost'
+  link=urlsplit(create_admin_link(self.app,'123'))
+  self.user.settings['telegramChatId']='456'
+  with patch('app.admin.get_db') as db:
+   self.assertEqual(self.client.post(link.path+'?'+link.query).status_code,403)
+   db.assert_not_called()
  def test_admin_page_hides_secrets(self):
   self.login();self.app.config['PAYOS_API_KEY']='keep-secret'
   r=self.client.get('/admin/');self.assertEqual(r.status_code,200);self.assertNotIn(b'keep-secret',r.data)

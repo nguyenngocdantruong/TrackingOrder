@@ -47,15 +47,16 @@ def create_admin_link(app, chat_id):
 @admin_bp.route('/verify', methods=['GET','POST'])
 @login_required
 def verify():
-    token = request.values.get('token','')
+    # URL-safe tokens never contain slashes; tolerate a copied URL's trailing slash.
+    token = request.values.get('token','').strip().rstrip('/')
     digest = hashlib.sha256(token.encode()).hexdigest()
     form = FlaskForm()
     with _lock:
         entry = _links.get(digest)
         if not entry or entry[1] < time.time():
-            abort(403)
+            abort(403, description='Liên kết xác nhận không hợp lệ hoặc đã hết hạn. Gửi /admin cho bot Telegram để lấy liên kết mới (có hiệu lực 10 phút). Liên kết cũ cũng mất hiệu lực khi ứng dụng khởi động lại hoặc bạn yêu cầu liên kết mới.')
         if str(current_user.settings.get('telegramChatId') or '') != entry[0] or current_user.is_temporary:
-            abort(403)
+            abort(403, description='Tài khoản web phải là tài khoản chính thức và có Telegram Chat ID trùng với tài khoản Telegram đã yêu cầu liên kết. Kiểm tra tài khoản đăng nhập và Cài đặt → Thông báo.')
         if form.validate_on_submit():
             get_db().collection('users').document(current_user.id).update({'telegramVerifiedId': entry[0]})
             _links.pop(digest,None)
