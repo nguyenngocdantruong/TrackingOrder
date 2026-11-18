@@ -83,8 +83,16 @@ class JTExpressProvider(CarrierProvider):
         }
 
         try:
-            # Temporary workaround: J&T serves an incomplete TLS certificate chain.
-            response = requests.get(url, params=params, headers=headers, timeout=20, verify=False)
+            # Temporary workaround: J&T currently serves an incomplete TLS
+            # certificate chain, so certificate verification fails in this
+            # environment. Keep this scoped to J&T until their chain is fixed.
+            response = requests.get(
+                url,
+                params=params,
+                headers=headers,
+                timeout=20,
+                verify=False,
+            )
             response.raise_for_status()
         except Exception as e:
             raise Exception(f"Không thể kết nối J&T Express: {str(e)}")

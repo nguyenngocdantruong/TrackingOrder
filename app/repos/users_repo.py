@@ -6,8 +6,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import secrets
 
 class User(UserMixin):
-    def __init__(self, user_id, username, password_hash, settings=None, is_temporary=False, link_token=None, telegram_verified_id=None):
+    def __init__(self, user_id, username, password_hash, settings=None, is_temporary=False, link_token=None, telegram_verified_id=None, partner_api=None):
         self.telegram_verified_id = telegram_verified_id
+        self.partner_api = partner_api or {}
         self.id = user_id
         self.username = username
         self.password_hash = password_hash
@@ -51,7 +52,8 @@ class UsersRepo:
                 data.get('settings'),
                 data.get('isTemporary', False),
                 data.get('linkToken'),
-                data.get('telegramVerifiedId')
+                data.get('telegramVerifiedId'),
+                data.get('partnerApi'),
             )
         return None
 
@@ -68,7 +70,8 @@ class UsersRepo:
                 data.get('settings'),
                 data.get('isTemporary', False),
                 data.get('linkToken'),
-                data.get('telegramVerifiedId')
+                data.get('telegramVerifiedId'),
+                data.get('partnerApi'),
             )
         return None
 
@@ -376,3 +379,37 @@ class UsersRepo:
             if created_at:
                 return created_at.strftime('%d/%m/%Y') if hasattr(created_at, 'strftime') else str(created_at)
         return 'N/A'
+
+    @staticmethod
+    def get_by_partner_api_key_hash(api_key_hash: str):
+        """Lookup partner user by SHA-256 hash of API key."""
+        if not api_key_hash:
+            return None
+        db = get_db()
+        docs = (
+            db.collection(UsersRepo.COLLECTION)
+            .where(filter=FieldFilter('partnerApi.apiKeyHash', '==', api_key_hash))
+            .limit(1)
+            .stream()
+        )
+        for doc in docs:
+            data = doc.to_dict() or {}
+            return User(
+                doc.id,
+                data.get('username'),
+                data.get('password_hash'),
+                data.get('settings'),
+                data.get('isTemporary', False),
+                data.get('linkToken'),
+                data.get('telegramVerifiedId'),
+                data.get('partnerApi'),
+            )
+        return None
+
+    @staticmethod
+    def update_partner_api(user_id: str, partner_api: dict):
+        """Persist partner API & webhook configuration on user document."""
+        db = get_db()
+        db.collection(UsersRepo.COLLECTION).document(user_id).update({
+            'partnerApi': partner_api
+        })

@@ -1,0 +1,471 @@
+{% extends "v2/layout.html" %}
+{% block content %}
+<div class="v2-page-head">
+    <div>
+        <h1 class="v2-page-title" data-v2-i18n="docs.title">Tài liệu tích hợp Partner API &amp; Webhook</h1>
+        <p class="v2-subtitle" data-v2-i18n="docs.subtitle">Hướng dẫn kết nối REST API v1 và xác thực sự kiện Webhook thời gian thực dành cho hệ thống đối tác thứ ba.</p>
+    </div>
+    <div class="v2-page-actions">
+        {% if current_user.is_authenticated %}
+            <a href="{{ url_for('v2.developers') }}" class="v2-btn v2-btn-primary" data-v2-i18n="docs.cta_keys">Quản lý API Key &amp; Webhook</a>
+        {% else %}
+            <a href="{{ url_for('v2.login', next=url_for('v2.developers')) }}" class="v2-btn v2-btn-primary" data-v2-i18n="docs.cta_get_key">Đăng nhập lấy API Key</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="v2-docs-layout">
+    <nav class="v2-docs-toc" aria-label="Mục lục tài liệu">
+        <a href="#overview" class="v2-docs-toc-link" aria-current="true" data-v2-i18n="docs.toc.overview">1. Tổng quan &amp; Xác thực</a>
+        <a href="#carriers" class="v2-docs-toc-link" data-v2-i18n="docs.toc.carriers">2. Danh sách nhà vận chuyển</a>
+        <a href="#trackings" class="v2-docs-toc-link" data-v2-i18n="docs.toc.trackings">3. Quản lý vận đơn</a>
+        <a href="#webhooks" class="v2-docs-toc-link" data-v2-i18n="docs.toc.webhooks">4. Tích hợp Webhook</a>
+        <a href="#signature" class="v2-docs-toc-link" data-v2-i18n="docs.toc.signature">5. Xác minh chữ ký bảo mật</a>
+        <a href="#errors" class="v2-docs-toc-link" data-v2-i18n="docs.toc.errors">6. Mã lỗi chuẩn</a>
+    </nav>
+
+    <article class="v2-docs-article">
+        <!-- 1. Overview & Auth -->
+        <section id="overview" class="v2-docs-section">
+            <h2 data-v2-i18n="docs.s1.title">1. Tổng quan &amp; Xác thực</h2>
+
+            <div data-lang-block="vi">
+                <p>Partner REST API cho phép hệ thống thương mại điện tử, ERP hoặc phần mềm quản lý đơn hàng đăng ký mã vận đơn, truy vấn lịch sử giao nhận chuẩn hóa và tự động nhận thông báo đẩy qua Webhook ngay khi hãng vận chuyển phát sinh mốc sự kiện mới.</p>
+                <p>Mọi yêu cầu tới <code>{{ base_url }}/api/v1</code> sử dụng định dạng JSON (UTF-8) và xác thực bằng khóa <code>oth_live_...</code> khởi tạo tại trang <a href="{{ url_for('v2.developers') }}">API Đối tác &amp; Webhook</a>. Truyền khóa qua header <code>Authorization: Bearer &lt;API_KEY&gt;</code> hoặc <code>X-API-Key</code>.</p>
+            </div>
+            <div data-lang-block="en" hidden>
+                <p>The Partner REST API enables e-commerce storefronts, ERPs, and order management systems to register tracking numbers, query normalized carrier checkpoints, and receive real-time push webhooks whenever a shipment moves.</p>
+                <p>All requests to <code>{{ base_url }}/api/v1</code> speak UTF-8 JSON and authenticate with an <code>oth_live_...</code> key generated in the <a href="{{ url_for('v2.developers') }}">Partner API &amp; Webhook Console</a>. Send your key via <code>Authorization: Bearer &lt;API_KEY&gt;</code> or the <code>X-API-Key</code> header.</p>
+            </div>
+
+            <div class="v2-code-block" data-code-group>
+                <div class="v2-code-head">
+                    <div class="v2-code-tabs" role="tablist">
+                        <button type="button" class="v2-code-tab" role="tab" data-code-lang="curl" aria-selected="true">cURL</button>
+                        <button type="button" class="v2-code-tab" role="tab" data-code-lang="js" aria-selected="false">Node.js</button>
+                        <button type="button" class="v2-code-tab" role="tab" data-code-lang="py" aria-selected="false">Python</button>
+                    </div>
+                    <button type="button" class="v2-code-copy" data-copy-code data-v2-i18n="common.copy">Sao chép</button>
+                </div>
+                <pre class="v2-code-pre" data-code-pane="curl"><code>curl -X GET "{{ base_url }}/api/v1/trackings?status=active" \
+  -H "Authorization: Bearer oth_live_your_api_key" \
+  -H "Accept: application/json"</code></pre>
+                <pre class="v2-code-pre" data-code-pane="js" hidden><code>const res = await fetch("{{ base_url }}/api/v1/trackings?status=active", {
+  headers: {
+    "Authorization": `Bearer ${process.env.ORDER_TRACKER_API_KEY}`,
+    "Accept": "application/json"
+  }
+});
+const payload = await res.json();</code></pre>
+                <pre class="v2-code-pre" data-code-pane="py" hidden><code>import os, requests
+
+resp = requests.get(
+    "{{ base_url }}/api/v1/trackings",
+    params={"status": "active"},
+    headers={"Authorization": f"Bearer {os.environ['ORDER_TRACKER_API_KEY']}"},
+    timeout=10,
+)
+data = resp.json()</code></pre>
+            </div>
+        </section>
+
+        <!-- 2. Supported Carriers -->
+        <section id="carriers" class="v2-docs-section">
+            <h2 data-v2-i18n="docs.s2.title">2. Danh sách nhà vận chuyển hỗ trợ</h2>
+            <div class="v2-endpoint-bar">
+                <span class="v2-method v2-method-get">GET</span>
+                <code class="v2-code">/api/v1/carriers</code>
+            </div>
+
+            <div data-lang-block="vi">
+                <p>Trả về danh sách mã định danh <code>carrier_id</code> đang kích hoạt trên hệ thống. Khi tạo vận đơn, bạn có thể truyền <code>"carrier_id": "auto"</code> để hệ thống tự nhận diện theo mẫu mã vận đơn.</p>
+            </div>
+            <div data-lang-block="en" hidden>
+                <p>Returns all active carrier identifiers. When registering a parcel, you may pass <code>"carrier_id": "auto"</code> to let the hub detect the carrier automatically from the tracking code format.</p>
+            </div>
+
+            <table class="v2-spec-table">
+                <thead>
+                    <tr>
+                        <th scope="col">carrier_id</th>
+                        <th scope="col" data-v2-i18n="docs.tbl.carrier_name">Đơn vị vận chuyển</th>
+                        <th scope="col" data-v2-i18n="docs.tbl.example">Định dạng mẫu</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in carriers %}
+                    <tr>
+                        <td><code>{{ c.id }}</code></td>
+                        <td>{{ c.name }}</td>
+                        <td class="v2-code">{{ c.example or '—' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td><code>spx_vn</code></td><td>Shopee Express VN</td><td class="v2-code">SPXVN048291049281</td></tr>
+                    <tr><td><code>lex</code></td><td>Lazada Express</td><td class="v2-code">LEXPU0391827364</td></tr>
+                    <tr><td><code>jt_express</code></td><td>J&amp;T Express</td><td class="v2-code">842594172358-9880</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <!-- 3. Shipment Endpoints -->
+        <section id="trackings" class="v2-docs-section">
+            <h2 data-v2-i18n="docs.s3.title">3. Quản lý &amp; Đồng bộ vận đơn</h2>
+
+            <h3 data-v2-i18n="docs.s3.create">Đăng ký theo dõi vận đơn mới</h3>
+            <div class="v2-endpoint-bar">
+                <span class="v2-method v2-method-post">POST</span>
+                <code class="v2-code">/api/v1/trackings</code>
+            </div>
+
+            <table class="v2-spec-table">
+                <thead>
+                    <tr>
+                        <th scope="col" data-v2-i18n="docs.tbl.field">Trường dữ liệu</th>
+                        <th scope="col" data-v2-i18n="docs.tbl.type">Kiểu</th>
+                        <th scope="col" data-v2-i18n="docs.tbl.desc">Mô tả</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>tracking_number</code></td>
+                        <td>
+                            <code>string</code> ·
+                            <span data-lang-block="vi">bắt buộc</span>
+                            <span data-lang-block="en" hidden>required</span>
+                        </td>
+                        <td>
+                            <span data-lang-block="vi">Mã vận đơn từ hãng giao nhận (lưu ý J&amp;T yêu cầu hậu tố 4 số cuối điện thoại <code>-xxxx</code>).</span>
+                            <span data-lang-block="en" hidden>Carrier tracking code (J&amp;T requires the 4-digit phone suffix <code>-xxxx</code>).</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>carrier_id</code></td>
+                        <td>
+                            <code>string</code> ·
+                            <span data-lang-block="vi">mặc định <code>"auto"</code></span>
+                            <span data-lang-block="en" hidden>default <code>"auto"</code></span>
+                        </td>
+                        <td>
+                            <span data-lang-block="vi">Mã hãng (<code>spx_vn</code>, <code>lex</code>, <code>jt_express</code>) hoặc <code>auto</code> để tự nhận diện.</span>
+                            <span data-lang-block="en" hidden>Carrier code (<code>spx_vn</code>, <code>lex</code>, <code>jt_express</code>) or <code>auto</code>.</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>alias</code></td>
+                        <td>
+                            <code>string</code> ·
+                            <span data-lang-block="vi">tùy chọn</span>
+                            <span data-lang-block="en" hidden>optional</span>
+                        </td>
+                        <td>
+                            <span data-lang-block="vi">Tên hiển thị gợi nhớ của kiện hàng.</span>
+                            <span data-lang-block="en" hidden>Human-readable order label or summary.</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>external_ref</code></td>
+                        <td>
+                            <code>string</code> ·
+                            <span data-lang-block="vi">tùy chọn</span>
+                            <span data-lang-block="en" hidden>optional</span>
+                        </td>
+                        <td>
+                            <span data-lang-block="vi">Mã đơn hàng nội bộ phía đối tác (trả kèm lại trong mọi gói tin Webhook để đối soát).</span>
+                            <span data-lang-block="en" hidden>Your internal order ID, echoed back in every API response and webhook event.</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="v2-code-block" data-code-group>
+                <div class="v2-code-head">
+                    <span style="font-size:12px;font-weight:600;padding-left:8px;">POST /api/v1/trackings → 201 Created</span>
+                    <button type="button" class="v2-code-copy" data-copy-code data-v2-i18n="common.copy">Sao chép</button>
+                </div>
+                <pre class="v2-code-pre"><code>curl -X POST "{{ base_url }}/api/v1/trackings" \
+  -H "Authorization: Bearer oth_live_your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tracking_number": "SPXVN048291049281",
+    "carrier_id": "auto",
+    "alias": "Đơn hàng #INV-2048",
+    "external_ref": "INV-2048"
+  }'</code></pre>
+            </div>
+
+            <h3 data-v2-i18n="docs.s3.other">Các endpoint tra cứu, làm mới &amp; xóa</h3>
+            <div class="v2-endpoint-bar">
+                <span class="v2-method v2-method-get">GET</span>
+                <code class="v2-code">/api/v1/trackings?status=active|completed&amp;carrier=spx_vn&amp;q=...&amp;limit=50</code>
+            </div>
+            <div class="v2-endpoint-bar">
+                <span class="v2-method v2-method-get">GET</span>
+                <code class="v2-code">/api/v1/trackings/{tracking_id}</code>
+            </div>
+            <div class="v2-endpoint-bar">
+                <span class="v2-method v2-method-get">GET</span>
+                <code class="v2-code">/api/v1/trackings/by-number/{tracking_number}</code>
+            </div>
+            <div class="v2-endpoint-bar">
+                <span class="v2-method v2-method-post">POST</span>
+                <code class="v2-code">/api/v1/trackings/{tracking_id}/refresh</code>
+            </div>
+            <div class="v2-endpoint-bar">
+                <span class="v2-method v2-method-delete">DELETE</span>
+                <code class="v2-code">/api/v1/trackings/{tracking_id}</code>
+            </div>
+        </section>
+
+        <!-- 4. Outbound Webhooks -->
+        <section id="webhooks" class="v2-docs-section">
+            <h2 data-v2-i18n="docs.s4.title">4. Nhận cập nhật thời gian thực qua Webhook</h2>
+
+            <div data-lang-block="vi">
+                <p>Thay vì phải liên tục gọi API kiểm tra (polling), bạn có thể đăng ký một HTTPS URL tại trang <a href="{{ url_for('v2.developers') }}">API Đối tác &amp; Webhook</a> hoặc qua endpoint <code>PUT /api/v1/webhook</code>. Mỗi khi lịch trình đồng bộ phát hiện sự kiện mới từ nhà vận chuyển, hệ thống sẽ lập tức đẩy bản tin <code>POST</code> tới máy chủ của bạn.</p>
+            </div>
+            <div data-lang-block="en" hidden>
+                <p>Instead of polling, register an HTTPS endpoint in the <a href="{{ url_for('v2.developers') }}">Developer Console</a> or via <code>PUT /api/v1/webhook</code>. Whenever our background scheduler or a manual sync detects new carrier checkpoints, Order Tracking Hub immediately delivers a signed <code>POST</code> request to your server.</p>
+            </div>
+
+            <div class="v2-endpoint-bar">
+                <span class="v2-method v2-method-put">PUT</span>
+                <code class="v2-code">/api/v1/webhook</code>
+                <span style="font-size:13px;color:var(--v2-muted);">·</span>
+                <span class="v2-method v2-method-post">POST</span>
+                <code class="v2-code">/api/v1/webhook/test</code>
+            </div>
+
+            <table class="v2-spec-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Event</th>
+                        <th scope="col" data-v2-i18n="docs.tbl.trigger">Thời điểm kích hoạt</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>tracking.created</code></td>
+                        <td>
+                            <span data-lang-block="vi">Ngay sau khi vận đơn mới được đăng ký và hoàn tất lần đồng bộ đầu tiên.</span>
+                            <span data-lang-block="en" hidden>Triggered right after a new tracking code is registered and initially synced.</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>tracking.updated</code></td>
+                        <td>
+                            <span data-lang-block="vi">Khi nhà vận chuyển ghi nhận thêm ít nhất một mốc hành trình mới (kèm <code>latestCheckpoint</code>).</span>
+                            <span data-lang-block="en" hidden>Triggered whenever one or more new carrier checkpoints arrive (includes <code>latestCheckpoint</code>).</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>tracking.completed</code></td>
+                        <td>
+                            <span data-lang-block="vi">Khi vận đơn đạt trạng thái kết thúc (Đã giao hàng thành công hoặc Hủy/Hoàn).</span>
+                            <span data-lang-block="en" hidden>Triggered when a shipment reaches a terminal state (Delivered or Cancelled/Returned).</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>webhook.test</code></td>
+                        <td>
+                            <span data-lang-block="vi">Gói tin kiểm tra chủ động khi bấm nút "Gửi Webhook thử nghiệm" hoặc gọi <code>POST /api/v1/webhook/test</code>.</span>
+                            <span data-lang-block="en" hidden>Synthetic verification ping sent from the Developer Console or <code>POST /api/v1/webhook/test</code>.</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="v2-code-block" data-code-group>
+                <div class="v2-code-head">
+                    <span style="font-size:12px;font-weight:600;padding-left:8px;">Webhook Payload JSON (tracking.updated)</span>
+                    <button type="button" class="v2-code-copy" data-copy-code data-v2-i18n="common.copy">Sao chép</button>
+                </div>
+                <pre class="v2-code-pre"><code>{
+  "id": "evt_9f82c10e7a41b3029d18ef04",
+  "event": "tracking.updated",
+  "createdAt": "2026-11-18T02:50:00Z",
+  "data": {
+    "newEventsCount": 1,
+    "latestCheckpoint": {
+      "eventHash": "7b2e91...",
+      "code": "OUT_FOR_DELIVERY",
+      "name": "Tài xế đang giao hàng",
+      "description": "Bưu tá đang trên tuyến phát kiện hàng đến người nhận.",
+      "milestoneCode": 3,
+      "milestoneName": "Out for Delivery",
+      "actualTime": "2026-11-18T02:48:10Z",
+      "location": {
+        "name": "Bưu cục Quận 7",
+        "address": "Quận 7, TP. Hồ Chí Minh"
+      }
+    },
+    "tracking": {
+      "id": "trk_81920a",
+      "trackingNumber": "SPXVN048291049281",
+      "carrierId": "spx_vn",
+      "carrierName": "Shopee Express VN",
+      "alias": "Đơn hàng #INV-2048",
+      "externalRef": "INV-2048",
+      "isActive": true,
+      "currentStatus": "Tài xế đang giao hàng",
+      "lastCheckedAt": "2026-11-18T02:50:00Z",
+      "events": [ ... ]
+    }
+  }
+}</code></pre>
+            </div>
+        </section>
+
+        <!-- 5. Signature Verification -->
+        <section id="signature" class="v2-docs-section">
+            <h2 data-v2-i18n="docs.s5.title">5. Xác minh chữ ký bảo mật HMAC-SHA256</h2>
+
+            <div data-lang-block="vi">
+                <p>Mỗi yêu cầu Webhook gửi đi đều đính kèm các HTTP Header định danh và chữ ký số tạo từ <code>Signing Secret (whsec_...)</code> của riêng bạn:</p>
+                <ul>
+                    <li><code>X-OrderTracker-Event</code>: Tên sự kiện (ví dụ <code>tracking.updated</code>).</li>
+                    <li><code>X-OrderTracker-Delivery</code>: Mã định danh duy nhất của lần gửi (dùng để chống xử lý trùng — idempotency).</li>
+                    <li><code>X-OrderTracker-Timestamp</code>: Unix timestamp (giây) lúc ký gói tin.</li>
+                    <li><code>X-OrderTracker-Signature</code>: Chuỗi <code>sha256=&lt;hex_digest&gt;</code> tính bằng <code>HMAC_SHA256(secret, timestamp + "." + raw_body)</code>.</li>
+                </ul>
+            </div>
+            <div data-lang-block="en" hidden>
+                <p>Every outbound webhook carries identifying headers and an HMAC signature computed with your <code>Signing Secret (whsec_...)</code>:</p>
+                <ul>
+                    <li><code>X-OrderTracker-Event</code>: Event name (e.g. <code>tracking.updated</code>).</li>
+                    <li><code>X-OrderTracker-Delivery</code>: Unique delivery ID for idempotent deduplication.</li>
+                    <li><code>X-OrderTracker-Timestamp</code>: Unix epoch timestamp (seconds) when signed.</li>
+                    <li><code>X-OrderTracker-Signature</code>: <code>sha256=&lt;hex_digest&gt;</code> computed as <code>HMAC_SHA256(secret, timestamp + "." + raw_body)</code>.</li>
+                </ul>
+            </div>
+
+            <div class="v2-code-block" data-code-group>
+                <div class="v2-code-head">
+                    <div class="v2-code-tabs" role="tablist">
+                        <button type="button" class="v2-code-tab" role="tab" data-code-lang="node-sig" aria-selected="true">Node.js (Express)</button>
+                        <button type="button" class="v2-code-tab" role="tab" data-code-lang="py-sig" aria-selected="false">Python (Flask/FastAPI)</button>
+                    </div>
+                    <button type="button" class="v2-code-copy" data-copy-code data-v2-i18n="common.copy">Sao chép</button>
+                </div>
+                <pre class="v2-code-pre" data-code-pane="node-sig"><code>import crypto from "node:crypto";
+
+export function verifyOrderTrackerWebhook(rawBodyBuffer, headers, secret) {
+  const timestamp = headers["x-ordertracker-timestamp"] || "";
+  const signature = headers["x-ordertracker-signature"] || "";
+  const signedPayload = Buffer.concat([Buffer.from(`${timestamp}.`), rawBodyBuffer]);
+  const expected = "sha256=" + crypto.createHmac("sha256", secret).update(signedPayload).digest("hex");
+
+  return (
+    signature.length === expected.length &&
+    crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))
+  );
+}</code></pre>
+                <pre class="v2-code-pre" data-code-pane="py-sig" hidden><code>import hashlib, hmac
+
+def verify_order_tracker_webhook(raw_body: bytes, timestamp: str, signature: str, secret: str) -> bool:
+    signed_input = f"{timestamp}.".encode("utf-8") + raw_body
+    expected = "sha256=" + hmac.new(secret.encode("utf-8"), signed_input, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(signature or "", expected)</code></pre>
+            </div>
+        </section>
+
+        <!-- 6. Error Codes -->
+        <section id="errors" class="v2-docs-section">
+            <h2 data-v2-i18n="docs.s6.title">6. Mã trạng thái HTTP &amp; Xử lý lỗi</h2>
+            <table class="v2-spec-table">
+                <thead>
+                    <tr>
+                        <th scope="col">HTTP</th>
+                        <th scope="col">error.code</th>
+                        <th scope="col" data-v2-i18n="docs.tbl.meaning">Ý nghĩa</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="v2-tabular"><code>200 / 201</code></td>
+                        <td>—</td>
+                        <td>
+                            <span data-lang-block="vi">Yêu cầu thành công (<code>"success": true</code>).</span>
+                            <span data-lang-block="en" hidden>Request succeeded (<code>"success": true</code>).</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="v2-tabular"><code>401</code></td>
+                        <td><code>missing_api_key</code> / <code>invalid_api_key</code></td>
+                        <td>
+                            <span data-lang-block="vi">Thiếu API Key hoặc khóa đã bị thu hồi / không hợp lệ.</span>
+                            <span data-lang-block="en" hidden>API key was omitted, malformed, or revoked.</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="v2-tabular"><code>404</code></td>
+                        <td><code>not_found</code></td>
+                        <td>
+                            <span data-lang-block="vi">Không tìm thấy vận đơn tương ứng thuộc tài khoản đối tác hiện tại.</span>
+                            <span data-lang-block="en" hidden>Tracking ID or number does not exist in your partner account.</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="v2-tabular"><code>422</code></td>
+                        <td><code>validation_error</code> / <code>tracking_rejected</code></td>
+                        <td>
+                            <span data-lang-block="vi">Dữ liệu đầu vào thiếu trường bắt buộc, sai định dạng mã vận đơn hoặc URL Webhook không hợp lệ.</span>
+                            <span data-lang-block="en" hidden>Missing required field, unsupported tracking format, or disallowed webhook URL.</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="v2-tabular"><code>502</code></td>
+                        <td><code>sync_failed</code></td>
+                        <td>
+                            <span data-lang-block="vi">API phía nhà vận chuyển tạm thời gián đoạn khi yêu cầu làm mới trực tiếp.</span>
+                            <span data-lang-block="en" hidden>Upstream carrier endpoint failed temporarily during live refresh.</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+    </article>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Code language tabs
+    document.querySelectorAll('[data-code-group]').forEach((group) => {
+        const tabs = group.querySelectorAll('[data-code-lang]');
+        const panes = group.querySelectorAll('[data-code-pane]');
+        tabs.forEach((tab) => {
+            tab.addEventListener('click', () => {
+                const target = tab.dataset.codeLang;
+                tabs.forEach((t) => t.setAttribute('aria-selected', String(t === tab)));
+                panes.forEach((p) => { p.hidden = p.dataset.codePane !== target; });
+            });
+        });
+
+        const copyBtn = group.querySelector('[data-copy-code]');
+        if (copyBtn) {
+            copyBtn.addEventListener('click', async () => {
+                const visiblePane = [...group.querySelectorAll('.v2-code-pre')].find((p) => !p.hidden);
+                if (!visiblePane) return;
+                try {
+                    await navigator.clipboard.writeText(visiblePane.innerText.trim());
+                    const prev = copyBtn.textContent;
+                    copyBtn.textContent = document.documentElement.lang === 'en' ? 'Copied' : 'Đã chép';
+                    setTimeout(() => { copyBtn.textContent = prev; }, 1600);
+                } catch (_) {}
+            });
+        }
+    });
+
+    // TOC active link highlight
+    const tocLinks = document.querySelectorAll('.v2-docs-toc-link');
+    tocLinks.forEach((link) => {
+        link.addEventListener('click', () => {
+            tocLinks.forEach((l) => l.removeAttribute('aria-current'));
+            link.setAttribute('aria-current', 'true');
+        });
+    });
+});
+</script>
+{% endblock %}

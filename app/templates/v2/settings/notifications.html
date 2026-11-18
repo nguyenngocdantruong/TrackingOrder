@@ -1,0 +1,145 @@
+{% extends "v2/layout.html" %}
+{% block content %}
+<div class="v2-medium-shell">
+    <div class="v2-page-head">
+        <div>
+            <h1 class="v2-page-title" data-v2-i18n="settings.title">Cài đặt thông báo</h1>
+            <p class="v2-subtitle" data-v2-i18n="settings.subtitle">Quản lý kênh nhận tin tự động qua Telegram, Zalo và kiểm tra kết nối bot.</p>
+        </div>
+        <div class="v2-page-actions">
+            <a href="{{ url_for('v2.developers') }}" class="v2-btn v2-btn-secondary" data-v2-i18n="settings.partner_cta">Cấu hình API &amp; Webhook</a>
+        </div>
+    </div>
+
+    <div class="v2-settings-stack">
+        <form method="POST" action="{{ url_for('v2.settings') }}" data-v2-busy="…">
+            {{ form.hidden_tag() }}
+
+            <!-- Master Push Notification Toggle -->
+            <section class="v2-surface v2-settings-section" style="margin-bottom:20px;" aria-labelledby="v2-master-notify-title">
+                <div class="v2-settings-row">
+                    <div>
+                        <h2 id="v2-master-notify-title" class="v2-section-title" data-v2-i18n="settings.master.title">Thông báo đẩy tự động</h2>
+                        <p class="v2-help" style="font-size:14px;margin-top:4px;" data-v2-i18n="settings.master.desc">Gửi tin nhắn ngay khi đơn hàng chuyển sang trạng thái mới.</p>
+                    </div>
+                    <label class="v2-switch-label" for="{{ form.notify_enabled.id }}">
+                        <span data-v2-i18n="common.enable">Kích hoạt</span>
+                        {{ form.notify_enabled(class="v2-switch", role="switch") }}
+                    </label>
+                </div>
+            </section>
+
+            <!-- Telegram Channel Configuration -->
+            <section class="v2-surface v2-settings-section" style="margin-bottom:20px;" aria-labelledby="v2-tg-title">
+                <div class="v2-channel-head">
+                    <div class="v2-channel-title-group">
+                        <img src="{{ url_for('static', filename='telegram.webp') }}" width="36" height="36" alt="" aria-hidden="true" class="v2-channel-avatar">
+                        <div>
+                            <h2 id="v2-tg-title" class="v2-section-title" data-v2-i18n="settings.tg.title">Kênh Telegram</h2>
+                            <p class="v2-help" style="margin-top:2px;" data-v2-i18n="settings.tg.desc">Nhận tin nhắn tự động từ bot Telegram chính thức.</p>
+                        </div>
+                    </div>
+                    <label class="v2-switch-label" for="{{ form.telegram_enabled.id }}">
+                        <span data-v2-i18n="settings.channel_toggle">Bật kênh</span>
+                        {{ form.telegram_enabled(class="v2-switch", role="switch") }}
+                    </label>
+                </div>
+
+                <div style="display:flex;align-items:flex-start;gap:10px;padding-bottom:18px;margin-bottom:18px;border-bottom:1px solid var(--v2-line);font-size:14px;color:var(--v2-warn-ink);">
+                    <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true" style="margin-top:2px;">
+                        <path d="m12 3 9.5 16.5H2.5L12 3Z"/><path d="M12 9v4M12 17h.01"/>
+                    </svg>
+                    <div data-lang-block="vi">
+                        <strong>Lưu ý trước khi lưu:</strong> Hãy mở bot
+                        <a href="https://t.me/{{ bot_username }}" target="_blank" rel="noopener noreferrer" style="font-weight:700;color:var(--v2-warn-ink);">@{{ bot_username }}</a>
+                        và bấm <strong>Start (Bắt đầu)</strong> để cấp quyền gửi tin nhắn cho tài khoản của bạn.
+                    </div>
+                    <div data-lang-block="en" hidden>
+                        <strong>Before saving:</strong> Open
+                        <a href="https://t.me/{{ bot_username }}" target="_blank" rel="noopener noreferrer" style="font-weight:700;color:var(--v2-warn-ink);">@{{ bot_username }}</a>
+                        and tap <strong>Start</strong> so the bot has permission to message your account.
+                    </div>
+                </div>
+
+                <div class="v2-field-group" style="margin-bottom:0;">
+                    <label class="v2-label" for="{{ form.telegram_chat_id.id }}">Telegram Chat ID</label>
+                    {{ form.telegram_chat_id(
+                        class="v2-input v2-code",
+                        placeholder="Ví dụ: 987654321",
+                        autocomplete="off",
+                        **{"aria-describedby": "hint-tg-id", "data-v2-i18n": "settings.tg.placeholder", "data-v2-i18n-attr": "placeholder"}
+                    ) }}
+                    <div id="hint-tg-id" class="v2-help">
+                        <span data-lang-block="vi">Chưa biết Chat ID? Nhắn tin cho bot <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" style="font-weight:600;">@userinfobot</a> trên Telegram để lấy mã số định danh của bạn.</span>
+                        <span data-lang-block="en" hidden>Need your Chat ID? Message <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" style="font-weight:600;">@userinfobot</a> on Telegram to view your numeric ID.</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Zalo Channel Configuration -->
+            <section class="v2-surface v2-settings-section" style="margin-bottom:20px;" aria-labelledby="v2-zalo-title">
+                <div class="v2-channel-head">
+                    <div class="v2-channel-title-group">
+                        <img src="{{ url_for('static', filename='zalo.webp') }}" width="36" height="36" alt="" aria-hidden="true" class="v2-channel-avatar">
+                        <div>
+                            <h2 id="v2-zalo-title" class="v2-section-title" data-v2-i18n="settings.zalo.title">Kênh Zalo</h2>
+                            <p class="v2-help" style="margin-top:2px;" data-v2-i18n="settings.zalo.desc">Nhận tin nhắn cập nhật trực tiếp qua Zalo Bot.</p>
+                        </div>
+                    </div>
+                    <label class="v2-switch-label" for="{{ form.zalo_enabled.id }}">
+                        <span data-v2-i18n="settings.channel_toggle">Bật kênh</span>
+                        {{ form.zalo_enabled(class="v2-switch", role="switch") }}
+                    </label>
+                </div>
+
+                <div class="v2-field-group" style="margin-bottom:0;">
+                    <label class="v2-label" for="{{ form.zalo_chat_id.id }}">Zalo Chat ID</label>
+                    {{ form.zalo_chat_id(
+                        class="v2-input v2-code",
+                        placeholder="Dán Zalo Chat ID của bạn",
+                        autocomplete="off",
+                        **{"aria-describedby": "hint-zalo-id", "data-v2-i18n": "settings.zalo.placeholder", "data-v2-i18n-attr": "placeholder"}
+                    ) }}
+                    <div id="hint-zalo-id" class="v2-help" data-v2-i18n="settings.zalo.help">Dán mã chat_id nhận được khi tương tác lệnh với Zalo Bot hoặc liên kết từ Zalo.</div>
+                </div>
+            </section>
+
+            <button type="submit" class="v2-btn v2-btn-primary v2-btn-lg v2-btn-block">
+                <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                <span data-btn-label data-v2-i18n="settings.save">Lưu cài đặt thông báo</span>
+            </button>
+        </form>
+
+        <!-- Bot Connection Verification Strip -->
+        <section aria-label="Test bots" style="margin-top:12px;">
+            <div class="v2-test-strip">
+                <div class="v2-surface v2-test-box">
+                    <div>
+                        <h2 class="v2-section-title" style="font-size:16px;margin-bottom:6px;" data-v2-i18n="settings.test_tg.title">Kiểm tra kết nối Telegram</h2>
+                        <p style="font-size:14px;color:var(--v2-muted);" data-v2-i18n="settings.test_tg.desc">Gửi một tin nhắn mẫu tới Telegram Chat ID đã lưu để xác nhận hoạt động.</p>
+                    </div>
+                    <form action="{{ url_for('v2.test_telegram') }}" method="POST" data-v2-busy="…">
+                        <button type="submit" class="v2-btn v2-btn-secondary v2-btn-block">
+                            <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                            <span data-btn-label data-v2-i18n="settings.test_tg.btn">Gửi tin thử Telegram</span>
+                        </button>
+                    </form>
+                </div>
+
+                <div class="v2-surface v2-test-box">
+                    <div>
+                        <h2 class="v2-section-title" style="font-size:16px;margin-bottom:6px;" data-v2-i18n="settings.test_zalo.title">Kiểm tra kết nối Zalo</h2>
+                        <p style="font-size:14px;color:var(--v2-muted);" data-v2-i18n="settings.test_zalo.desc">Gửi một tin nhắn mẫu tới Zalo Chat ID đã lưu để xác nhận hoạt động.</p>
+                    </div>
+                    <form action="{{ url_for('v2.test_zalo') }}" method="POST" data-v2-busy="…">
+                        <button type="submit" class="v2-btn v2-btn-secondary v2-btn-block">
+                            <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                            <span data-btn-label data-v2-i18n="settings.test_zalo.btn">Gửi tin thử Zalo</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}

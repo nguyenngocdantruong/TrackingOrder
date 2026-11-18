@@ -1,0 +1,93 @@
+{% extends "v2/layout.html" %}
+{% block content %}
+<div class="v2-narrow-shell">
+    <div class="v2-surface v2-auth-card">
+        <div class="v2-auth-head">
+            <h1 class="v2-page-title" data-v2-i18n="register.title">Tạo tài khoản mới</h1>
+            <p class="v2-subtitle" data-v2-i18n="register.subtitle">Theo dõi không giới hạn vận đơn và nhận thông báo tức thì qua Telegram hoặc Zalo.</p>
+        </div>
+
+        <form method="POST" action="" novalidate data-v2-busy="…">
+            {{ form.hidden_tag() }}
+
+            <div class="v2-field-group">
+                <label class="v2-label" for="{{ form.username.id }}" data-v2-i18n="register.username">Tên đăng nhập</label>
+                {{ form.username(
+                    class="v2-input",
+                    autocomplete="username",
+                    placeholder="Từ 2 đến 20 ký tự",
+                    **(
+                        {"data-v2-i18n": "register.username.placeholder", "data-v2-i18n-attr": "placeholder", "aria-invalid": "true", "aria-describedby": "err-reg-username"}
+                        if form.username.errors else
+                        {"data-v2-i18n": "register.username.placeholder", "data-v2-i18n-attr": "placeholder", "aria-describedby": "hint-reg-username"}
+                    )
+                ) }}
+                {% if form.username.errors %}
+                    {% for error in form.username.errors %}
+                        <div id="err-reg-username" class="v2-field-error" role="alert" data-v2-err="{{ error }}">{{ error | v2_err }}</div>
+                    {% endfor %}
+                {% else %}
+                    <div id="hint-reg-username" class="v2-help" data-v2-i18n="register.username.hint">Tên đăng nhập gồm 2–20 ký tự, dùng để đăng nhập trên trình duyệt.</div>
+                {% endif %}
+            </div>
+
+            <div class="v2-field-group">
+                <label class="v2-label" for="{{ form.password.id }}" data-v2-i18n="register.password">Mật khẩu</label>
+                <div class="v2-input-wrap">
+                    {{ form.password(
+                        class="v2-input v2-input-has-suffix",
+                        autocomplete="new-password",
+                        placeholder="Nhập mật khẩu bảo mật",
+                        **(
+                            {"data-v2-i18n": "register.password.placeholder", "data-v2-i18n-attr": "placeholder", "aria-invalid": "true", "aria-describedby": "err-reg-password"}
+                            if form.password.errors else
+                            {"data-v2-i18n": "register.password.placeholder", "data-v2-i18n-attr": "placeholder"}
+                        )
+                    ) }}
+                    <button
+                        type="button"
+                        class="v2-input-suffix-btn"
+                        data-toggle-password="{{ form.password.id }}"
+                        aria-pressed="false"
+                        aria-label="Hiện mật khẩu"
+                    >
+                        <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </button>
+                </div>
+                {% for error in form.password.errors %}
+                    <div id="err-reg-password" class="v2-field-error" role="alert" data-v2-err="{{ error }}">{{ error | v2_err }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="v2-field-group">
+                <label class="v2-label" for="{{ form.confirm_password.id }}" data-v2-i18n="register.confirm">Xác nhận mật khẩu</label>
+                {{ form.confirm_password(
+                    class="v2-input",
+                    autocomplete="new-password",
+                    placeholder="Nhập lại mật khẩu",
+                    **(
+                        {"data-v2-i18n": "register.confirm.placeholder", "data-v2-i18n-attr": "placeholder", "aria-invalid": "true", "aria-describedby": "err-reg-confirm"}
+                        if form.confirm_password.errors else
+                        {"data-v2-i18n": "register.confirm.placeholder", "data-v2-i18n-attr": "placeholder"}
+                    )
+                ) }}
+                {% for error in form.confirm_password.errors %}
+                    <div id="err-reg-confirm" class="v2-field-error" role="alert" data-v2-err="{{ error }}">{{ error | v2_err }}</div>
+                {% endfor %}
+            </div>
+
+            <button type="submit" class="v2-btn v2-btn-primary v2-btn-lg v2-btn-block" style="margin-top:8px;">
+                <span data-btn-label data-v2-i18n="register.submit">Tạo tài khoản</span>
+            </button>
+        </form>
+
+        <div class="v2-auth-foot">
+            <span data-v2-i18n="register.has_account">Đã có tài khoản?</span>
+            <a href="{{ url_for('v2.login') }}" class="v2-inline-link" data-v2-i18n="register.login_link">Đăng nhập ngay</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

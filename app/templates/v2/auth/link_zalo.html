@@ -1,0 +1,148 @@
+{% extends "v2/layout.html" %}
+{% block content %}
+<div class="v2-medium-shell" style="max-width:580px;">
+    <div class="v2-surface v2-auth-card">
+        <div class="v2-auth-head">
+            <h1 class="v2-page-title" data-v2-i18n="link_zalo.title">Liên kết Zalo với tài khoản web</h1>
+            <p class="v2-subtitle" data-v2-i18n="link_zalo.subtitle">Gắn Zalo vào tài khoản sẵn có hoặc khởi tạo tài khoản mới để đồng bộ vận đơn hai chiều.</p>
+        </div>
+
+        <form method="POST" action="" novalidate data-v2-busy="…">
+            {{ form.hidden_tag() }}
+            <input type="hidden" name="zalo_id" value="{{ zalo_id }}">
+            <input type="hidden" name="token" value="{{ token }}">
+
+            <fieldset style="border:0;padding:0;margin:0;">
+                <legend class="v2-label" data-v2-i18n="link_zalo.mode_label">Phương thức liên kết</legend>
+                <div class="v2-mode-grid">
+                    {% for subfield in form.mode %}
+                    <label class="v2-mode-option" for="{{ subfield.id }}">
+                        {{ subfield(id=subfield.id) }}
+                        <span data-v2-i18n="{{ 'link_zalo.mode.existing' if subfield.data == 'existing' else 'link_zalo.mode.new' }}">{{ subfield.label.text }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+                {% for error in form.mode.errors %}
+                    <div class="v2-field-error" role="alert" data-v2-err="{{ error }}">{{ error | v2_err }}</div>
+                {% endfor %}
+            </fieldset>
+
+            <!-- Existing Account Panel -->
+            <div id="v2-zalo-existing">
+                <div class="v2-field-group">
+                    <label class="v2-label" for="{{ form.existing_username.id }}" data-v2-i18n="link_zalo.existing_user">Tên đăng nhập hiện có</label>
+                    {{ form.existing_username(
+                        class="v2-input",
+                        autocomplete="username",
+                        placeholder="Nhập tên đăng nhập trên website",
+                        **(
+                            {"data-v2-i18n": "login.username.placeholder", "data-v2-i18n-attr": "placeholder", "aria-invalid": "true"}
+                            if form.existing_username.errors else
+                            {"data-v2-i18n": "login.username.placeholder", "data-v2-i18n-attr": "placeholder"}
+                        )
+                    ) }}
+                    {% for error in form.existing_username.errors %}
+                        <div class="v2-field-error" role="alert" data-v2-err="{{ error }}">{{ error | v2_err }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="v2-field-group">
+                    <label class="v2-label" for="{{ form.existing_password.id }}" data-v2-i18n="link_zalo.existing_pwd">Mật khẩu hiện có</label>
+                    {{ form.existing_password(
+                        class="v2-input",
+                        autocomplete="current-password",
+                        placeholder="Nhập mật khẩu tài khoản web",
+                        **(
+                            {"data-v2-i18n": "login.password.placeholder", "data-v2-i18n-attr": "placeholder", "aria-invalid": "true"}
+                            if form.existing_password.errors else
+                            {"data-v2-i18n": "login.password.placeholder", "data-v2-i18n-attr": "placeholder"}
+                        )
+                    ) }}
+                    {% for error in form.existing_password.errors %}
+                        <div class="v2-field-error" role="alert" data-v2-err="{{ error }}">{{ error | v2_err }}</div>
+                    {% endfor %}
+                    <div class="v2-help" data-v2-i18n="link_zalo.existing_hint">Các vận đơn đã thêm qua Zalo trước đó sẽ được chuyển gộp vào tài khoản này.</div>
+                </div>
+            </div>
+
+            <!-- New Account Panel -->
+            <div id="v2-zalo-new" hidden>
+                <div class="v2-field-group">
+                    <label class="v2-label" for="{{ form.new_username.id }}" data-v2-i18n="link_tg.username">Tên đăng nhập mới</label>
+                    {{ form.new_username(
+                        class="v2-input",
+                        autocomplete="username",
+                        placeholder="Từ 2 đến 20 ký tự",
+                        **(
+                            {"data-v2-i18n": "register.username.placeholder", "data-v2-i18n-attr": "placeholder", "aria-invalid": "true"}
+                            if form.new_username.errors else
+                            {"data-v2-i18n": "register.username.placeholder", "data-v2-i18n-attr": "placeholder"}
+                        )
+                    ) }}
+                    {% for error in form.new_username.errors %}
+                        <div class="v2-field-error" role="alert" data-v2-err="{{ error }}">{{ error | v2_err }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="v2-field-group">
+                    <label class="v2-label" for="{{ form.new_password.id }}" data-v2-i18n="link_tg.password">Mật khẩu (tối thiểu 6 ký tự)</label>
+                    {{ form.new_password(
+                        class="v2-input",
+                        autocomplete="new-password",
+                        placeholder="Nhập mật khẩu ít nhất 6 ký tự",
+                        **(
+                            {"data-v2-i18n": "link_tg.password.placeholder", "data-v2-i18n-attr": "placeholder", "aria-invalid": "true"}
+                            if form.new_password.errors else
+                            {"data-v2-i18n": "link_tg.password.placeholder", "data-v2-i18n-attr": "placeholder"}
+                        )
+                    ) }}
+                    {% for error in form.new_password.errors %}
+                        <div class="v2-field-error" role="alert" data-v2-err="{{ error }}">{{ error | v2_err }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="v2-field-group">
+                    <label class="v2-label" for="{{ form.confirm_new_password.id }}" data-v2-i18n="register.confirm">Xác nhận mật khẩu</label>
+                    {{ form.confirm_new_password(
+                        class="v2-input",
+                        autocomplete="new-password",
+                        placeholder="Nhập lại mật khẩu",
+                        **(
+                            {"data-v2-i18n": "register.confirm.placeholder", "data-v2-i18n-attr": "placeholder", "aria-invalid": "true"}
+                            if form.confirm_new_password.errors else
+                            {"data-v2-i18n": "register.confirm.placeholder", "data-v2-i18n-attr": "placeholder"}
+                        )
+                    ) }}
+                    {% for error in form.confirm_new_password.errors %}
+                        <div class="v2-field-error" role="alert" data-v2-err="{{ error }}">{{ error | v2_err }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <button type="submit" class="v2-btn v2-btn-primary v2-btn-lg v2-btn-block" style="margin-top:8px;">
+                <span data-btn-label data-v2-i18n="link_zalo.submit">Xác nhận liên kết Zalo</span>
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const modeInputs = document.querySelectorAll('input[name="mode"]');
+    const existingBox = document.getElementById('v2-zalo-existing');
+    const newBox = document.getElementById('v2-zalo-new');
+
+    const syncMode = () => {
+        const checked = document.querySelector('input[name="mode"]:checked');
+        const useExisting = !checked || checked.value === 'existing';
+        existingBox.hidden = !useExisting;
+        newBox.hidden = useExisting;
+    };
+
+    modeInputs.forEach((input) => input.addEventListener('change', syncMode));
+    syncMode();
+});
+</script>
+{% endblock %}

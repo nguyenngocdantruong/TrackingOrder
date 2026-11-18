@@ -1,0 +1,22 @@
+{% extends "v2/layout.html" %}
+{% block content %}
+<div class="v2-narrow-shell">
+    <div class="v2-surface v2-auth-card">
+        <div class="v2-empty-icon" style="background:var(--v2-success-bg);color:var(--v2-success-ink);" aria-hidden="true">
+            <svg class="v2-icon v2-icon-lg" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+        <h1 class="v2-page-title" style="margin-bottom:8px;" data-v2-i18n="admin.saved.title">Đã lưu cấu hình hệ thống</h1>
+        <p class="v2-subtitle" style="margin-bottom:28px;">
+            {% if automatic %}
+                <span data-v2-i18n="admin.saved.auto">Dịch vụ đang tự động khởi động lại để áp dụng thay đổi mới. Vui lòng đợi vài giây trước khi mở lại trang quản trị.</span>
+            {% else %}
+                <span data-v2-i18n="admin.saved.manual">Các tệp cấu hình đã được ghi thành công. Khởi động lại ứng dụng để áp dụng toàn bộ thay đổi.</span>
+            {% endif %}
+        </p>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;">
+            <a href="{{ url_for('v2.admin_index') }}" class="v2-btn v2-btn-primary" data-v2-i18n="admin.saved.back_admin">Quay lại trang quản trị</a>
+            <a href="{{ url_for('v2.dashboard') }}" class="v2-btn v2-btn-secondary" data-v2-i18n="admin.saved.back_dash">Về bảng điều khiển</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

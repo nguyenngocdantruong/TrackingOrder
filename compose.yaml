@@ -3,7 +3,7 @@ services:
     build: .
     restart: always
     ports:
-      - "8084:8084"
+      - "127.0.0.1:8084:8084"
     environment:
       FIREBASE_SERVICE_ACCOUNT_JSON_PATH: /run/secrets/firebase.json
     volumes:

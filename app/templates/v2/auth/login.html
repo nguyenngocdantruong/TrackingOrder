@@ -1,0 +1,72 @@
+{% extends "v2/layout.html" %}
+{% block content %}
+<div class="v2-narrow-shell">
+    <div class="v2-surface v2-auth-card">
+        <div class="v2-auth-head">
+            <h1 class="v2-page-title" data-v2-i18n="login.title">Đăng nhập tài khoản</h1>
+            <p class="v2-subtitle" data-v2-i18n="login.subtitle">Truy cập bảng điều khiển để xem và quản lý các kiện hàng của bạn.</p>
+        </div>
+
+        <form method="POST" action="" novalidate data-v2-busy="…">
+            {{ form.hidden_tag() }}
+
+            <div class="v2-field-group">
+                <label class="v2-label" for="{{ form.username.id }}" data-v2-i18n="login.username">Tên đăng nhập</label>
+                {{ form.username(
+                    class="v2-input",
+                    autocomplete="username",
+                    placeholder="Nhập tên đăng nhập",
+                    **(
+                        {"data-v2-i18n": "login.username.placeholder", "data-v2-i18n-attr": "placeholder", "aria-invalid": "true", "aria-describedby": "err-login-username"}
+                        if form.username.errors else
+                        {"data-v2-i18n": "login.username.placeholder", "data-v2-i18n-attr": "placeholder"}
+                    )
+                ) }}
+                {% for error in form.username.errors %}
+                    <div id="err-login-username" class="v2-field-error" role="alert" data-v2-err="{{ error }}">{{ error | v2_err }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="v2-field-group">
+                <label class="v2-label" for="{{ form.password.id }}" data-v2-i18n="login.password">Mật khẩu</label>
+                <div class="v2-input-wrap">
+                    {{ form.password(
+                        class="v2-input v2-input-has-suffix",
+                        autocomplete="current-password",
+                        placeholder="Nhập mật khẩu",
+                        **(
+                            {"data-v2-i18n": "login.password.placeholder", "data-v2-i18n-attr": "placeholder", "aria-invalid": "true", "aria-describedby": "err-login-password"}
+                            if form.password.errors else
+                            {"data-v2-i18n": "login.password.placeholder", "data-v2-i18n-attr": "placeholder"}
+                        )
+                    ) }}
+                    <button
+                        type="button"
+                        class="v2-input-suffix-btn"
+                        data-toggle-password="{{ form.password.id }}"
+                        aria-pressed="false"
+                        aria-label="Hiện mật khẩu"
+                    >
+                        <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </button>
+                </div>
+                {% for error in form.password.errors %}
+                    <div id="err-login-password" class="v2-field-error" role="alert" data-v2-err="{{ error }}">{{ error | v2_err }}</div>
+                {% endfor %}
+            </div>
+
+            <button type="submit" class="v2-btn v2-btn-primary v2-btn-lg v2-btn-block" style="margin-top:8px;">
+                <span data-btn-label data-v2-i18n="login.submit">Đăng nhập</span>
+            </button>
+        </form>
+
+        <div class="v2-auth-foot">
+            <span data-v2-i18n="login.no_account">Chưa có tài khoản?</span>
+            <a href="{{ url_for('v2.register') }}" class="v2-inline-link" data-v2-i18n="login.register_link">Đăng ký miễn phí</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

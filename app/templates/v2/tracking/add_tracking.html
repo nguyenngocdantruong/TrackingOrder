@@ -1,0 +1,145 @@
+{% extends "v2/layout.html" %}
+{% block content %}
+<div class="v2-medium-shell">
+    <nav aria-label="Breadcrumb">
+        <ol class="v2-breadcrumb">
+            <li>
+                <a href="{{ url_for('v2.dashboard') }}">
+                    <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+                    <span data-v2-i18n="add.back">Quay lại danh sách</span>
+                </a>
+            </li>
+        </ol>
+    </nav>
+
+    <div class="v2-surface v2-auth-card">
+        <div class="v2-auth-head">
+            <h1 class="v2-page-title" data-v2-i18n="add.title">Thêm vận đơn mới</h1>
+            <p class="v2-subtitle" data-v2-i18n="add.subtitle">Dán mã vận đơn để hệ thống tự động nhận diện hãng vận chuyển và đồng bộ lịch sử ngay lập tức.</p>
+        </div>
+
+        <form method="POST" action="" novalidate data-v2-busy="…">
+            {{ form.hidden_tag() }}
+
+            <div class="v2-field-group">
+                <div class="v2-label-row">
+                    <label class="v2-label" for="{{ form.tracking_number.id }}" data-v2-i18n="add.tracking_number">Mã vận đơn</label>
+                    <span id="v2-detected-badge" class="v2-badge v2-badge-primary" hidden></span>
+                </div>
+                {{ form.tracking_number(
+                    class="v2-input v2-code",
+                    placeholder=default_placeholder,
+                    autocomplete="off",
+                    **({"aria-invalid": "true", "aria-describedby": "err-tracking-number"} if form.tracking_number.errors else {"aria-describedby": "hint-tracking-number"})
+                ) }}
+                {% if form.tracking_number.errors %}
+                    {% for error in form.tracking_number.errors %}
+                        <div id="err-tracking-number" class="v2-field-error" role="alert" data-v2-err="{{ error }}">{{ error | v2_err }}</div>
+                    {% endfor %}
+                {% else %}
+                    <div id="hint-tracking-number" class="v2-help" data-v2-i18n="add.tracking_hint">Hỗ trợ tự nhận diện Shopee Express VN (SPXVN…), Lazada Express (LEX…) và J&amp;T Express (mã vận đơn kèm 4 số cuối SĐT).</div>
+                {% endif %}
+            </div>
+
+            <div class="v2-field-group">
+                <label class="v2-label" for="{{ form.carrier_id.id }}" data-v2-i18n="add.carrier">Đơn vị vận chuyển</label>
+                {{ form.carrier_id(class="v2-select") }}
+                {% if carriers %}
+                <div class="v2-chip-row" role="group" aria-label="Carrier presets">
+                    {% for c in carriers %}
+                    <button type="button" class="v2-chip" data-carrier-pick="{{ c.id }}">{{ c.name }}</button>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="v2-field-group">
+                <label class="v2-label" for="{{ form.alias.id }}" data-v2-i18n="add.alias">Tên gợi nhớ (không bắt buộc)</label>
+                {{ form.alias(
+                    class="v2-input",
+                    placeholder="Ví dụ: Bàn phím cơ, Sách công nghệ, Quà tặng…",
+                    **{"data-v2-i18n": "add.alias.placeholder", "data-v2-i18n-attr": "placeholder"}
+                ) }}
+                {% for error in form.alias.errors %}
+                    <div class="v2-field-error" role="alert" data-v2-err="{{ error }}">{{ error | v2_err }}</div>
+                {% endfor %}
+            </div>
+
+            <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:28px;">
+                <button type="submit" class="v2-btn v2-btn-primary v2-btn-lg" style="flex:1;">
+                    <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                    <span data-btn-label data-v2-i18n="add.submit">Bắt đầu theo dõi</span>
+                </button>
+                <a href="{{ url_for('v2.dashboard') }}" class="v2-btn v2-btn-secondary v2-btn-lg" data-v2-i18n="add.back">Quay lại danh sách</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const placeholders = {{ placeholders | tojson }};
+    const defaultPlaceholder = {{ default_placeholder | tojson }};
+    const trackingInput = document.getElementById('{{ form.tracking_number.id }}');
+    const carrierSelect = document.getElementById('{{ form.carrier_id.id }}');
+    const badge = document.getElementById('v2-detected-badge');
+    const chips = document.querySelectorAll('[data-carrier-pick]');
+
+    if (!trackingInput || !carrierSelect) return;
+
+    const detectCarrier = (raw) => {
+        const v = (raw || '').trim().toUpperCase();
+        if (!v) return null;
+        const isEn = document.documentElement.lang === 'en';
+        const prefix = isEn ? 'Detected: ' : 'Nhận diện: ';
+        if (v.startsWith('SPX')) return { id: 'spx_vn', label: prefix + 'Shopee Express VN' };
+        if (v.startsWith('LEX') || v.startsWith('LZD')) return { id: 'lex', label: prefix + 'Lazada Express' };
+        if (/^\d{10,15}(-\d{4})?$/.test(v)) return { id: 'jt_express', label: prefix + 'J&T Express' };
+        return null;
+    };
+
+    const syncUI = () => {
+        const autoOpt = carrierSelect.querySelector('option[value="auto"]');
+        if (autoOpt) {
+            autoOpt.textContent = document.documentElement.lang === 'en' ? 'Auto-detect carrier' : 'Tự động nhận diện';
+        }
+        const key = carrierSelect.value;
+        trackingInput.placeholder = placeholders[key] || (
+            document.documentElement.lang === 'en'
+                ? 'Enter tracking number (e.g. SPXVN…, LEX…, 842594172358-9880)'
+                : defaultPlaceholder
+        );
+        chips.forEach((chip) => {
+            chip.setAttribute('aria-pressed', String(chip.dataset.carrierPick === key));
+        });
+
+        const detected = detectCarrier(trackingInput.value);
+        if (badge) {
+            if (detected) {
+                badge.textContent = detected.label;
+                badge.hidden = false;
+            } else {
+                badge.hidden = true;
+            }
+        }
+    };
+
+    carrierSelect.addEventListener('change', syncUI);
+    trackingInput.addEventListener('input', syncUI);
+    window.addEventListener('v2:langchange', syncUI);
+
+    chips.forEach((chip) => {
+        chip.addEventListener('click', () => {
+            const pick = chip.dataset.carrierPick;
+            carrierSelect.value = carrierSelect.value === pick ? 'auto' : pick;
+            syncUI();
+            trackingInput.focus();
+        });
+    });
+
+    syncUI();
+});
+</script>
+{% endblock %}

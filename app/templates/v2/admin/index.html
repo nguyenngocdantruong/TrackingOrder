@@ -1,0 +1,179 @@
+{% extends "v2/layout.html" %}
+{% block content %}
+<div class="v2-page-head">
+    <div>
+        <h1 class="v2-page-title" data-v2-i18n="admin.title">Cấu hình hệ thống</h1>
+        <p class="v2-subtitle" data-v2-i18n="admin.subtitle">Quản lý tham số đồng bộ vận đơn, cổng thanh toán PayOS và kết nối bot Telegram/Zalo.</p>
+    </div>
+</div>
+
+{% if error %}
+<div class="v2-callout v2-callout-danger" role="alert" style="margin-bottom:24px;">
+    <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m15 9-6 6M9 9l6 6"/></svg>
+    <div data-v2-flash="{{ error }}">{{ error }}</div>
+</div>
+{% endif %}
+
+<div class="v2-admin-grid">
+    <nav class="v2-admin-nav" aria-label="Admin sections">
+        {% for id, section_title, description, fields in groups %}
+        <a href="#{{ id }}" class="v2-admin-nav-link" data-v2-admin-section="{{ id }}">
+            <span data-v2-i18n="admin.group.{{ id }}.title">{{ section_title }}</span>
+            <span class="v2-dirty-dot" aria-hidden="true"></span>
+        </a>
+        {% endfor %}
+    </nav>
+
+    <form method="POST" id="v2-admin-form" class="v2-admin-panel">
+        {{ form.csrf_token }}
+        <input type="hidden" name="revision" value="{{ revision }}">
+
+        {% for id, section_title, description, fields in groups %}
+        <section id="{{ id }}" class="v2-admin-section" aria-labelledby="v2-title-{{ id }}">
+            <div class="v2-admin-section-head">
+                <h2 id="v2-title-{{ id }}" class="v2-section-title" data-v2-i18n="admin.group.{{ id }}.title">{{ section_title }}</h2>
+                <p class="v2-help" style="font-size:14px;margin-top:4px;" data-v2-i18n="admin.group.{{ id }}.desc">{{ description }}</p>
+            </div>
+
+            <div class="v2-admin-fields">
+                {% for key, label, kind in fields %}
+                {% if kind == 'bool' %}
+                <div class="v2-admin-toggle-row">
+                    <label for="{{ key }}" style="font-size:14px;font-weight:600;color:var(--v2-ink);cursor:pointer;" data-v2-i18n="admin.field.{{ key }}">{{ label }}</label>
+                    <label class="v2-switch-label" for="{{ key }}">
+                        <span data-switch-text style="font-size:12px;color:var(--v2-muted);">{{ 'Bật' if values.get(key) else 'Tắt' }}</span>
+                        <input id="{{ key }}" name="{{ key }}" type="checkbox" role="switch" class="v2-switch" {% if values.get(key) %}checked{% endif %}>
+                    </label>
+                </div>
+                {% else %}
+                <div class="v2-admin-field">
+                    <div class="v2-label-row">
+                        <label class="v2-label" for="{{ key }}" data-v2-i18n="admin.field.{{ key }}">{{ label }}</label>
+                        {% if kind == 'secret' %}
+                            {% if values.get(key) %}
+                                <span class="v2-badge v2-badge-success" data-v2-i18n="admin.secret.configured">Đã cấu hình</span>
+                            {% else %}
+                                <span class="v2-badge v2-badge-neutral" data-v2-i18n="admin.secret.unconfigured">Chưa cấu hình</span>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                    <input
+                        id="{{ key }}"
+                        name="{{ key }}"
+                        class="v2-input {{ 'v2-tabular' if kind == 'int' else ('v2-code' if kind in ('secret', 'text') else '') }}"
+                        type="{{ 'password' if kind == 'secret' else ('number' if kind == 'int' else ('url' if kind == 'url' else 'text')) }}"
+                        value="{{ '' if kind == 'secret' else (values.get(key) if values.get(key) is not none else '') }}"
+                        {% if kind == 'int' %}min="{{ 30 if key == 'POLL_INTERVAL_SECONDS' else 1 }}" max="100000000" required{% endif %}
+                        {% if kind == 'secret' %}autocomplete="new-password" aria-describedby="hint-{{ key }}" placeholder="Nhập khóa mới để thay đổi" data-v2-i18n="admin.secret.placeholder" data-v2-i18n-attr="placeholder"{% endif %}
+                    >
+                    {% if kind == 'secret' %}
+                        <div id="hint-{{ key }}" class="v2-help" data-v2-i18n="admin.secret.hint">Để trống nếu muốn giữ nguyên khóa bảo mật hiện tại.</div>
+                    {% endif %}
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </section>
+        {% endfor %}
+
+        <footer class="v2-admin-savebar">
+            <div>
+                <strong id="v2-admin-save-state" aria-live="polite" style="display:block;font-size:14px;color:var(--v2-ink);" data-v2-i18n="admin.save.clean">Chưa có thay đổi</strong>
+                <span class="v2-help" style="margin-top:2px;display:block;" data-v2-i18n="admin.save.desc">Lưu toàn bộ mục cấu hình vào .env / config.conf và áp dụng cho dịch vụ.</span>
+            </div>
+            <button type="submit" class="v2-btn v2-btn-primary v2-btn-lg" data-v2-i18n="admin.save.btn">Lưu &amp; áp dụng</button>
+        </footer>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(() => {
+    const form = document.getElementById('v2-admin-form');
+    if (!form) return;
+
+    const sections = [...form.querySelectorAll('.v2-admin-section')];
+    const links = [...document.querySelectorAll('[data-v2-admin-section]')];
+    const status = document.getElementById('v2-admin-save-state');
+    const initial = new Map(
+        [...form.elements]
+            .filter((e) => e.name && e.name !== 'csrf_token' && e.name !== 'revision')
+            .map((e) => [e, e.type === 'checkbox' ? e.checked : e.value])
+    );
+    let dirty = false;
+
+    function selectSection(id) {
+        const target = sections.find((s) => s.id === id) || sections[0];
+        sections.forEach((s) => { s.hidden = s !== target; });
+        links.forEach((a) => {
+            if (a.dataset.v2AdminSection === target.id) a.setAttribute('aria-current', 'page');
+            else a.removeAttribute('aria-current');
+        });
+    }
+
+    function syncTexts() {
+        const isEn = document.documentElement.lang === 'en';
+        const changed = [...initial].filter(([e, val]) => (e.type === 'checkbox' ? e.checked : e.value) !== val);
+        dirty = changed.length > 0;
+        if (dirty) {
+            status.removeAttribute('data-v2-i18n');
+            status.textContent = isEn ? `${changed.length} unsaved change(s)` : `${changed.length} thay đổi chưa lưu`;
+        } else {
+            status.setAttribute('data-v2-i18n', 'admin.save.clean');
+            status.textContent = isEn ? 'No unsaved changes' : 'Chưa có thay đổi';
+        }
+        links.forEach((a) => {
+            a.toggleAttribute(
+                'data-dirty',
+                changed.some(([e]) => e.closest('.v2-admin-section')?.id === a.dataset.v2AdminSection)
+            );
+        });
+        form.querySelectorAll('.v2-admin-toggle-row').forEach((row) => {
+            const txt = row.querySelector('[data-switch-text]');
+            const chk = row.querySelector('input[type="checkbox"]');
+            if (txt && chk) txt.textContent = chk.checked ? (isEn ? 'On' : 'Bật') : (isEn ? 'Off' : 'Tắt');
+        });
+    }
+
+    document.documentElement.classList.add('js-v2-admin');
+    selectSection(location.hash.slice(1));
+    syncTexts();
+
+    links.forEach((a) => {
+        a.addEventListener('click', (e) => {
+            e.preventDefault();
+            history.replaceState(null, '', a.hash);
+            selectSection(a.dataset.v2AdminSection);
+        });
+    });
+
+    window.addEventListener('hashchange', () => selectSection(location.hash.slice(1)));
+    form.addEventListener('input', syncTexts);
+    window.addEventListener('v2:langchange', syncTexts);
+
+    form.addEventListener('invalid', (e) => {
+        const sec = e.target.closest('.v2-admin-section');
+        if (sec) selectSection(sec.id);
+    }, true);
+
+    form.addEventListener('submit', () => {
+        dirty = false;
+        const isEn = document.documentElement.lang === 'en';
+        const btn = form.querySelector('button[type="submit"]');
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = isEn ? 'Saving…' : 'Đang lưu…';
+        }
+        status.textContent = isEn ? 'Applying configuration…' : 'Đang áp dụng cấu hình';
+    });
+
+    window.addEventListener('beforeunload', (e) => {
+        if (dirty) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+})();
+</script>
+{% endblock %}

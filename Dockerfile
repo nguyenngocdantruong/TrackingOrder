@@ -1,4 +1,8 @@
 FROM python:3.11-slim
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && update-ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 ENV_FILE=/config/.env CONF_FILE=/config/config.conf MANAGED_RESTART=1
 COPY requirements.txt .

@@ -1,0 +1,79 @@
+{% extends "v2/layout.html" %}
+{% block content %}
+<div class="v2-narrow-shell">
+    <div class="v2-surface v2-auth-card">
+        <div class="v2-auth-head">
+            <h1 class="v2-page-title" data-v2-i18n="link_tg.title">Liên kết Telegram với tài khoản web</h1>
+            <p class="v2-subtitle" data-v2-i18n="link_tg.subtitle">Đặt tên đăng nhập và mật khẩu để đồng bộ toàn bộ vận đơn đang theo dõi trên Telegram lên trình duyệt.</p>
+        </div>
+
+        <form method="POST" action="" novalidate data-v2-busy="…">
+            {{ form.hidden_tag() }}
+            <input type="hidden" name="chat_id" value="{{ chat_id }}">
+            <input type="hidden" name="token" value="{{ token }}">
+
+            <div class="v2-field-group">
+                <label class="v2-label" for="{{ form.username.id }}" data-v2-i18n="link_tg.username">Tên đăng nhập mới</label>
+                {{ form.username(
+                    class="v2-input",
+                    autocomplete="username",
+                    placeholder="Từ 2 đến 20 ký tự",
+                    **(
+                        {"data-v2-i18n": "register.username.placeholder", "data-v2-i18n-attr": "placeholder", "aria-invalid": "true", "aria-describedby": "err-link-user"}
+                        if form.username.errors else
+                        {"data-v2-i18n": "register.username.placeholder", "data-v2-i18n-attr": "placeholder"}
+                    )
+                ) }}
+                {% for error in form.username.errors %}
+                    <div id="err-link-user" class="v2-field-error" role="alert" data-v2-err="{{ error }}">{{ error | v2_err }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="v2-field-group">
+                <label class="v2-label" for="{{ form.password.id }}" data-v2-i18n="link_tg.password">Mật khẩu (tối thiểu 6 ký tự)</label>
+                <div class="v2-input-wrap">
+                    {{ form.password(
+                        class="v2-input v2-input-has-suffix",
+                        autocomplete="new-password",
+                        placeholder="Nhập mật khẩu ít nhất 6 ký tự",
+                        **(
+                            {"data-v2-i18n": "link_tg.password.placeholder", "data-v2-i18n-attr": "placeholder", "aria-invalid": "true", "aria-describedby": "err-link-pwd"}
+                            if form.password.errors else
+                            {"data-v2-i18n": "link_tg.password.placeholder", "data-v2-i18n-attr": "placeholder"}
+                        )
+                    ) }}
+                    <button type="button" class="v2-input-suffix-btn" data-toggle-password="{{ form.password.id }}" aria-pressed="false" aria-label="Hiện mật khẩu">
+                        <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </button>
+                </div>
+                {% for error in form.password.errors %}
+                    <div id="err-link-pwd" class="v2-field-error" role="alert" data-v2-err="{{ error }}">{{ error | v2_err }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="v2-field-group">
+                <label class="v2-label" for="{{ form.confirm_password.id }}" data-v2-i18n="register.confirm">Xác nhận mật khẩu</label>
+                {{ form.confirm_password(
+                    class="v2-input",
+                    autocomplete="new-password",
+                    placeholder="Nhập lại mật khẩu",
+                    **(
+                        {"data-v2-i18n": "register.confirm.placeholder", "data-v2-i18n-attr": "placeholder", "aria-invalid": "true", "aria-describedby": "err-link-confirm"}
+                        if form.confirm_password.errors else
+                        {"data-v2-i18n": "register.confirm.placeholder", "data-v2-i18n-attr": "placeholder"}
+                    )
+                ) }}
+                {% for error in form.confirm_password.errors %}
+                    <div id="err-link-confirm" class="v2-field-error" role="alert" data-v2-err="{{ error }}">{{ error | v2_err }}</div>
+                {% endfor %}
+            </div>
+
+            <button type="submit" class="v2-btn v2-btn-primary v2-btn-lg v2-btn-block" style="margin-top:8px;">
+                <span data-btn-label data-v2-i18n="link_tg.submit">Hoàn tất liên kết Telegram</span>
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

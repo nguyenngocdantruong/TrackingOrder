@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta property="og:title" content="Order Tracker" />
+    <meta property="og:description" content="Ứng dụng theo dõi đơn hàng tập trung qua Telegram, Zalo và Partner API" />
+    <meta property="og:image" content="https://app.dev8084.io.vn/static/landing.png" />
+    <meta property="og:url" content="https://app.dev8084.io.vn/" />
+    <meta property="og:type" content="website" />
+    <title>{{ title + ' · ' if title else '' }}Order Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='v2.css', v='2') }}">
+</head>
+<body class="{{ body_class | default('') }}">
+    <a class="v2-skip-link" href="#main-content" data-v2-i18n="a11y.skip">Chuyển đến nội dung chính</a>
+
+    <header class="v2-header">
+        <div class="v2-container v2-header-inner">
+            <a class="v2-brand" href="{{ url_for('v2.index') }}">
+                <span class="v2-brand-mark" aria-hidden="true">
+                    <svg class="v2-icon" viewBox="0 0 24 24">
+                        <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+                        <path d="m3.3 7 8.7 5 8.7-5"/>
+                        <path d="M12 22V12"/>
+                    </svg>
+                </span>
+                <span>Order Tracker</span>
+            </a>
+
+            <button
+                type="button"
+                id="v2-nav-toggle"
+                class="v2-nav-toggle"
+                aria-controls="v2-nav-cluster"
+                aria-expanded="false"
+                aria-label="Mở trình đơn điều hướng"
+                data-v2-i18n="a11y.open_menu"
+                data-v2-i18n-attr="aria-label"
+            >
+                <svg class="v2-icon v2-icon-lg" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 7h16M4 12h16M4 17h16"/>
+                </svg>
+            </button>
+
+            <div id="v2-nav-cluster" class="v2-nav-cluster">
+                <nav aria-label="Điều hướng chính">
+                    <ul class="v2-nav-list">
+                        {% set ep = request.endpoint or '' %}
+                        {% if current_user.is_authenticated %}
+                            <li>
+                                <a class="v2-nav-link" href="{{ url_for('v2.dashboard') }}" {% if ep in ('v2.dashboard', 'v2.detail') %}aria-current="page"{% endif %} data-v2-i18n="nav.dashboard">Đơn hàng</a>
+                            </li>
+                            <li>
+                                <a class="v2-nav-link" href="{{ url_for('v2.add_tracking') }}" {% if ep == 'v2.add_tracking' %}aria-current="page"{% endif %} data-v2-i18n="nav.add">Thêm đơn</a>
+                            </li>
+                            <li>
+                                <a class="v2-nav-link" href="{{ url_for('v2.settings') }}" {% if ep == 'v2.settings' %}aria-current="page"{% endif %} data-v2-i18n="nav.notifications">Thông báo</a>
+                            </li>
+                            <li>
+                                <a class="v2-nav-link" href="{{ url_for('v2.developers') }}" {% if ep == 'v2.developers' %}aria-current="page"{% endif %} data-v2-i18n="nav.developers">API Đối tác</a>
+                            </li>
+                            <li>
+                                <a class="v2-nav-link" href="{{ url_for('v2.docs') }}" {% if ep == 'v2.docs' %}aria-current="page"{% endif %} data-v2-i18n="nav.docs">Tài liệu</a>
+                            </li>
+                            {% if is_system_admin %}
+                            <li>
+                                <a class="v2-nav-link" href="{{ url_for('v2.admin_index') }}" {% if ep in ('v2.admin_index', 'v2.admin_verify') %}aria-current="page"{% endif %} data-v2-i18n="nav.admin">Quản trị</a>
+                            </li>
+                            {% endif %}
+                            <li>
+                                <a class="v2-nav-link" href="{{ url_for('v2.support') }}" {% if ep == 'v2.support' %}aria-current="page"{% endif %} data-v2-i18n="nav.support">Ủng hộ</a>
+                            </li>
+                        {% else %}
+                            <li>
+                                <a class="v2-nav-link" href="{{ url_for('v2.docs') }}" {% if ep == 'v2.docs' %}aria-current="page"{% endif %} data-v2-i18n="nav.docs">Tài liệu API</a>
+                            </li>
+                            <li>
+                                <a class="v2-nav-link" href="{{ url_for('v2.support') }}" {% if ep == 'v2.support' %}aria-current="page"{% endif %} data-v2-i18n="nav.support">Ủng hộ</a>
+                            </li>
+                            <li>
+                                <a class="v2-nav-link" href="{{ url_for('v2.login') }}" {% if ep == 'v2.login' %}aria-current="page"{% endif %} data-v2-i18n="nav.login">Đăng nhập</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+
+                <div class="v2-header-actions" style="display:flex;align-items:center;gap:10px;">
+                    <div class="v2-lang-switch" role="group" aria-label="Language">
+                        <button type="button" class="v2-lang-btn" data-v2-lang="vi" aria-pressed="true">VI</button>
+                        <button type="button" class="v2-lang-btn" data-v2-lang="en" aria-pressed="false">EN</button>
+                    </div>
+
+                    {% if current_user.is_authenticated %}
+                        <a class="v2-btn v2-btn-secondary" href="{{ url_for('v2.logout') }}">
+                            <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                                <polyline points="16 17 21 12 16 7"/>
+                                <line x1="21" y1="12" x2="9" y2="12"/>
+                            </svg>
+                            <span data-v2-i18n="nav.logout">Đăng xuất</span>
+                        </a>
+                    {% else %}
+                        <a class="v2-btn v2-btn-primary" href="{{ url_for('v2.register') }}" data-v2-i18n="nav.register">Đăng ký</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content" class="v2-main">
+        <div class="v2-container">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <footer class="v2-footer">
+        <div class="v2-container v2-footer-inner">
+            <span data-v2-i18n="footer.tagline">Order Tracking Hub · Theo dõi vận đơn tập trung qua Telegram, Zalo &amp; Partner API.</span>
+            <div class="v2-footer-links">
+                <a class="v2-footer-link" href="{{ url_for('v2.docs') }}" data-v2-i18n="nav.docs">Tài liệu API</a>
+                {% if current_user.is_authenticated %}
+                <a class="v2-footer-link" href="{{ url_for('v2.developers') }}" data-v2-i18n="nav.developers">API Đối tác</a>
+                {% endif %}
+                <a class="v2-footer-link" href="{{ url_for('v2.support') }}" data-v2-i18n="nav.support">Ủng hộ</a>
+                <a class="v2-footer-link" href="{{ url_for('tracking.dashboard') if current_user.is_authenticated else url_for('index') }}" data-v2-i18n="footer.classic">Giao diện cũ (v1)</a>
+            </div>
+        </div>
+    </footer>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="v2-toast-region" role="status" aria-live="polite">
+            {% for category, message in messages %}
+            {% set tone = category if category in ('success', 'danger', 'warning') else 'info' %}
+            <div class="v2-toast" data-tone="{{ tone }}">
+                <span class="v2-toast-icon" aria-hidden="true">
+                    {% if tone == 'success' %}
+                        <svg class="v2-icon" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+                    {% elif tone == 'danger' %}
+                        <svg class="v2-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15 9-6 6M9 9l6 6"/></svg>
+                    {% elif tone == 'warning' %}
+                        <svg class="v2-icon" viewBox="0 0 24 24"><path d="m12 3 9.5 16.5H2.5L12 3Z"/><path d="M12 9v4M12 17h.01"/></svg>
+                    {% else %}
+                        <svg class="v2-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>
+                    {% endif %}
+                </span>
+                <div class="v2-toast-body" data-v2-flash="{{ message }}">{{ message }}</div>
+                <button type="button" class="v2-toast-close" aria-label="Đóng thông báo" data-v2-i18n="a11y.close_toast" data-v2-i18n-attr="aria-label">
+                    <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    {% endwith %}
+
+    <script src="{{ url_for('static', filename='v2.js', v='2') }}" defer></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

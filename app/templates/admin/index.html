@@ -11,13 +11,13 @@
   <a class="skip-link" href="#main">Đến nội dung</a>
   <div class="shell">
     <aside>
-      <a class="brand" href="/">Order Tracker<span>Quản trị hệ thống</span></a>
+      <a class="brand" href="{{ '/v1' if request.path.startswith('/v1') else '/' }}">Order Tracker<span>Quản trị hệ thống</span></a>
       <nav aria-label="Cấu hình hệ thống">
         {% for id,title,description,fields in groups %}
         <a href="#{{ id }}" data-section="{{ id }}">{{ title }}<span class="nav-dot" aria-hidden="true"></span></a>
         {% endfor %}
       </nav>
-      <a class="back" href="/dashboard"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 5-7 7 7 7M5 12h14"/></svg>Về trang đơn hàng</a>
+      <a class="back" href="{{ '/v1/dashboard' if request.path.startswith('/v1') else '/dashboard' }}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 5-7 7 7 7M5 12h14"/></svg>Về trang đơn hàng</a>
     </aside>
     <main id="main">
       <header class="page-header"><h1>Cấu hình hệ thống</h1><p>Quản lý theo dõi đơn hàng, thanh toán và thông báo.</p></header>

@@ -2,7 +2,7 @@ import logging
 import os
 from logging.handlers import RotatingFileHandler
 
-from flask import Flask
+from flask import Flask, redirect, request, url_for
 from werkzeug.exceptions import HTTPException
 from flask_login import LoginManager
 from app.config import Config
@@ -46,25 +46,51 @@ def create_app(config_class=Config):
     from app.tracking.routes import tracking_bp
     from app.settings.routes import settings_bp
     from app.payments.routes import payments_bp
+    from app.api import api_bp
+    from app.v2 import v2_bp
 
     from app.admin import admin_bp, is_admin
-    app.register_blueprint(admin_bp, url_prefix='/admin')
     app.context_processor(lambda: {'is_system_admin': is_admin()})
 
-    app.register_blueprint(auth_bp, url_prefix='/auth')
-    app.register_blueprint(link_bp)
-    app.register_blueprint(tracking_bp)
-    app.register_blueprint(settings_bp, url_prefix='/settings')
-    app.register_blueprint(payments_bp, url_prefix='/payments')
+    # Primary Frontend (/) + Partner REST API (/api/v1)
+    app.register_blueprint(api_bp, url_prefix='/api/v1')
+    app.register_blueprint(v2_bp)
 
-    @app.route('/')
-    def index():
+    # Legacy Frontend (/v1/*)
+    app.register_blueprint(admin_bp, url_prefix='/v1/admin')
+    app.register_blueprint(auth_bp, url_prefix='/v1/auth')
+    app.register_blueprint(link_bp, url_prefix='/v1')
+    app.register_blueprint(tracking_bp, url_prefix='/v1')
+    app.register_blueprint(settings_bp, url_prefix='/v1/settings')
+    app.register_blueprint(payments_bp, url_prefix='/v1/payments')
+
+    @app.route('/v1', endpoint='index')
+    @app.route('/v1/', endpoint='index')
+    def v1_index():
         from flask import render_template
         providers_for_landing = [
             {"id": provider_id, "name": display_name}
             for provider_id, display_name in registry.list_providers()
         ]
         return render_template('landing.html', providers=providers_for_landing)
+
+    @app.route('/v2')
+    @app.route('/v2/')
+    def legacy_v2_root_redirect():
+        qs = f'?{request.query_string.decode()}' if request.query_string else ''
+        return redirect('/' + qs)
+
+    @app.route('/v2/<path:subpath>')
+    def legacy_v2_subpath_redirect(subpath: str):
+        qs = f'?{request.query_string.decode()}' if request.query_string else ''
+        return redirect(f'/{subpath}{qs}')
+
+    @login_manager.unauthorized_handler
+    def handle_unauthorized():
+        next_target = request.full_path.rstrip('?')
+        if request.path.startswith('/v1'):
+            return redirect(url_for('auth.login', next=next_target))
+        return redirect(url_for('v2.login', next=next_target))
 
     @app.errorhandler(HTTPException)
     def handle_http_exception(err: HTTPException):

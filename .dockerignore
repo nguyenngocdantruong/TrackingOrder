@@ -1,7 +1,8 @@
-*
-!requirements.txt
-!app/
-!app/**
-!wsgi.py
-!Dockerfile
-**/__pycache__
+.env
+*.json
+.git
+__pycache__
+*.pyc
+logs
+.venv
+tests

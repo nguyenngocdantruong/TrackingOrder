@@ -1,0 +1,23 @@
+{% extends "v2/layout.html" %}
+{% block content %}
+<div class="v2-narrow-shell">
+    <div class="v2-surface v2-auth-card">
+        <div class="v2-empty-icon" aria-hidden="true">
+            <svg class="v2-icon v2-icon-lg" viewBox="0 0 24 24">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>
+            </svg>
+        </div>
+        <h1 class="v2-page-title" style="margin-bottom:8px;" data-v2-i18n="admin.verify.title">Xác nhận quyền quản trị</h1>
+        <p class="v2-subtitle" style="margin-bottom:28px;" data-v2-i18n="admin.verify.subtitle">
+            Liên kết một lần từ Telegram Bot sẽ xác thực danh tính quản trị viên cho tài khoản web đang đăng nhập.
+        </p>
+        <form method="POST" action="" data-v2-busy="…">
+            {{ form.csrf_token }}
+            <input type="hidden" name="token" value="{{ token }}">
+            <button type="submit" class="v2-btn v2-btn-primary v2-btn-lg v2-btn-block">
+                <span data-btn-label data-v2-i18n="admin.verify.btn">Xác nhận &amp; mở bảng quản trị</span>
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

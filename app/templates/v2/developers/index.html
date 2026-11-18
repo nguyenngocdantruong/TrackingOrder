@@ -1,0 +1,206 @@
+{% extends "v2/layout.html" %}
+{% block content %}
+<div class="v2-medium-shell" style="max-width:860px;">
+    <div class="v2-page-head">
+        <div>
+            <h1 class="v2-page-title" data-v2-i18n="dev.title">API Đối tác &amp; Webhook</h1>
+            <p class="v2-subtitle" data-v2-i18n="dev.subtitle">Quản lý khóa xác thực REST API và nhận sự kiện đẩy thời gian thực khi vận đơn cập nhật.</p>
+        </div>
+        <div class="v2-page-actions">
+            <a href="{{ url_for('v2.docs') }}" class="v2-btn v2-btn-secondary">
+                <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                </svg>
+                <span data-v2-i18n="dev.open_docs">Xem tài liệu tích hợp</span>
+            </a>
+        </div>
+    </div>
+
+    {% if newly_created_key %}
+    <div class="v2-callout v2-callout-info" style="margin-bottom:20px;flex-direction:column;gap:10px;" role="region" aria-label="API Key mới khởi tạo">
+        <div style="display:flex;align-items:center;gap:8px;font-weight:700;color:var(--v2-primary-active);">
+            <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+            <span data-v2-i18n="dev.key_once_title">Hãy sao chép API Key ngay bây giờ — khóa đầy đủ chỉ hiển thị một lần duy nhất:</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;width:100%;">
+            <code class="v2-code" style="font-size:15px;font-weight:700;word-break:break-all;color:var(--v2-ink);">{{ newly_created_key }}</code>
+            <button type="button" class="v2-btn v2-btn-primary" data-copy-text="{{ newly_created_key }}">
+                <span data-copy-label data-v2-i18n="common.copy">Sao chép</span>
+            </button>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="v2-settings-stack">
+        <!-- 1. Partner API Key Section -->
+        <section class="v2-surface v2-settings-section" aria-labelledby="v2-dev-key-heading">
+            <div class="v2-channel-head">
+                <div>
+                    <h2 id="v2-dev-key-heading" class="v2-section-title" data-v2-i18n="dev.key_section.title">Khóa xác thực Partner API</h2>
+                    <p class="v2-help" style="font-size:14px;margin-top:4px;" data-v2-i18n="dev.key_section.desc">Dùng trong header Authorization: Bearer &lt;API_KEY&gt; hoặc X-API-Key khi gọi các endpoint /api/v1/*.</p>
+                </div>
+                {% if partner.get('apiKeyHash') %}
+                    <span class="v2-badge v2-badge-success"><span class="v2-status-dot" aria-hidden="true"></span><span data-v2-i18n="dev.status.active">Đang hoạt động</span></span>
+                {% else %}
+                    <span class="v2-badge v2-badge-neutral" data-v2-i18n="dev.status.none">Chưa khởi tạo</span>
+                {% endif %}
+            </div>
+
+            <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;">
+                <div>
+                    <div style="font-size:12px;font-weight:600;color:var(--v2-muted);" data-v2-i18n="dev.key_current_label">Khóa hiện hành</div>
+                    {% if partner.get('apiKeyPrefix') %}
+                        <div class="v2-code" style="font-size:16px;font-weight:700;margin-top:4px;">{{ partner.get('apiKeyPrefix') }}</div>
+                    {% else %}
+                        <div style="font-size:14px;color:var(--v2-muted);margin-top:4px;" data-v2-i18n="dev.key_empty_hint">Chưa có khóa nào. Nhấn nút bên phải để cấp khóa mới.</div>
+                    {% endif %}
+                </div>
+
+                <div style="display:flex;flex-wrap:wrap;gap:10px;">
+                    <form action="{{ url_for('v2.developers_generate_key') }}" method="POST" data-v2-busy="…">
+                        {{ form.csrf_token }}
+                        <button type="submit" class="v2-btn v2-btn-primary">
+                            <span data-btn-label data-v2-i18n="{{ 'dev.btn.rotate_key' if partner.get('apiKeyHash') else 'dev.btn.create_key' }}">
+                                {{ 'Cấp lại API Key mới' if partner.get('apiKeyHash') else 'Tạo API Key' }}
+                            </span>
+                        </button>
+                    </form>
+                    {% if partner.get('apiKeyHash') %}
+                    <form action="{{ url_for('v2.developers_revoke_key') }}" method="POST" data-v2-busy="…">
+                        {{ form.csrf_token }}
+                        <button type="submit" class="v2-btn v2-btn-danger-outline">
+                            <span data-btn-label data-v2-i18n="dev.btn.revoke_key">Thu hồi khóa</span>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--v2-line);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;font-size:14px;">
+                <span style="color:var(--v2-muted);" data-v2-i18n="dev.base_url_label">Địa chỉ gốc API (Base URL)</span>
+                <code class="v2-code" style="font-weight:600;color:var(--v2-ink);">{{ base_url }}/api/v1</code>
+            </div>
+        </section>
+
+        <!-- 2. Webhook Endpoint & Events Configuration -->
+        <section class="v2-surface v2-settings-section" aria-labelledby="v2-dev-wh-heading">
+            <form action="{{ url_for('v2.developers_save_webhook') }}" method="POST" data-v2-busy="…">
+                {{ form.csrf_token }}
+                <div class="v2-channel-head">
+                    <div>
+                        <h2 id="v2-dev-wh-heading" class="v2-section-title" data-v2-i18n="dev.wh.title">Cấu hình Webhook nhận cập nhật</h2>
+                        <p class="v2-help" style="font-size:14px;margin-top:4px;" data-v2-i18n="dev.wh.desc">Hệ thống tự động gửi HTTP POST kèm chữ ký HMAC-SHA256 mỗi khi đơn hàng có mốc hành trình mới.</p>
+                    </div>
+                    <label class="v2-switch-label" for="v2-wh-enabled">
+                        <span data-v2-i18n="dev.wh.enable_label">Bật Webhook</span>
+                        <input id="v2-wh-enabled" name="webhook_enabled" type="checkbox" role="switch" class="v2-switch" {% if partner.get('webhookEnabled') %}checked{% endif %}>
+                    </label>
+                </div>
+
+                <div class="v2-field-group">
+                    <label class="v2-label" for="v2-wh-url" data-v2-i18n="dev.wh.url_label">Endpoint nhận sự kiện (HTTPS)</label>
+                    <input
+                        id="v2-wh-url"
+                        name="webhook_url"
+                        type="url"
+                        class="v2-input v2-code"
+                        value="{{ partner.get('webhookUrl') or '' }}"
+                        placeholder="https://api.doitac.vn/webhooks/order-tracker"
+                        autocomplete="off"
+                    >
+                    <div class="v2-help" data-v2-i18n="dev.wh.url_help">Yêu cầu giao thức HTTPS trên môi trường thực tế và phản hồi mã 2xx trong vòng 8 giây.</div>
+                </div>
+
+                {% set active_events = partner.get('webhookEvents') or webhook_events %}
+                <fieldset style="border:0;padding:0;margin:0 0 24px;">
+                    <legend class="v2-label" data-v2-i18n="dev.wh.events_label">Sự kiện đăng ký nhận</legend>
+                    <div class="v2-check-list">
+                        <label class="v2-check-item" for="ev-created">
+                            <input id="ev-created" type="checkbox" name="webhook_events" value="tracking.created" {% if 'tracking.created' in active_events %}checked{% endif %}>
+                            <span><code class="v2-code" style="font-weight:700;">tracking.created</code> — <span data-v2-i18n="dev.ev.created">Khi vận đơn mới được khởi tạo qua Web, Bot hoặc API</span></span>
+                        </label>
+                        <label class="v2-check-item" for="ev-updated">
+                            <input id="ev-updated" type="checkbox" name="webhook_events" value="tracking.updated" {% if 'tracking.updated' in active_events %}checked{% endif %}>
+                            <span><code class="v2-code" style="font-weight:700;">tracking.updated</code> — <span data-v2-i18n="dev.ev.updated">Khi phát hiện mốc trạng thái vận chuyển mới từ hãng giao nhận</span></span>
+                        </label>
+                        <label class="v2-check-item" for="ev-completed">
+                            <input id="ev-completed" type="checkbox" name="webhook_events" value="tracking.completed" {% if 'tracking.completed' in active_events %}checked{% endif %}>
+                            <span><code class="v2-code" style="font-weight:700;">tracking.completed</code> — <span data-v2-i18n="dev.ev.completed">Khi đơn hàng giao thành công hoặc kết thúc hành trình</span></span>
+                        </label>
+                    </div>
+                </fieldset>
+
+                <button type="submit" class="v2-btn v2-btn-primary v2-btn-lg">
+                    <span data-btn-label data-v2-i18n="dev.wh.save_btn">Lưu cấu hình Webhook</span>
+                </button>
+            </form>
+
+            <!-- Signing Secret & Test Delivery Row -->
+            <div style="margin-top:28px;padding-top:24px;border-top:1px solid var(--v2-line);">
+                <div class="v2-label-row">
+                    <label class="v2-label" for="v2-wh-secret-input" data-v2-i18n="dev.wh.secret_label">Khóa ký xác thực (Signing Secret — HMAC-SHA256)</label>
+                </div>
+
+                {% if partner.get('webhookSecret') %}
+                <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+                    <div class="v2-input-wrap" style="flex:1;min-width:240px;">
+                        <input
+                            id="v2-wh-secret-input"
+                            type="password"
+                            readonly
+                            class="v2-input v2-input-has-suffix v2-code"
+                            value="{{ partner.get('webhookSecret') }}"
+                        >
+                        <button
+                            type="button"
+                            class="v2-input-suffix-btn"
+                            data-toggle-password="v2-wh-secret-input"
+                            aria-pressed="false"
+                            aria-label="Hiện khóa bí mật"
+                        >
+                            <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <button type="button" class="v2-btn v2-btn-secondary" data-copy-text="{{ partner.get('webhookSecret') }}">
+                        <span data-copy-label data-v2-i18n="common.copy">Sao chép</span>
+                    </button>
+                    <form action="{{ url_for('v2.developers_rotate_secret') }}" method="POST">
+                        {{ form.csrf_token }}
+                        <button type="submit" class="v2-btn v2-btn-secondary" data-v2-i18n="dev.wh.rotate_secret">Đổi Secret</button>
+                    </form>
+                </div>
+                {% else %}
+                <p class="v2-help" data-v2-i18n="dev.wh.secret_empty">Khóa Signing Secret sẽ được tự động sinh ngay khi bạn lưu Webhook hoặc tạo API Key.</p>
+                {% endif %}
+
+                <div style="margin-top:20px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;">
+                    <div style="font-size:14px;color:var(--v2-muted);">
+                        {% if partner.get('lastDeliveryAt') %}
+                            <span data-v2-i18n="dev.wh.last_delivery">Lần gửi gần nhất:</span>
+                            <strong class="v2-tabular" style="color:var(--v2-ink);">{{ partner.get('lastDeliveryAt') }}</strong>
+                            · <code class="v2-code">{{ partner.get('lastDeliveryEvent') }}</code>
+                            {% if partner.get('lastDeliveryOk') %}
+                                · <span class="v2-badge v2-badge-success">HTTP {{ partner.get('lastDeliveryStatus') }}</span>
+                            {% else %}
+                                · <span class="v2-badge v2-badge-danger">{{ partner.get('lastDeliveryError') or ('HTTP ' ~ partner.get('lastDeliveryStatus')) }}</span>
+                            {% endif %}
+                        {% else %}
+                            <span data-v2-i18n="dev.wh.no_delivery">Chưa có bản ghi gửi sự kiện nào.</span>
+                        {% endif %}
+                    </div>
+
+                    <form action="{{ url_for('v2.developers_test_webhook') }}" method="POST" data-v2-busy="…">
+                        {{ form.csrf_token }}
+                        <button type="submit" class="v2-btn v2-btn-tinted">
+                            <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                            <span data-btn-label data-v2-i18n="dev.wh.test_btn">Gửi Webhook thử nghiệm</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}

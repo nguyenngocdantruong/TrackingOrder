@@ -1,0 +1,149 @@
+{% extends "v2/layout.html" %}
+{% block content %}
+<div class="v2-medium-shell" style="max-width:580px;">
+    {% if not gateway_ready %}
+    <div class="v2-callout v2-callout-warn" style="margin-bottom:20px;" role="alert">
+        <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9.5 16.5H2.5L12 3Z"/><path d="M12 9v4M12 17h.01"/></svg>
+        <div data-v2-i18n="support.gateway_pending">Cổng thanh toán PayOS hiện đang bảo trì hoặc chưa được cấu hình. Vui lòng quay lại sau.</div>
+    </div>
+    {% endif %}
+
+    <div class="v2-surface v2-auth-card">
+        <div class="v2-auth-head">
+            <h1 class="v2-page-title" data-v2-i18n="support.title">Ủng hộ duy trì hệ thống</h1>
+            <p class="v2-subtitle" data-v2-i18n="support.subtitle">Đóng góp của bạn giúp duy trì máy chủ và bot thông báo hoạt động ổn định 24/7.</p>
+        </div>
+
+        <form method="POST" action="" novalidate data-v2-busy="…">
+            {{ form.hidden_tag() }}
+
+            <div class="v2-field-group">
+                <div class="v2-label-row">
+                    <label class="v2-label" for="{{ form.amount.id }}" data-v2-i18n="support.amount_label">Mức ủng hộ (VND)</label>
+                    <span id="v2-amount-preview" class="v2-badge v2-badge-primary v2-tabular">50.000 ₫</span>
+                </div>
+                <div class="v2-input-wrap">
+                    {{ form.amount(
+                        class="v2-input v2-input-has-suffix v2-tabular",
+                        min="1000",
+                        step="1000",
+                        placeholder="Ví dụ: 50000",
+                        **(
+                            {"data-v2-i18n": "support.amount_placeholder", "data-v2-i18n-attr": "placeholder", "aria-invalid": "true", "aria-describedby": "err-sup-amount"}
+                            if form.amount.errors else
+                            {"data-v2-i18n": "support.amount_placeholder", "data-v2-i18n-attr": "placeholder"}
+                        )
+                    ) }}
+                    <span class="v2-input-suffix-tag">VND</span>
+                </div>
+                {% for error in form.amount.errors %}
+                    <div id="err-sup-amount" class="v2-field-error" role="alert" data-v2-err="{{ error }}">{{ error | v2_err }}</div>
+                {% endfor %}
+
+                <div class="v2-chip-row" role="group" aria-label="Amount presets">
+                    {% for amt in preset_amounts %}
+                    <button type="button" class="v2-chip" data-amount-preset="{{ amt }}">
+                        {{ "{:,}".format(amt).replace(",", ".") }} ₫
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="v2-field-group">
+                <label class="v2-label" for="{{ form.name.id }}" data-v2-i18n="support.name_label">Tên người ủng hộ</label>
+                {{ form.name(
+                    class="v2-input",
+                    autocomplete="name",
+                    placeholder="Tên hoặc biệt danh của bạn",
+                    **(
+                        {"data-v2-i18n": "support.name_placeholder", "data-v2-i18n-attr": "placeholder", "aria-invalid": "true", "aria-describedby": "err-sup-name"}
+                        if form.name.errors else
+                        {"data-v2-i18n": "support.name_placeholder", "data-v2-i18n-attr": "placeholder"}
+                    )
+                ) }}
+                {% for error in form.name.errors %}
+                    <div id="err-sup-name" class="v2-field-error" role="alert" data-v2-err="{{ error }}">{{ error | v2_err }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="v2-field-group">
+                <label class="v2-label" for="{{ form.email.id }}" data-v2-i18n="support.email_label">Địa chỉ Email</label>
+                {{ form.email(
+                    class="v2-input",
+                    autocomplete="email",
+                    placeholder="ban@domain.com",
+                    **(
+                        {"aria-invalid": "true", "aria-describedby": "err-sup-email"}
+                        if form.email.errors else {}
+                    )
+                ) }}
+                {% for error in form.email.errors %}
+                    <div id="err-sup-email" class="v2-field-error" role="alert" data-v2-err="{{ error }}">{{ error | v2_err }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="v2-field-group">
+                <label class="v2-label" for="{{ form.message.id }}" data-v2-i18n="support.message_label">Lời nhắn (không bắt buộc)</label>
+                {{ form.message(
+                    class="v2-textarea",
+                    rows="3",
+                    placeholder="Gửi lời nhắn cho đội ngũ phát triển…",
+                    **(
+                        {"data-v2-i18n": "support.message_placeholder", "data-v2-i18n-attr": "placeholder", "aria-invalid": "true", "aria-describedby": "err-sup-msg"}
+                        if form.message.errors else
+                        {"data-v2-i18n": "support.message_placeholder", "data-v2-i18n-attr": "placeholder"}
+                    )
+                ) }}
+                {% for error in form.message.errors %}
+                    <div id="err-sup-msg" class="v2-field-error" role="alert" data-v2-err="{{ error }}">{{ error | v2_err }}</div>
+                {% endfor %}
+            </div>
+
+            <div style="display:flex;align-items:center;justify-content:space-between;padding-top:16px;border-top:1px solid var(--v2-line);margin-bottom:20px;font-size:14px;">
+                <span style="color:var(--v2-muted);" data-v2-i18n="support.method_label">Phương thức thanh toán</span>
+                <span style="font-weight:700;color:var(--v2-ink);" data-v2-i18n="support.method_value">Chuyển khoản VietQR · PayOS</span>
+            </div>
+
+            <button type="submit" class="v2-btn v2-btn-primary v2-btn-lg v2-btn-block" {% if not gateway_ready %}disabled{% endif %}>
+                <span data-btn-label data-v2-i18n="support.submit">Tạo liên kết ủng hộ qua PayOS</span>
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const amountInput = document.getElementById('{{ form.amount.id }}');
+    const preview = document.getElementById('v2-amount-preview');
+    const presets = document.querySelectorAll('[data-amount-preset]');
+    if (!amountInput) return;
+
+    const syncAmount = () => {
+        const val = parseInt(amountInput.value, 10);
+        if (preview) {
+            if (!Number.isNaN(val) && val > 0) {
+                preview.textContent = val.toLocaleString('vi-VN') + ' ₫';
+                preview.hidden = false;
+            } else {
+                preview.hidden = true;
+            }
+        }
+        presets.forEach((btn) => {
+            btn.setAttribute('aria-pressed', String(parseInt(btn.dataset.amountPreset, 10) === val));
+        });
+    };
+
+    presets.forEach((btn) => {
+        btn.addEventListener('click', () => {
+            amountInput.value = btn.dataset.amountPreset;
+            syncAmount();
+        });
+    });
+
+    amountInput.addEventListener('input', syncAmount);
+    syncAmount();
+});
+</script>
+{% endblock %}

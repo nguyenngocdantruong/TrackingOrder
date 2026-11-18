@@ -70,6 +70,12 @@ class TrackingService:
         except Exception:
              pass # Already warned user if initial check failed, this is background sync
 
+        try:
+            from app.api.webhooks import PartnerWebhookService
+            PartnerWebhookService.notify_tracking_created(user, tracking_id)
+        except Exception:
+            pass
+
         return {
             'success': True,
             'tracking_id': tracking_id,
@@ -152,4 +158,19 @@ class TrackingService:
                 NotificationService.send_to_user(user, msg)
 
         TrackingsRepo.update(tracking_id, update_data)
+
+        if has_changes and final_events:
+            try:
+                from app.repos.users_repo import UsersRepo
+                from app.api.webhooks import PartnerWebhookService
+                webhook_user = UsersRepo.get_by_id(tracking['userId'])
+                PartnerWebhookService.notify_tracking_updated(
+                    webhook_user,
+                    tracking_id,
+                    is_final=is_final,
+                    new_events=new_events,
+                )
+            except Exception:
+                pass
+
         return True
