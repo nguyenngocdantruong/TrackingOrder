@@ -57,10 +57,48 @@
                 <label class="v2-label" for="{{ form.alias.id }}" data-v2-i18n="add.alias">Tên gợi nhớ (không bắt buộc)</label>
                 {{ form.alias(
                     class="v2-input",
+                    maxlength="80",
                     placeholder="Ví dụ: Bàn phím cơ, Sách công nghệ, Quà tặng…",
                     **{"data-v2-i18n": "add.alias.placeholder", "data-v2-i18n-attr": "placeholder"}
                 ) }}
                 {% for error in form.alias.errors %}
+                    <div class="v2-field-error" role="alert" data-v2-err="{{ error }}">{{ error | v2_err }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="v2-field-group">
+                <label class="v2-label" for="{{ form.cod_amount.id }}" data-v2-i18n="add.cod">Tiền thu hộ COD — VND (không bắt buộc)</label>
+                <div class="v2-input-wrap">
+                    {{ form.cod_amount(
+                        class="v2-input v2-input-has-suffix v2-tabular",
+                        inputmode="numeric",
+                        placeholder="0 (Để trống nếu đã thanh toán trước)",
+                        **({"aria-invalid": "true", "data-v2-i18n": "add.cod.placeholder", "data-v2-i18n-attr": "placeholder"} if form.cod_amount.errors else {"data-v2-i18n": "add.cod.placeholder", "data-v2-i18n-attr": "placeholder"})
+                    ) }}
+                    <span class="v2-input-suffix-tag">VND</span>
+                </div>
+                <div class="v2-chip-row" role="group" aria-label="COD presets">
+                    <button type="button" class="v2-chip" data-cod-pick="0" data-v2-i18n="add.cod.prepaid">0 ₫ · Trả trước</button>
+                    <button type="button" class="v2-chip" data-cod-pick="50000">50.000 ₫</button>
+                    <button type="button" class="v2-chip" data-cod-pick="150000">150.000 ₫</button>
+                    <button type="button" class="v2-chip" data-cod-pick="300000">300.000 ₫</button>
+                </div>
+                {% for error in form.cod_amount.errors %}
+                    <div class="v2-field-error" role="alert" data-v2-err="{{ error }}">{{ error | v2_err }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="v2-field-group">
+                <label class="v2-label" for="{{ form.note.id }}" data-v2-i18n="add.note">Ghi chú nhận hàng (không bắt buộc)</label>
+                {{ form.note(
+                    class="v2-textarea",
+                    rows="2",
+                    maxlength="240",
+                    style="min-height:76px;",
+                    placeholder="Ví dụ: Nhờ lễ tân nhận giúp, đồng kiểm khi giao…",
+                    **{"data-v2-i18n": "add.note.placeholder", "data-v2-i18n-attr": "placeholder"}
+                ) }}
+                {% for error in form.note.errors %}
                     <div class="v2-field-error" role="alert" data-v2-err="{{ error }}">{{ error | v2_err }}</div>
                 {% endfor %}
             </div>
@@ -136,6 +174,16 @@ document.addEventListener('DOMContentLoaded', () => {
             carrierSelect.value = carrierSelect.value === pick ? 'auto' : pick;
             syncUI();
             trackingInput.focus();
+        });
+    });
+
+    const codInput = document.getElementById('{{ form.cod_amount.id }}');
+    document.querySelectorAll('[data-cod-pick]').forEach((chip) => {
+        chip.addEventListener('click', () => {
+            if (!codInput) return;
+            const val = chip.getAttribute('data-cod-pick');
+            codInput.value = val === '0' ? '' : val;
+            codInput.focus();
         });
     });
 

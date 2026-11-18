@@ -23,16 +23,21 @@
 
       'nav.dashboard': 'Đơn hàng',
       'nav.add': 'Thêm đơn',
+      'nav.config': 'Cấu hình',
       'nav.notifications': 'Thông báo',
+      'nav.notifications_desc': 'Telegram & Zalo Bot',
       'nav.developers': 'API Đối tác',
+      'nav.developers_desc': 'API Key & Webhook',
       'nav.docs': 'Tài liệu API',
       'nav.support': 'Ủng hộ',
       'nav.admin': 'Quản trị',
+      'nav.admin_desc': 'Tham số hệ thống',
       'nav.login': 'Đăng nhập',
       'nav.register': 'Đăng ký',
       'nav.logout': 'Đăng xuất',
       'footer.tagline': 'Order Tracking Hub · Theo dõi vận đơn tập trung qua Telegram, Zalo & Partner API.',
-      'footer.classic': 'Giao diện cũ (v1)',
+      'theme.to_dark': 'Chuyển sang chế độ tối',
+      'theme.to_light': 'Chuyển sang chế độ sáng',
 
       'landing.title': 'Theo dõi mọi kiện hàng tập trung, báo tin tức thì',
       'landing.lead.prefix': 'Quản lý toàn bộ hành trình đơn hàng từ',
@@ -51,13 +56,48 @@
       'landing.demo.ev2_time': '05:20 · Hôm nay',
       'landing.demo.ev2_desc': 'Hoàn tất khai thác tại trung tâm trung chuyển Củ Chi.',
       'landing.demo.push_title': 'Thông báo & Webhook tự động vừa gửi',
-      'landing.spec.heading': 'Thiết kế cho người nhận hàng & đối tác tích hợp',
-      'landing.spec1.title': 'Đồng bộ định kỳ tự động',
-      'landing.spec1.desc': 'Hệ thống kiểm tra trạng thái mới từ nhà vận chuyển định kỳ và lưu toàn bộ mốc thời gian minh bạch.',
-      'landing.spec2.title': 'Thông báo đẩy Telegram & Zalo',
-      'landing.spec2.desc': 'Nhận tin nhắn qua Telegram và Zalo ngay khi kiện hàng rời kho, đang giao hoặc đã phát thành công.',
-      'landing.spec3.title': 'Partner REST API & Webhook',
-      'landing.spec3.desc': 'Cung cấp API chuẩn JSON và đẩy sự kiện Webhook ký số HMAC-SHA256 tức thì cho hệ thống đối tác thứ ba.',
+
+      'landing.ledger.heading': 'Nhận diện tự động hãng vận chuyển & chuẩn hóa hành trình',
+      'landing.ledger.sub': 'Dán mã đơn nguyên bản từ sàn thương mại điện tử — hệ thống tự phân tích định dạng, quy chiếu về 4 chặng giao nhận thống nhất và khử trùng lặp sự kiện.',
+      'landing.carrier.spx_rule': 'Nhận diện tức thì tiền tố SPXVN… và đồng bộ chi tiết trạm trung chuyển, bưu cục phát.',
+      'landing.carrier.lex_rule': 'Hỗ trợ chuỗi mã LEX / LEXPU / LEXST và lưu vết đầy đủ lịch sử khai thác kho phân loại.',
+      'landing.carrier.jnt_rule': 'Kết hợp mã vận đơn cùng 4 chữ số cuối SĐT người nhận để xác thực tra cứu chính xác.',
+      'landing.carrier.try': 'Thử mã mẫu',
+      'landing.pipeline.label': 'Chuẩn hóa trạng thái thống nhất:',
+
+      'landing.omni.heading': 'Theo dõi trên trình duyệt hoặc nhắn thẳng mã đơn cho Bot',
+      'landing.omni.sub': 'Không cần mở từng ứng dụng mua sắm để làm mới thủ công. Thêm vận đơn từ bất kỳ kênh nào và nhận tin báo tự động ngay khi kiện hàng di chuyển.',
+      'landing.omni.f1_title': 'Gửi mã đơn trực tiếp trong khung chat',
+      'landing.omni.f1_desc': 'Nhắn mã vận đơn kèm tên gợi nhớ cho Telegram hoặc Zalo Bot để đăng ký theo dõi tức thì ngay trên điện thoại.',
+      'landing.omni.f2_title': 'Đồng bộ hai chiều với tài khoản Web',
+      'landing.omni.f2_desc': 'Liên kết một lần để toàn bộ danh sách kiện hàng trên Telegram, Zalo và bảng điều khiển trình duyệt luôn khớp nhau.',
+      'landing.omni.f3_title': 'Khử trùng lặp, chỉ báo khi có mốc mới',
+      'landing.omni.f3_desc': 'Đối chiếu mã băm từng sự kiện từ bưu cục, chỉ gửi tin nhắn khi đơn hàng thực sự phát sinh thay đổi trạng thái.',
+      'landing.omni.live_tag': 'Tự động 24/7',
+
+      'landing.chat.tg_user_note': 'Bàn phím cơ',
+      'landing.chat.sent_now': 'Bạn · 08:10',
+      'landing.chat.tg_ack_title': 'Đã thêm vận đơn Shopee Express VN',
+      'landing.chat.tg_ack_body': 'Bàn phím cơ (SPXVN048291049281) đang ở trạng thái Đã đến kho phân loại TP.HCM. Bot sẽ nhắn ngay khi có mốc mới.',
+      'landing.chat.tg_push_title': 'Cập nhật mới · Bàn phím cơ',
+      'landing.chat.tg_push_body': 'Tài xế đang giao hàng đến bạn — Bưu tá khu vực Quận 7 đang trên tuyến phát kiện hàng.',
+      'landing.chat.zl_user_note': 'Màn hình 27 inch',
+      'landing.chat.zl_sent_time': 'Bạn · 14:05',
+      'landing.chat.zl_ack_title': 'Đã đồng bộ Lazada Express',
+      'landing.chat.zl_ack_body': 'Đơn Màn hình 27 inch đã gắn vào tài khoản của bạn trên cả Zalo và Web Dashboard.',
+      'landing.chat.zl_push_title': 'Giao hàng thành công · Màn hình 27 inch',
+      'landing.chat.zl_push_body': 'Kiện hàng LEXPU0391827364 đã được phát thành công tới người nhận. Tự động khép lại chu kỳ theo dõi.',
+
+      'landing.api.heading': 'Tích hợp Partner REST API & Webhook ký số thời gian thực',
+      'landing.api.sub': 'Kết nối cửa hàng thương mại điện tử, OMS hoặc ERP của bạn qua chuẩn JSON RESTful v1. Tự động nhận bản tin HTTP POST kèm chữ ký bảo mật ngay khi đơn hàng chuyển trạng thái.',
+      'landing.api.p1': 'Xác thực linh hoạt qua Bearer Token hoặc X-API-Key, gắn mã tham chiếu nội bộ external_ref cho từng đơn.',
+      'landing.api.p2': 'Đẩy sự kiện tracking.created, tracking.updated và tracking.completed tức thì tới HTTPS endpoint của đối tác.',
+      'landing.api.p3': 'Chữ ký HMAC-SHA256 trên header X-OrderTracker-Signature chống giả mạo và phát lại bản tin.',
+      'landing.api.cta_docs': 'Xem tài liệu tích hợp',
+      'landing.api.cta_key': 'Quản lý API Key',
+
+      'landing.close.heading': 'Sẵn sàng gom mọi vận đơn về một nơi duy nhất?',
+      'landing.close.sub': 'Tạo tài khoản miễn phí trong vài giây, bật thông báo Telegram hoặc Zalo bất cứ lúc nào.',
 
       'dash.title': 'Vận đơn của tôi',
       'dash.subtitle': 'Theo dõi tiến trình vận chuyển thời gian thực từ mọi đơn vị giao nhận.',
@@ -84,6 +124,7 @@
       'dash.empty.cta': 'Thêm vận đơn đầu tiên',
       'dash.notify_banner': 'Bạn chưa cấu hình nhận tin qua Telegram hoặc Zalo.',
       'dash.notify_cta': 'Thiết lập thông báo',
+      'dash.cod_due': 'Tổng COD cần chuẩn bị:',
 
       'add.title': 'Thêm vận đơn mới',
       'add.subtitle': 'Dán mã vận đơn để hệ thống tự động nhận diện hãng vận chuyển và đồng bộ lịch sử ngay lập tức.',
@@ -92,17 +133,27 @@
       'add.carrier': 'Đơn vị vận chuyển',
       'add.alias': 'Tên gợi nhớ (không bắt buộc)',
       'add.alias.placeholder': 'Ví dụ: Bàn phím cơ, Sách công nghệ, Quà tặng…',
+      'add.cod': 'Tiền thu hộ COD — VND (không bắt buộc)',
+      'add.cod.placeholder': '0 (Để trống nếu đã thanh toán trước)',
+      'add.cod.prepaid': '0 ₫ · Trả trước',
+      'add.note': 'Ghi chú nhận hàng (không bắt buộc)',
+      'add.note.placeholder': 'Ví dụ: Nhờ lễ tân nhận giúp, đồng kiểm khi giao…',
       'add.submit': 'Bắt đầu theo dõi',
       'add.back': 'Quay lại danh sách',
 
       'detail.back': 'Đơn hàng',
       'detail.refresh': 'Làm mới trạng thái',
+      'detail.edit': 'Sửa đơn / COD',
+      'detail.share': 'Chia sẻ hành trình',
       'detail.delete': 'Xóa đơn',
       'detail.cancelled_prefix': 'Đơn hàng đã hủy hoặc hoàn trả:',
       'detail.info': 'Thông tin kiện hàng',
       'detail.dt.status': 'Trạng thái hiện tại',
       'detail.dt.carrier': 'Đơn vị vận chuyển',
       'detail.dt.code': 'Mã vận đơn',
+      'detail.dt.cod': 'Tiền thu hộ (COD)',
+      'detail.cod_zero': '0 ₫ · Đã trả trước',
+      'detail.dt.note': 'Ghi chú nhận hàng',
       'detail.dt.checked': 'Kiểm tra gần nhất',
       'detail.dt.events': 'Tổng mốc sự kiện',
       'detail.events_unit': 'mốc hành trình',
@@ -112,6 +163,26 @@
       'detail.step2': 'Đang trung chuyển',
       'detail.step3': 'Đang giao hàng',
       'detail.step4': 'Giao thành công',
+
+      'edit.title': 'Cập nhật thông tin vận đơn',
+      'edit.save': 'Lưu thay đổi',
+
+      'share.active_label': 'Liên kết chia sẻ công khai đang bật:',
+      'share.copy_link': 'Chép link',
+      'share.revoke': 'Thu hồi link',
+      'share.public_banner': 'Trang theo dõi hành trình công khai (chế độ chỉ đọc — thông tin cá nhân đã được ẩn).',
+      'share.track_yours': 'Tự theo dõi đơn của bạn',
+      'share.invalid.title': 'Liên kết theo dõi không khả dụng hoặc đã thu hồi',
+      'share.invalid.desc': 'Người gửi có thể đã tắt chia sẻ công khai hoặc xóa vận đơn này khỏi hệ thống. Hãy yêu cầu liên kết mới nếu bạn vẫn đang chờ nhận hàng.',
+      'share.invalid.cta': 'Về trang chủ Order Tracker',
+
+      'webapp.connecting.title': 'Đang kết nối Telegram Mini App…',
+      'webapp.connecting.desc': 'Đang xác thực chữ ký phiên Telegram của bạn để đồng bộ danh sách vận đơn.',
+      'webapp.outside_tg': 'Trang này dành cho Telegram Mini App. Nếu bạn đang mở bằng trình duyệt thường, hãy đăng nhập trực tiếp bên dưới.',
+
+      'offline.title': 'Thiết bị đang mất kết nối mạng',
+      'offline.desc': 'Không thể tải dữ liệu vận đơn mới nhất lúc này. Hãy kiểm tra kết nối Wi-Fi hoặc dữ liệu di động rồi bấm thử lại.',
+      'offline.retry': 'Thử kết nối lại',
 
       'delete.title': 'Xóa vận đơn khỏi danh sách?',
       'delete.cancel': 'Hủy bỏ',
@@ -311,16 +382,21 @@
 
       'nav.dashboard': 'Shipments',
       'nav.add': 'Add Parcel',
+      'nav.config': 'Settings',
       'nav.notifications': 'Notifications',
+      'nav.notifications_desc': 'Telegram & Zalo Bots',
       'nav.developers': 'Partner API',
+      'nav.developers_desc': 'API Keys & Webhooks',
       'nav.docs': 'API Docs',
       'nav.support': 'Support',
       'nav.admin': 'Admin',
+      'nav.admin_desc': 'System parameters',
       'nav.login': 'Sign in',
       'nav.register': 'Create account',
       'nav.logout': 'Sign out',
       'footer.tagline': 'Order Tracking Hub · Centralized parcel tracking via Telegram, Zalo & Partner API.',
-      'footer.classic': 'Legacy v1 UI',
+      'theme.to_dark': 'Switch to dark mode',
+      'theme.to_light': 'Switch to light mode',
 
       'landing.title': 'Track every parcel in one place with instant alerts',
       'landing.lead.prefix': 'Monitor every shipment milestone across',
@@ -339,13 +415,48 @@
       'landing.demo.ev2_time': '05:20 · Today',
       'landing.demo.ev2_desc': 'Completed processing at Cu Chi distribution center.',
       'landing.demo.push_title': 'Instant alert & webhook dispatched',
-      'landing.spec.heading': 'Built for daily recipients & third-party integrations',
-      'landing.spec1.title': 'Scheduled official sync',
-      'landing.spec1.desc': 'Polls carrier status updates automatically on schedule and preserves a clean timestamped audit trail.',
-      'landing.spec2.title': 'Telegram & Zalo push alerts',
-      'landing.spec2.desc': 'Receive instant messages on Telegram and Zalo whenever a courier picks up, sorts, or delivers your order.',
-      'landing.spec3.title': 'Partner REST API & Webhooks',
-      'landing.spec3.desc': 'Standardized JSON endpoints and HMAC-SHA256 signed webhook deliveries for e-commerce and ERP integrations.',
+
+      'landing.ledger.heading': 'Automatic carrier detection & normalized transit stages',
+      'landing.ledger.sub': 'Paste raw marketplace tracking numbers — the hub detects the carrier format, maps checkpoints onto 4 unified milestones, and deduplicates events.',
+      'landing.carrier.spx_rule': 'Detects SPXVN… prefixes immediately and syncs sorting hubs and local delivery stations.',
+      'landing.carrier.lex_rule': 'Supports LEX / LEXPU / LEXST codes with complete fulfillment center checkpoint history.',
+      'landing.carrier.jnt_rule': 'Combines the waybill number with the recipient’s last 4 phone digits for verified lookup.',
+      'landing.carrier.try': 'Try sample',
+      'landing.pipeline.label': 'Unified milestone pipeline:',
+
+      'landing.omni.heading': 'Track on the web or message the bot directly',
+      'landing.omni.sub': 'Stop opening separate shopping apps to refresh by hand. Add parcels from any channel and get notified the moment a courier scans your package.',
+      'landing.omni.f1_title': 'Paste tracking codes straight into chat',
+      'landing.omni.f1_desc': 'Send a tracking number and optional label to the Telegram or Zalo Bot to start monitoring right from your phone.',
+      'landing.omni.f2_title': 'Two-way sync with your web workspace',
+      'landing.omni.f2_desc': 'Link once so every parcel across Telegram, Zalo, and the browser dashboard stays in lockstep.',
+      'landing.omni.f3_title': 'Zero duplicate noise — only real changes',
+      'landing.omni.f3_desc': 'Checkpoints are fingerprinted by event hash so alerts fire only when a genuinely new carrier scan arrives.',
+      'landing.omni.live_tag': 'Automated 24/7',
+
+      'landing.chat.tg_user_note': 'Mechanical keyboard',
+      'landing.chat.sent_now': 'You · 08:10',
+      'landing.chat.tg_ack_title': 'Added Shopee Express VN parcel',
+      'landing.chat.tg_ack_body': 'Mechanical keyboard (SPXVN048291049281) is currently at Ho Chi Minh sorting hub. You will be alerted on the next scan.',
+      'landing.chat.tg_push_title': 'New checkpoint · Mechanical keyboard',
+      'landing.chat.tg_push_body': 'Courier is out for delivery — District 7 delivery driver is en route to recipient.',
+      'landing.chat.zl_user_note': '27-inch monitor',
+      'landing.chat.zl_sent_time': 'You · 14:05',
+      'landing.chat.zl_ack_title': 'Lazada Express synced',
+      'landing.chat.zl_ack_body': '27-inch monitor is now linked across both your Zalo chat and Web Dashboard.',
+      'landing.chat.zl_push_title': 'Delivered · 27-inch monitor',
+      'landing.chat.zl_push_body': 'Parcel LEXPU0391827364 was delivered to the recipient. Active polling closed automatically.',
+
+      'landing.api.heading': 'Integrate Partner REST API & signed real-time Webhooks',
+      'landing.api.sub': 'Connect your storefront, OMS, or ERP over clean JSON REST v1 endpoints. Receive signed HTTP POST webhooks the instant any shipment updates.',
+      'landing.api.p1': 'Authenticate via Bearer token or X-API-Key and attach your internal external_ref order ID to every shipment.',
+      'landing.api.p2': 'Push tracking.created, tracking.updated, and tracking.completed events directly to your HTTPS endpoint.',
+      'landing.api.p3': 'Verify payload authenticity and prevent replay attacks with HMAC-SHA256 on X-OrderTracker-Signature.',
+      'landing.api.cta_docs': 'Read integration docs',
+      'landing.api.cta_key': 'Manage API Keys',
+
+      'landing.close.heading': 'Ready to centralize every parcel in one place?',
+      'landing.close.sub': 'Create a free account in seconds and connect Telegram or Zalo alerts whenever you like.',
 
       'dash.title': 'My Shipments',
       'dash.subtitle': 'Monitor live delivery progress across all supported carriers.',
@@ -372,6 +483,7 @@
       'dash.empty.cta': 'Add first parcel',
       'dash.notify_banner': 'You have not connected Telegram or Zalo alerts yet.',
       'dash.notify_cta': 'Configure alerts',
+      'dash.cod_due': 'Active COD due:',
 
       'add.title': 'Add New Parcel',
       'add.subtitle': 'Paste a tracking code to auto-detect the carrier and sync its latest history immediately.',
@@ -380,17 +492,27 @@
       'add.carrier': 'Carrier',
       'add.alias': 'Label / Alias (optional)',
       'add.alias.placeholder': 'e.g. Mechanical keyboard, Tech books, Gift…',
+      'add.cod': 'Cash on Delivery / COD — VND (optional)',
+      'add.cod.placeholder': '0 (Leave blank if prepaid)',
+      'add.cod.prepaid': '0 ₫ · Prepaid',
+      'add.note': 'Delivery note (optional)',
+      'add.note.placeholder': 'e.g. Leave at reception desk, inspect on delivery…',
       'add.submit': 'Start tracking',
       'add.back': 'Back to shipments',
 
       'detail.back': 'Shipments',
       'detail.refresh': 'Refresh status',
+      'detail.edit': 'Edit / COD',
+      'detail.share': 'Share timeline',
       'detail.delete': 'Delete',
       'detail.cancelled_prefix': 'Order cancelled or returned:',
       'detail.info': 'Shipment summary',
       'detail.dt.status': 'Current status',
       'detail.dt.carrier': 'Carrier',
       'detail.dt.code': 'Tracking number',
+      'detail.dt.cod': 'Cash on delivery (COD)',
+      'detail.cod_zero': '0 ₫ · Prepaid',
+      'detail.dt.note': 'Delivery note',
       'detail.dt.checked': 'Last checked',
       'detail.dt.events': 'Total checkpoints',
       'detail.events_unit': 'checkpoints',
@@ -400,6 +522,26 @@
       'detail.step2': 'In transit',
       'detail.step3': 'Out for delivery',
       'detail.step4': 'Delivered',
+
+      'edit.title': 'Edit shipment details',
+      'edit.save': 'Save changes',
+
+      'share.active_label': 'Public tracking link is active:',
+      'share.copy_link': 'Copy link',
+      'share.revoke': 'Revoke link',
+      'share.public_banner': 'Public read-only shipment timeline (personal details are hidden).',
+      'share.track_yours': 'Track your own parcels',
+      'share.invalid.title': 'Tracking link unavailable or revoked',
+      'share.invalid.desc': 'The sender may have turned off public sharing or removed this parcel. Request a fresh link if you are still expecting delivery.',
+      'share.invalid.cta': 'Go to Order Tracker home',
+
+      'webapp.connecting.title': 'Connecting Telegram Mini App…',
+      'webapp.connecting.desc': 'Verifying your signed Telegram session to sync tracked parcels.',
+      'webapp.outside_tg': 'This entry point is for Telegram Mini App. In a regular browser, sign in directly below.',
+
+      'offline.title': 'You are currently offline',
+      'offline.desc': 'Live shipment updates cannot be loaded right now. Check your Wi-Fi or mobile data and try again.',
+      'offline.retry': 'Try again',
 
       'delete.title': 'Delete this shipment?',
       'delete.cancel': 'Cancel',
@@ -607,7 +749,11 @@
     'Đã lưu cấu hình Webhook đối tác!': 'Partner webhook configuration saved!',
     'Đã làm mới khóa ký Webhook (Signing Secret)!': 'Webhook signing secret rotated!',
     'Vui lòng lưu URL nhận Webhook trước khi gửi sự kiện thử nghiệm.': 'Save a webhook URL before sending a test event.',
-    'Phiên làm việc đã hết hạn. Vui lòng thử lại.': 'Session expired. Please try again.'
+    'Phiên làm việc đã hết hạn. Vui lòng thử lại.': 'Session expired. Please try again.',
+    'Mã vận đơn này đã có trong danh sách theo dõi của bạn.': 'This tracking number is already in your shipment list.',
+    'Đã cập nhật thông tin vận đơn!': 'Shipment details updated!',
+    'Đã tạo liên kết chia sẻ hành trình công khai!': 'Public tracking link created!',
+    'Đã thu hồi liên kết chia sẻ công khai.': 'Public tracking link revoked.'
   };
 
   const ERR_MAP = {
@@ -625,6 +771,40 @@
 
   let currentLang = localStorage.getItem('v2_lang') || localStorage.getItem('language') || 'vi';
   if (!DICT[currentLang]) currentLang = 'vi';
+
+  function getEffectiveTheme() {
+    const attr = document.documentElement.getAttribute('data-theme');
+    if (attr === 'dark' || attr === 'light') return attr;
+    const saved = localStorage.getItem('v2_theme');
+    if (saved === 'dark' || saved === 'light') return saved;
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+
+  function syncThemeButton() {
+    const btn = document.getElementById('v2-theme-toggle');
+    if (!btn) return;
+    const isDark = getEffectiveTheme() === 'dark';
+    const label = DICT[currentLang][isDark ? 'theme.to_light' : 'theme.to_dark'];
+    btn.setAttribute('aria-pressed', String(isDark));
+    btn.setAttribute('aria-label', label);
+    btn.setAttribute('title', label);
+  }
+
+  function applyTheme(theme, persist = true) {
+    const next = theme === 'dark' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    const metaTc = document.getElementById('v2-meta-theme-color');
+    if (metaTc) {
+      metaTc.setAttribute('content', next === 'dark' ? '#0b0f17' : '#4f46e5');
+    }
+    if (persist) {
+      localStorage.setItem('v2_theme', next);
+    }
+    syncThemeButton();
+    window.dispatchEvent(new CustomEvent('v2:themechange', { detail: { theme: next } }));
+  }
+
+  window.changeV2Theme = applyTheme;
 
   function applyLang(lang) {
     if (!DICT[lang]) return;
@@ -677,13 +857,35 @@
       btn.setAttribute('aria-pressed', String(btn.getAttribute('data-v2-lang') === lang));
     });
 
+    syncThemeButton();
     window.dispatchEvent(new CustomEvent('v2:langchange', { detail: { lang } }));
   }
 
   window.changeV2Language = applyLang;
 
   document.addEventListener('DOMContentLoaded', () => {
+    applyTheme(getEffectiveTheme(), false);
     applyLang(currentLang);
+
+    const themeToggle = document.getElementById('v2-theme-toggle');
+    if (themeToggle) {
+      themeToggle.addEventListener('click', () => {
+        applyTheme(getEffectiveTheme() === 'dark' ? 'light' : 'dark', true);
+      });
+    }
+
+    if (window.matchMedia) {
+      const mq = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleSystemChange = (e) => {
+        const saved = localStorage.getItem('v2_theme');
+        if (saved !== 'dark' && saved !== 'light') {
+          applyTheme(e.matches ? 'dark' : 'light', false);
+        }
+      };
+      if (typeof mq.addEventListener === 'function') {
+        mq.addEventListener('change', handleSystemChange);
+      }
+    }
 
     document.querySelectorAll('[data-v2-lang]').forEach((btn) => {
       btn.addEventListener('click', () => applyLang(btn.getAttribute('data-v2-lang')));
@@ -698,6 +900,64 @@
         navCluster.classList.toggle('is-open', !expanded);
       });
     }
+
+    // Accessible Navigation Dropdowns ("Cấu hình")
+    const dropdowns = Array.from(document.querySelectorAll('[data-v2-dropdown]'));
+    const closeAllDropdowns = (except = null) => {
+      dropdowns.forEach((dd) => {
+        if (dd === except) return;
+        const btn = dd.querySelector('button[aria-controls]');
+        const menu = dd.querySelector('.v2-dropdown-menu');
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+        if (menu) menu.hidden = true;
+      });
+    };
+
+    dropdowns.forEach((dd) => {
+      const btn = dd.querySelector('button[aria-controls]');
+      const menu = dd.querySelector('.v2-dropdown-menu');
+      if (!btn || !menu) return;
+
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = btn.getAttribute('aria-expanded') === 'true';
+        closeAllDropdowns(dd);
+        btn.setAttribute('aria-expanded', String(!isOpen));
+        menu.hidden = isOpen;
+      });
+
+      dd.addEventListener('keydown', (e) => {
+        const links = Array.from(menu.querySelectorAll('a'));
+        if (e.key === 'Escape') {
+          btn.setAttribute('aria-expanded', 'false');
+          menu.hidden = true;
+          btn.focus();
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          if (menu.hidden) {
+            closeAllDropdowns(dd);
+            btn.setAttribute('aria-expanded', 'true');
+            menu.hidden = false;
+            if (links[0]) links[0].focus();
+          } else {
+            const idx = links.indexOf(document.activeElement);
+            const next = links[(idx + 1) % links.length];
+            if (next) next.focus();
+          }
+        } else if (e.key === 'ArrowUp' && !menu.hidden) {
+          e.preventDefault();
+          const idx = links.indexOf(document.activeElement);
+          const prev = links[(idx - 1 + links.length) % links.length];
+          if (prev) prev.focus();
+        }
+      });
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('[data-v2-dropdown]')) {
+        closeAllDropdowns();
+      }
+    });
 
     document.querySelectorAll('.v2-toast').forEach((toast) => {
       const closeBtn = toast.querySelector('.v2-toast-close');
@@ -756,4 +1016,9 @@
       });
     });
   });
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {});
+    });
+  }
 })();

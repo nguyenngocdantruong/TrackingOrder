@@ -3,11 +3,12 @@ import hmac
 import os
 from pathlib import Path
 import re
+import secrets
 import threading
 import time
 from urllib.parse import urlsplit
 
-from flask import Blueprint, abort, current_app, flash, redirect, render_template, request, session, url_for
+from flask import Blueprint, abort, current_app, flash, jsonify, make_response, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_user, logout_user
 from flask_wtf import FlaskForm
 
@@ -21,6 +22,8 @@ from app.api.webhooks import (
 )
 from app.auth.forms import LinkTelegramForm, LinkZaloForm, LoginForm, RegistrationForm
 from app.notifications.registry import registry as notification_registry
+from app.notifications.telegram_group import mask_tracking_for_group
+from app.notifications.telegram_webapp import verify_telegram_webapp_init_data
 from app.payments.base import DonationRequest
 from app.payments.forms import SupportForm
 from app.payments.registry import get_default_gateway, registry as payment_registry
@@ -29,12 +32,13 @@ from app.providers.registry import registry as provider_registry
 from app.repos.trackings_repo import TrackingsRepo
 from app.repos.users_repo import UsersRepo
 from app.settings.forms import SettingsForm
-from app.tracking.forms import AddTrackingForm
-from app.tracking.services import TrackingService
+from app.tracking.forms import AddTrackingForm, EditTrackingForm
+from app.tracking.services import TrackingService, parse_cod_amount, sanitize_alias_and_note
 
 v2_bp = Blueprint('v2', __name__)
 
 _CARRIER_DISPLAY_NAMES = {
+    'shopee_express_vn': 'Shopee Express VN',
     'spx_vn': 'Shopee Express VN',
     'lex': 'Lazada Express',
     'jt_express': 'J&T Express',
@@ -56,6 +60,15 @@ def v2_translate_error(msg: str) -> str:
     if not msg:
         return ''
     return _WTFORMS_VI_MAP.get(str(msg), str(msg))
+
+
+@v2_bp.app_template_filter('format_vnd')
+def v2_format_vnd(amount) -> str:
+    try:
+        val = int(amount or 0)
+    except (TypeError, ValueError):
+        val = 0
+    return f"{val:,} ₫".replace(',', '.')
 
 
 def _friendly_carrier_name(carrier_id: str, raw_name: str | None = None) -> str:
@@ -159,15 +172,20 @@ def dashboard():
     enriched = []
     active_count = 0
     completed_count = 0
+    total_active_cod = 0
     for item in trackings:
         meta = _classify_tracking_state(item)
+        cod_val = int(item.get('codAmount') or 0)
         if item.get('isActive'):
             active_count += 1
+            if meta['tone'] != 'danger' and cod_val > 0:
+                total_active_cod += cod_val
         else:
             completed_count += 1
         cid = item.get('carrierId', '')
         enriched.append({
             **item,
+            'codAmount': cod_val,
             '_carrierName': _friendly_carrier_name(cid, carrier_names.get(cid)),
             '_tone': meta['tone'],
             '_stage': meta['stage'],
@@ -189,6 +207,7 @@ def dashboard():
         total_count=len(enriched),
         active_count=active_count,
         completed_count=completed_count,
+        total_active_cod=total_active_cod,
         has_channel=has_channel,
     )
 
@@ -213,15 +232,32 @@ def add_tracking():
                 form.carrier_id.data = detected.id
 
     if form.validate_on_submit():
+        cod_val, cod_err = parse_cod_amount(form.cod_amount.data)
+        if cod_err:
+            form.cod_amount.errors.append(cod_err)
+            return render_template(
+                'v2/tracking/add_tracking.html',
+                title='Thêm vận đơn',
+                form=form,
+                placeholders=placeholders,
+                carriers=carrier_list,
+                default_placeholder=default_placeholder,
+            )
+
         result = TrackingService.create_tracking_for_user(
             user=current_user,
             tracking_number=form.tracking_number.data.strip(),
             alias=form.alias.data.strip() if form.alias.data else None,
             carrier_id=form.carrier_id.data,
             send_notification=True,
+            cod_amount=cod_val,
+            note=form.note.data,
         )
 
         if not result.get('success'):
+            if result.get('duplicate') and result.get('tracking_id'):
+                flash('Mã vận đơn này đã có trong danh sách theo dõi của bạn.', 'info')
+                return redirect(url_for('v2.detail', tracking_id=result['tracking_id']))
             flash(result.get('error', 'Không thể thêm vận đơn mới.'), 'warning')
             return render_template(
                 'v2/tracking/add_tracking.html',
@@ -259,6 +295,19 @@ def detail(tracking_id):
     )
     meta = _classify_tracking_state(tracking)
 
+    edit_form = EditTrackingForm()
+    edit_form.alias.data = tracking.get('alias') or ''
+    cod_existing = int(tracking.get('codAmount') or 0)
+    edit_form.cod_amount.data = str(cod_existing) if cod_existing > 0 else ''
+    edit_form.note.data = tracking.get('note') or ''
+
+    share_form = FlaskForm()
+    share_token = tracking.get('shareToken')
+    base_url = (current_app.config.get('WEBSITE_URL') or request.url_root).rstrip('/')
+    if request.host:
+        base_url = request.url_root.rstrip('/')
+    share_url = f"{base_url}{url_for('v2.shared_tracking', share_token=share_token)}" if share_token else None
+
     return render_template(
         'v2/tracking/detail.html',
         title=tracking.get('alias') or tracking.get('trackingNumber') or 'Chi tiết vận đơn',
@@ -266,7 +315,160 @@ def detail(tracking_id):
         tracking_id=tracking_id,
         carrier_name=carrier_name,
         state_meta=meta,
+        edit_form=edit_form,
+        share_form=share_form,
+        share_url=share_url,
     )
+
+
+@v2_bp.route('/tracking/<tracking_id>/edit', methods=['POST'])
+@v2_login_required
+def edit_tracking(tracking_id):
+    tracking = TrackingsRepo.get_by_id(tracking_id)
+    if not tracking or tracking['userId'] != current_user.id:
+        abort(403)
+
+    form = EditTrackingForm()
+    if not form.validate_on_submit():
+        flash('Dữ liệu cập nhật không hợp lệ. Vui lòng kiểm tra độ dài nội dung.', 'danger')
+        return redirect(url_for('v2.detail', tracking_id=tracking_id))
+
+    cod_val, cod_err = parse_cod_amount(form.cod_amount.data)
+    if cod_err:
+        flash(cod_err, 'danger')
+        return redirect(url_for('v2.detail', tracking_id=tracking_id))
+
+    clean_alias, clean_note = sanitize_alias_and_note(form.alias.data, form.note.data)
+    TrackingsRepo.update(tracking_id, {
+        'alias': clean_alias,
+        'codAmount': cod_val,
+        'note': clean_note,
+    })
+    flash('Đã cập nhật thông tin vận đơn!', 'success')
+    return redirect(url_for('v2.detail', tracking_id=tracking_id))
+
+
+@v2_bp.route('/tracking/<tracking_id>/share', methods=['POST'])
+@v2_login_required
+def share_tracking(tracking_id):
+    tracking = TrackingsRepo.get_by_id(tracking_id)
+    if not tracking or tracking['userId'] != current_user.id:
+        abort(403)
+
+    form = FlaskForm()
+    if not form.validate_on_submit():
+        flash('Phiên làm việc đã hết hạn. Vui lòng thử lại.', 'warning')
+        return redirect(url_for('v2.detail', tracking_id=tracking_id))
+
+    rotate = request.form.get('rotate') == '1'
+    token = tracking.get('shareToken')
+    if not token or rotate:
+        token = secrets.token_urlsafe(16)
+        TrackingsRepo.update(tracking_id, {'shareToken': token})
+
+    flash('Đã tạo liên kết chia sẻ hành trình công khai!', 'success')
+    return redirect(url_for('v2.detail', tracking_id=tracking_id))
+
+
+@v2_bp.route('/tracking/<tracking_id>/unshare', methods=['POST'])
+@v2_login_required
+def unshare_tracking(tracking_id):
+    tracking = TrackingsRepo.get_by_id(tracking_id)
+    if not tracking or tracking['userId'] != current_user.id:
+        abort(403)
+
+    form = FlaskForm()
+    if not form.validate_on_submit():
+        flash('Phiên làm việc đã hết hạn. Vui lòng thử lại.', 'warning')
+        return redirect(url_for('v2.detail', tracking_id=tracking_id))
+
+    TrackingsRepo.update(tracking_id, {'shareToken': None})
+    flash('Đã thu hồi liên kết chia sẻ công khai.', 'info')
+    return redirect(url_for('v2.detail', tracking_id=tracking_id))
+
+
+@v2_bp.route('/s/<share_token>')
+def shared_tracking(share_token: str):
+    tracking = TrackingsRepo.get_by_share_token(share_token)
+    if not tracking:
+        resp = make_response(
+            render_template(
+                'v2/tracking/shared_detail.html',
+                title='Liên kết không khả dụng',
+                tracking=None,
+            ),
+            404,
+        )
+        resp.headers['X-Robots-Tag'] = 'noindex, nofollow'
+        return resp
+
+    provider = provider_registry.get_provider(tracking.get('carrierId', ''))
+    carrier_name = _friendly_carrier_name(
+        tracking.get('carrierId', ''),
+        provider.displayName if provider else None,
+    )
+    meta = _classify_tracking_state(tracking)
+    masked_number = mask_tracking_for_group(tracking.get('trackingNumber', ''))
+
+    # Pass ONLY safe public fields (never expose userId, externalRef, or personal notes)
+    public_tracking = {
+        'alias': tracking.get('alias'),
+        'maskedNumber': masked_number,
+        'carrierId': tracking.get('carrierId'),
+        'isActive': bool(tracking.get('isActive', True)),
+        'currentStatus': tracking.get('currentStatus') or 'Pending',
+        'codAmount': int(tracking.get('codAmount') or 0),
+        'lastCheckedAt': tracking.get('lastCheckedAt'),
+        'events': tracking.get('events') or [],
+    }
+    resp = make_response(
+        render_template(
+            'v2/tracking/shared_detail.html',
+            title=public_tracking['alias'] or masked_number,
+            tracking=public_tracking,
+            carrier_name=carrier_name,
+            state_meta=meta,
+        )
+    )
+    resp.headers['X-Robots-Tag'] = 'noindex, nofollow'
+    return resp
+
+
+@v2_bp.route('/webapp')
+def telegram_webapp_entry():
+    return render_template('v2/webapp_boot.html', title='Telegram Mini App')
+
+
+@v2_bp.route('/auth/telegram-webapp', methods=['POST'])
+def telegram_webapp_auth():
+    payload = request.get_json(silent=True) or {}
+    init_data = payload.get('initData') or ''
+    bot_token = current_app.config.get('TELEGRAM_BOT_TOKEN') or ''
+
+    verified, err = verify_telegram_webapp_init_data(init_data, bot_token)
+    if err or not verified:
+        return jsonify({'success': False, 'error': err or 'Xác thực thất bại.'}), 401
+
+    tg_id = str(verified['user']['id'])
+    user = UsersRepo.get_or_create_temp_by_telegram_chat_id(tg_id)
+    login_user(user, remember=True)
+
+    start_param = (verified.get('start_param') or '').strip().lower()
+    if start_param == 'add':
+        target_url = url_for('v2.add_tracking')
+    else:
+        target_url = _safe_next_url(payload.get('next'), 'v2.dashboard')
+
+    return jsonify({
+        'success': True,
+        'redirect': target_url,
+        'username': user.username,
+    })
+
+
+@v2_bp.route('/offline')
+def offline_page():
+    return render_template('v2/offline.html', title='Ngoại tuyến')
 
 
 @v2_bp.route('/tracking/<tracking_id>/refresh', methods=['POST'])

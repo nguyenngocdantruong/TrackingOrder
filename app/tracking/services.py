@@ -1,14 +1,90 @@
 from datetime import datetime, timezone
+import re
 from flask import current_app
 from app.repos.trackings_repo import TrackingsRepo
 from app.providers.registry import registry
 from app.notifications.service import NotificationService
 
+_ZERO_WIDTH_RE = re.compile(r'[\u200b-\u200d\ufeff]')
+MAX_COD_VND = 1_000_000_000
+
+
+def normalize_tracking_number(raw: str) -> str:
+    cleaned = _ZERO_WIDTH_RE.sub('', (raw or '')).strip()
+    # Collapse accidental spaces around hyphen for J&T phone suffix (e.g. "842594- 9880")
+    cleaned = re.sub(r'\s*-\s*', '-', cleaned)
+    return cleaned.upper()
+
+
+def parse_cod_amount(raw) -> tuple[int, str | None]:
+    if raw is None:
+        return 0, None
+    if isinstance(raw, bool):
+        return 0, 'Số tiền COD không hợp lệ.'
+    if isinstance(raw, (int, float)):
+        val = int(raw)
+        if val < 0:
+            return 0, 'Số tiền COD không được âm.'
+        if val > MAX_COD_VND:
+            return 0, 'Số tiền COD vượt quá giới hạn cho phép (tối đa 1.000.000.000 VND).'
+        return val, None
+
+    text = str(raw).strip()
+    if not text:
+        return 0, None
+    # Strip currency symbols and thousand separators (".", ",", spaces)
+    cleaned = re.sub(r'(?i)(vnd|vnđ|đ|\s|\.|,|_)', '', text)
+    if cleaned.startswith('-'):
+        return 0, 'Số tiền COD không được âm.'
+    if not cleaned.isdigit():
+        return 0, 'Vui lòng nhập số tiền COD hợp lệ (ví dụ: 250000 hoặc 250.000).'
+    val = int(cleaned)
+    if val > MAX_COD_VND:
+        return 0, 'Số tiền COD vượt quá giới hạn cho phép (tối đa 1.000.000.000 VND).'
+    return val, None
+
+
+def sanitize_alias_and_note(alias, note) -> tuple[str | None, str | None]:
+    clean_alias = _ZERO_WIDTH_RE.sub('', (alias or '')).strip()[:80] or None
+    clean_note = _ZERO_WIDTH_RE.sub('', (note or '')).strip()[:240] or None
+    return clean_alias, clean_note
+
+
 class TrackingService:
     @staticmethod
-    def create_tracking_for_user(user, tracking_number, alias=None, carrier_id='auto', send_notification=True):
+    def create_tracking_for_user(
+        user,
+        tracking_number,
+        alias=None,
+        carrier_id='auto',
+        send_notification=True,
+        cod_amount=0,
+        note=None,
+    ):
         if not current_app.config.get('TRACKING_ENABLED', True):
             return {'success': False, 'error': 'Theo dõi đơn hàng đang tạm dừng.'}
+
+        tracking_number = normalize_tracking_number(tracking_number)
+        if not tracking_number:
+            return {'success': False, 'error': 'Vui lòng nhập mã vận đơn.'}
+
+        cod_val, cod_err = parse_cod_amount(cod_amount)
+        if cod_err:
+            return {'success': False, 'error': cod_err}
+
+        clean_alias, clean_note = sanitize_alias_and_note(alias, note)
+
+        # Prevent duplicate tracking for the same user before hitting external carrier APIs
+        existing = TrackingsRepo.find_by_user_and_number(user.id, tracking_number)
+        if existing:
+            return {
+                'success': False,
+                'duplicate': True,
+                'tracking_id': existing['id'],
+                'carrier_id': existing.get('carrierId'),
+                'error': 'Mã vận đơn này đã có trong danh sách theo dõi của bạn.',
+            }
+
         selected_carrier_id = carrier_id
 
         if selected_carrier_id == 'auto':
@@ -40,7 +116,9 @@ class TrackingService:
             'userId': user.id,
             'trackingNumber': tracking_number,
             'carrierId': selected_carrier_id,
-            'alias': alias,
+            'alias': clean_alias,
+            'codAmount': cod_val,
+            'note': clean_note,
             'isActive': True,
             'events': [],
             'lastEventHash': None,
@@ -52,9 +130,11 @@ class TrackingService:
         tracking_id = TrackingsRepo.create(tracking_data)
 
         if send_notification and user.settings.get('notifyEnabled'):
+            cod_line = f"COD: {cod_val:,} ₫\n".replace(',', '.') if cod_val > 0 else ""
             msg = f"➕ *Đã thêm vận đơn mới thành công!*\n" \
                   f"Mã: `{tracking_number}`\n" \
-                  f"Tên: {alias or 'Không có'}\n" \
+                  f"Tên: {clean_alias or 'Không có'}\n" \
+                  f"{cod_line}" \
                   f"Hãng: {selected_carrier_id.upper()}\n\n" \
                   f"Hệ thống sẽ bắt đầu đồng bộ dữ liệu ngay bây giờ."
             NotificationService.send_to_user(user, msg)

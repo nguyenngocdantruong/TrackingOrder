@@ -93,6 +93,8 @@ def serialize_tracking(tracking_id: str, tracking: dict) -> dict:
         'carrierId': cid,
         'carrierName': carrier_name,
         'alias': tracking.get('alias'),
+        'codAmount': int(tracking.get('codAmount') or 0),
+        'note': tracking.get('note'),
         'externalRef': tracking.get('externalRef'),
         'isActive': bool(tracking.get('isActive', True)),
         'currentStatus': tracking.get('currentStatus') or 'Pending',

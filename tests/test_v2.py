@@ -148,6 +148,46 @@ class PrimaryUIAndPartnerAPITests(unittest.TestCase):
             self.assertIn('/auth/login', res.headers['Location'])
             self.assertNotIn('/v1/', res.headers['Location'])
 
+    def test_theme_toggle_present_and_legacy_footer_link_removed(self):
+        guest_html = self.client.get('/').get_data(as_text=True)
+        self.assertIn('id="v2-theme-toggle"', guest_html)
+        self.assertIn("localStorage.getItem('v2_theme')", guest_html)
+        self.assertNotIn('data-v2-i18n="footer.classic"', guest_html)
+        self.assertNotIn('Giao diện cũ (v1)', guest_html)
+
+        self.login_session()
+        with patch('app.v2.routes.TrackingsRepo.get_user_trackings', return_value=[self.sample_tracking]):
+            dash_html = self.client.get('/dashboard').get_data(as_text=True)
+        self.assertIn('id="v2-theme-toggle"', dash_html)
+        self.assertNotIn('data-v2-i18n="footer.classic"', dash_html)
+        self.assertNotIn('Giao diện cũ (v1)', dash_html)
+        self.assertNotIn('href="/v1/dashboard"', dash_html)
+
+    def test_favicon_config_dropdown_order_and_landing_sections(self):
+        fav = self.client.get('/favicon.ico')
+        self.assertEqual(fav.status_code, 200)
+        fav.close()
+
+        home_html = self.client.get('/').get_data(as_text=True)
+        self.assertIn('favicon.svg', home_html)
+        self.assertIn('v2-ledger-section', home_html)
+        self.assertIn('v2-omni-stage', home_html)
+        self.assertIn('v2-partner-stage', home_html)
+        self.assertIn('v2-closing-bar', home_html)
+
+        self.login_session()
+        with patch('app.v2.routes.TrackingsRepo.get_user_trackings', return_value=[self.sample_tracking]):
+            nav_html = self.client.get('/dashboard').get_data(as_text=True)
+
+        nav_segment = nav_html.split('class="v2-nav-list"', 1)[1].split('</nav>', 1)[0]
+        pos_add = nav_segment.index('data-v2-i18n="nav.add"')
+        pos_cfg = nav_segment.index('id="v2-config-toggle"')
+        pos_notify = nav_segment.index('data-v2-i18n="nav.notifications"')
+        pos_dev = nav_segment.index('data-v2-i18n="nav.developers"')
+        pos_admin = nav_segment.index('data-v2-i18n="nav.admin"')
+        pos_docs = nav_segment.index('data-v2-i18n="nav.docs"')
+        self.assertTrue(pos_add < pos_cfg < pos_notify < pos_dev < pos_admin < pos_docs)
+
     def test_register_renders_validation_errors(self):
         with patch('app.auth.forms.UsersRepo.get_by_username', return_value=self.user):
             res = self.client.post(
@@ -315,6 +355,207 @@ class PrimaryUIAndPartnerAPITests(unittest.TestCase):
             self.assertTrue(ok)
             mock_wh.assert_called_once()
             self.assertTrue(mock_wh.call_args.kwargs['is_final'])
+
+    def test_duplicate_tracking_prevention_and_normalization(self):
+        from app.tracking.services import TrackingService
+
+        with self.app.app_context(), patch(
+            'app.repos.trackings_repo.TrackingsRepo.get_user_trackings',
+            return_value=[self.sample_tracking],
+        ), patch('app.repos.trackings_repo.TrackingsRepo.create') as mock_create:
+            # Lowercase + zero-width space + whitespace still detected as duplicate!
+            dup_res = TrackingService.create_tracking_for_user(
+                user=self.user,
+                tracking_number='  \u200bspxvn0123456789  ',
+                alias='Trùng lặp',
+            )
+            self.assertFalse(dup_res['success'])
+            self.assertTrue(dup_res['duplicate'])
+            self.assertEqual(dup_res['tracking_id'], 'trk-100')
+            mock_create.assert_not_called()
+
+        # Web POST /tracking/add redirects directly to existing detail page on duplicate
+        self.login_session()
+        with patch('app.repos.trackings_repo.TrackingsRepo.get_user_trackings', return_value=[self.sample_tracking]):
+            web_dup = self.client.post(
+                '/tracking/add',
+                data={'tracking_number': 'spxvn0123456789', 'carrier_id': 'auto', 'alias': 'Test'},
+            )
+            self.assertEqual(web_dup.status_code, 302)
+            self.assertTrue(web_dup.headers['Location'].endswith('/tracking/trk-100'))
+
+        # Partner API returns 409 Conflict with duplicate_tracking code
+        headers = {'Authorization': f'Bearer {self.raw_api_key}'}
+        with patch('app.repos.trackings_repo.TrackingsRepo.get_user_trackings', return_value=[self.sample_tracking]), \
+             patch('app.api.routes.TrackingsRepo.get_by_id', return_value=self.sample_tracking):
+            api_dup = self.client.post(
+                '/api/v1/trackings',
+                headers=headers,
+                json={'tracking_number': 'spxvn0123456789'},
+            )
+            self.assertEqual(api_dup.status_code, 409)
+            self.assertEqual(api_dup.get_json()['error']['code'], 'duplicate_tracking')
+
+    def test_edit_alias_cod_note_and_active_cod_summary_edge_cases(self):
+        self.login_session()
+
+        # Invalid COD amount on /tracking/add rejected cleanly
+        bad_cod = self.client.post(
+            '/tracking/add',
+            data={'tracking_number': 'SPXVN888888', 'carrier_id': 'auto', 'cod_amount': '-5000'},
+        )
+        self.assertEqual(bad_cod.status_code, 200)
+        self.assertIn('không được âm', bad_cod.get_data(as_text=True))
+
+        # Dashboard sums ONLY active non-cancelled COD
+        items = [
+            {**self.sample_tracking, 'id': 't1', 'isActive': True, 'codAmount': 150000, 'currentStatus': 'Đang giao hàng'},
+            {**self.sample_tracking, 'id': 't2', 'isActive': False, 'codAmount': 500000, 'currentStatus': 'Giao thành công'},
+            {**self.sample_tracking, 'id': 't3', 'isActive': True, 'codAmount': 900000, 'currentStatus': 'Đơn hàng đã hủy'},
+        ]
+        with patch('app.v2.routes.TrackingsRepo.get_user_trackings', return_value=items):
+            dash = self.client.get('/dashboard')
+            html = dash.get_data(as_text=True)
+            self.assertIn('150.000 ₫', html)
+            self.assertNotIn('1.550.000 ₫', html)
+
+        # POST /tracking/<id>/edit updates alias, formatted COD ("250.000"), and note
+        with patch('app.v2.routes.TrackingsRepo.get_by_id', return_value=self.sample_tracking), \
+             patch('app.v2.routes.TrackingsRepo.update') as mock_upd:
+            ed = self.client.post(
+                '/tracking/trk-100/edit',
+                data={'alias': 'Bàn phím mới', 'cod_amount': '250.000', 'note': 'Giao giờ hành chính'},
+            )
+            self.assertEqual(ed.status_code, 302)
+            mock_upd.assert_called_once_with('trk-100', {
+                'alias': 'Bàn phím mới',
+                'codAmount': 250000,
+                'note': 'Giao giờ hành chính',
+            })
+
+        # Non-owner edit attempt -> 403
+        other_trk = {**self.sample_tracking, 'userId': 'u-other'}
+        with patch('app.v2.routes.TrackingsRepo.get_by_id', return_value=other_trk):
+            self.assertEqual(self.client.post('/tracking/trk-100/edit', data={'alias': 'Hack'}).status_code, 403)
+
+        # Partner API PATCH /api/v1/trackings/<id>
+        headers = {'Authorization': f'Bearer {self.raw_api_key}'}
+        with patch('app.api.routes.TrackingsRepo.get_by_id', return_value=self.sample_tracking), \
+             patch('app.api.routes.TrackingsRepo.update') as mock_api_upd:
+            patch_res = self.client.patch(
+                '/api/v1/trackings/trk-100',
+                headers=headers,
+                json={'alias': 'API Alias', 'cod_amount': 320000, 'note': 'Fragile'},
+            )
+            self.assertEqual(patch_res.status_code, 200)
+            mock_api_upd.assert_called_once_with('trk-100', {
+                'alias': 'API Alias',
+                'codAmount': 320000,
+                'note': 'Fragile',
+            })
+
+    def test_public_share_link_privacy_masking_and_revocation(self):
+        self.login_session()
+        jnt_trk = {
+            **self.sample_tracking,
+            'id': 'trk-jnt-share',
+            'trackingNumber': '841092837465-4829',
+            'carrierId': 'jt_express',
+            'codAmount': 185000,
+            'note': 'Mật khẩu cổng nhà riêng 1234',
+            'externalRef': 'SECRET-ERP-99',
+        }
+
+        captured_token = {}
+        def save_share(tid, data):
+            captured_token.update(data)
+
+        with patch('app.v2.routes.TrackingsRepo.get_by_id', return_value=jnt_trk), \
+             patch('app.v2.routes.TrackingsRepo.update', side_effect=save_share):
+            sh = self.client.post('/tracking/trk-jnt-share/share')
+            self.assertEqual(sh.status_code, 302)
+            self.assertTrue(len(captured_token.get('shareToken', '')) >= 16)
+
+        token = captured_token['shareToken']
+        shared_doc = {**jnt_trk, 'shareToken': token}
+
+        # Logout and view as anonymous visitor
+        self.client.get('/auth/logout')
+        with patch('app.v2.routes.TrackingsRepo.get_by_share_token', return_value=shared_doc):
+            pub = self.client.get(f'/s/{token}')
+            self.assertEqual(pub.status_code, 200)
+            self.assertEqual(pub.headers.get('X-Robots-Tag'), 'noindex, nofollow')
+            pub_html = pub.get_data(as_text=True)
+            # Masks phone suffix, shows COD, hides private note & externalRef & userId!
+            self.assertIn('841092837465-**29', pub_html)
+            self.assertNotIn('841092837465-4829', pub_html)
+            self.assertIn('185.000 ₫', pub_html)
+            self.assertNotIn('Mật khẩu cổng nhà riêng 1234', pub_html)
+            self.assertNotIn('SECRET-ERP-99', pub_html)
+            self.assertNotIn('u-v2', pub_html)
+
+        # Invalid or revoked share link -> clean 404
+        with patch('app.v2.routes.TrackingsRepo.get_by_share_token', return_value=None):
+            revoked = self.client.get('/s/invalid_or_revoked_token_12345')
+            self.assertEqual(revoked.status_code, 404)
+
+    def test_telegram_mini_app_hmac_auth_and_pwa_assets(self):
+        import time as _time
+        from urllib.parse import urlencode
+
+        # PWA endpoints
+        mf = self.client.get('/manifest.webmanifest')
+        self.assertEqual(mf.status_code, 200)
+        self.assertEqual(mf.get_json()['display'], 'standalone')
+        mf.close()
+
+        sw = self.client.get('/sw.js')
+        self.assertEqual(sw.status_code, 200)
+        self.assertEqual(sw.headers.get('Service-Worker-Allowed'), '/')
+        sw.close()
+
+        self.assertEqual(self.client.get('/offline').status_code, 200)
+        self.assertEqual(self.client.get('/webapp').status_code, 200)
+
+        # Telegram Mini App HMAC-SHA256 verification
+        bot_tok = '999888:MINI_APP_SECRET_TOKEN'
+        self.app.config['TELEGRAM_BOT_TOKEN'] = bot_tok
+
+        def make_init_data(user_dict, auth_date, start_param='', tamper=False):
+            fields = {
+                'auth_date': str(auth_date),
+                'query_id': 'AAHdF6IQAAAAAN0XohDhrOrc',
+                'user': json.dumps(user_dict, separators=(',', ':')),
+            }
+            if start_param:
+                fields['start_param'] = start_param
+            dcs = '\n'.join(f'{k}={fields[k]}' for k in sorted(fields))
+            skey = hmac.new(b'WebAppData', bot_tok.encode('utf-8'), hashlib.sha256).digest()
+            sig = hmac.new(skey, dcs.encode('utf-8'), hashlib.sha256).hexdigest()
+            if tamper:
+                sig = ('0' if sig[0] != '0' else '1') + sig[1:]
+            fields['hash'] = sig
+            return urlencode(fields)
+
+        now_ts = int(_time.time())
+        valid_init = make_init_data({'id': 777888, 'first_name': 'Alice'}, now_ts, start_param='add')
+
+        with patch('app.v2.routes.UsersRepo.get_or_create_temp_by_telegram_chat_id', return_value=self.user):
+            ok_res = self.client.post('/auth/telegram-webapp', json={'initData': valid_init})
+            self.assertEqual(ok_res.status_code, 200)
+            self.assertEqual(ok_res.get_json()['redirect'], '/tracking/add')
+
+        # Tampered hash -> 401
+        bad_sig = make_init_data({'id': 777888, 'first_name': 'Alice'}, now_ts, tamper=True)
+        self.assertEqual(self.client.post('/auth/telegram-webapp', json={'initData': bad_sig}).status_code, 401)
+
+        # Expired auth_date (> 24h old) -> 401
+        expired = make_init_data({'id': 777888, 'first_name': 'Alice'}, now_ts - 90000)
+        self.assertEqual(self.client.post('/auth/telegram-webapp', json={'initData': expired}).status_code, 401)
+
+        # Bot account -> 401
+        bot_init = make_init_data({'id': 777888, 'first_name': 'Bot', 'is_bot': True}, now_ts)
+        self.assertEqual(self.client.post('/auth/telegram-webapp', json={'initData': bot_init}).status_code, 401)
 
 
 if __name__ == '__main__':

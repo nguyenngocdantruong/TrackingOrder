@@ -2,7 +2,7 @@ import logging
 import os
 from logging.handlers import RotatingFileHandler
 
-from flask import Flask, redirect, request, url_for
+from flask import Flask, redirect, request, send_from_directory, url_for
 from werkzeug.exceptions import HTTPException
 from flask_login import LoginManager
 from app.config import Config
@@ -73,6 +73,29 @@ def create_app(config_class=Config):
             for provider_id, display_name in registry.list_providers()
         ]
         return render_template('landing.html', providers=providers_for_landing)
+
+    @app.route('/favicon.ico')
+    def favicon():
+        return send_from_directory(app.static_folder, 'favicon.svg', mimetype='image/svg+xml')
+
+    @app.route('/manifest.webmanifest')
+    def pwa_manifest():
+        return send_from_directory(
+            app.static_folder,
+            'manifest.webmanifest',
+            mimetype='application/manifest+json',
+        )
+
+    @app.route('/sw.js')
+    def service_worker():
+        resp = send_from_directory(
+            app.static_folder,
+            'sw.js',
+            mimetype='application/javascript',
+        )
+        resp.headers['Service-Worker-Allowed'] = '/'
+        resp.headers['Cache-Control'] = 'no-cache'
+        return resp
 
     @app.route('/v2')
     @app.route('/v2/')

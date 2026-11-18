@@ -1,0 +1,156 @@
+{% extends "v2/layout.html" %}
+{% block head_extra %}
+<meta name="robots" content="noindex, nofollow">
+{% endblock %}
+
+{% block content %}
+{% if not tracking %}
+<div class="v2-narrow-shell">
+    <div class="v2-surface v2-auth-card">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+            <svg class="v2-icon v2-icon-lg" style="color:var(--v2-muted);" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                <line x1="2" y1="2" x2="22" y2="22"/>
+            </svg>
+            <h1 class="v2-section-title" data-v2-i18n="share.invalid.title">Liên kết theo dõi không khả dụng hoặc đã thu hồi</h1>
+        </div>
+        <p class="v2-subtitle" style="margin-bottom:24px;" data-v2-i18n="share.invalid.desc">Người gửi có thể đã tắt chia sẻ công khai hoặc xóa vận đơn này khỏi hệ thống. Hãy yêu cầu liên kết mới nếu bạn vẫn đang chờ nhận hàng.</p>
+        <a href="{{ url_for('v2.index') }}" class="v2-btn v2-btn-primary v2-btn-lg" data-v2-i18n="share.invalid.cta">Về trang chủ Order Tracker</a>
+    </div>
+</div>
+{% else %}
+<div class="v2-callout v2-callout-info" style="margin-bottom:24px;align-items:center;justify-content:space-between;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:10px;">
+        <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true" style="color:var(--v2-primary-active);">
+            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+        </svg>
+        <span data-v2-i18n="share.public_banner">Trang theo dõi hành trình công khai (chế độ chỉ đọc — thông tin cá nhân đã được ẩn).</span>
+    </div>
+    <a href="{{ url_for('v2.index') }}" class="v2-btn v2-btn-tinted" data-v2-i18n="share.track_yours">Tự theo dõi đơn của bạn</a>
+</div>
+
+<div class="v2-page-head">
+    <div>
+        <h1 class="v2-page-title">{{ tracking.alias or tracking.maskedNumber }}</h1>
+        <div class="v2-code-row" style="margin-top:6px;">
+            <span class="v2-code">{{ tracking.maskedNumber }}</span>
+            <span class="v2-badge v2-badge-carrier">{{ carrier_name }}</span>
+        </div>
+    </div>
+</div>
+
+{% if state_meta.is_cancelled %}
+<div class="v2-callout v2-callout-danger" style="margin-bottom:24px;">
+    <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m15 9-6 6M9 9l6 6"/></svg>
+    <div><strong data-v2-i18n="detail.cancelled_prefix">Đơn hàng đã hủy hoặc hoàn trả:</strong> {{ tracking.currentStatus }}</div>
+</div>
+{% else %}
+{% set stage = state_meta.stage %}
+<section class="v2-surface v2-stepper" aria-label="Delivery progress">
+    {% for idx, key, label in [
+        (1, 'detail.step1', 'Đã lấy hàng'),
+        (2, 'detail.step2', 'Đang trung chuyển'),
+        (3, 'detail.step3', 'Đang giao hàng'),
+        (4, 'detail.step4', 'Giao thành công')
+    ] %}
+    {% set step_state = 'delivered' if stage == 4 else ('done' if idx < stage else ('current' if idx == stage else 'upcoming')) %}
+    <div class="v2-step" data-state="{{ step_state }}">
+        <span class="v2-step-index" aria-hidden="true">
+            {% if step_state in ('done', 'delivered') %}
+                <svg class="v2-icon" style="width:15px;height:15px;" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+            {% else %}
+                {{ idx }}
+            {% endif %}
+        </span>
+        <span class="v2-step-label" data-v2-i18n="{{ key }}">{{ label }}</span>
+    </div>
+    {% endfor %}
+</section>
+{% endif %}
+
+<div class="v2-detail-grid">
+    <section class="v2-surface" aria-labelledby="v2-shared-summary">
+        <div class="v2-panel-head">
+            <h2 id="v2-shared-summary" class="v2-section-title" data-v2-i18n="detail.info">Thông tin kiện hàng</h2>
+            {% if tracking.isActive %}
+                <span class="v2-badge v2-badge-primary"><span class="v2-status-dot" aria-hidden="true"></span><span data-v2-i18n="status.active">Đang theo dõi</span></span>
+            {% else %}
+                <span class="v2-badge v2-badge-success"><span class="v2-status-dot" aria-hidden="true"></span><span data-v2-i18n="status.completed">Đã hoàn tất</span></span>
+            {% endif %}
+        </div>
+        <div class="v2-panel-body">
+            <dl class="v2-meta-list">
+                <div class="v2-meta-item">
+                    <dt data-v2-i18n="detail.dt.status">Trạng thái hiện tại</dt>
+                    <dd style="color:{{ 'var(--v2-success-ink)' if state_meta.tone == 'success' else ('var(--v2-danger-ink)' if state_meta.tone == 'danger' else 'var(--v2-primary-active)') }};">
+                        {{ tracking.currentStatus }}
+                    </dd>
+                </div>
+                <div class="v2-meta-item">
+                    <dt data-v2-i18n="detail.dt.carrier">Đơn vị vận chuyển</dt>
+                    <dd><span class="v2-badge v2-badge-carrier">{{ carrier_name }}</span></dd>
+                </div>
+                <div class="v2-meta-item">
+                    <dt data-v2-i18n="detail.dt.code">Mã vận đơn</dt>
+                    <dd class="v2-code">{{ tracking.maskedNumber }}</dd>
+                </div>
+                {% if tracking.codAmount and tracking.codAmount > 0 %}
+                <div class="v2-meta-item">
+                    <dt data-v2-i18n="detail.dt.cod">Tiền thu hộ (COD)</dt>
+                    <dd class="v2-tabular" style="color:var(--v2-warn-ink);">{{ tracking.codAmount | format_vnd }}</dd>
+                </div>
+                {% endif %}
+                <div class="v2-meta-item">
+                    <dt data-v2-i18n="detail.dt.checked">Kiểm tra gần nhất</dt>
+                    <dd class="v2-tabular" style="font-size:14px;font-weight:500;">
+                        {% if tracking.lastCheckedAt %}
+                            {{ tracking.lastCheckedAt | format_provider_time(tracking.carrierId) }}
+                        {% else %}
+                            <span data-v2-i18n="common.unsynced">Chưa đồng bộ</span>
+                        {% endif %}
+                    </dd>
+                </div>
+            </dl>
+        </div>
+    </section>
+
+    <section class="v2-surface" aria-labelledby="v2-shared-history">
+        <div class="v2-panel-head">
+            <h2 id="v2-shared-history" class="v2-section-title" data-v2-i18n="detail.history">Lịch sử hành trình</h2>
+        </div>
+        <div class="v2-panel-body">
+            {% if tracking.events %}
+            <ol class="v2-timeline">
+                {% for event in tracking.events %}
+                <li class="v2-timeline-item">
+                    <span class="v2-timeline-marker" aria-hidden="true"></span>
+                    <div class="v2-timeline-head">
+                        <h3 class="v2-timeline-title">{{ event.name }}</h3>
+                        <time class="v2-timeline-time">{{ event.actualTime | format_provider_time(tracking.carrierId) }}</time>
+                    </div>
+                    {% if event.descBuyer %}
+                    <p class="v2-timeline-desc">{{ event.descBuyer }}</p>
+                    {% endif %}
+                    {% if event.currentLocation and event.currentLocation.address %}
+                    <div class="v2-timeline-loc">
+                        <svg class="v2-icon" style="width:14px;height:14px;color:var(--v2-link);" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
+                        </svg>
+                        <span>{{ event.currentLocation.address }}</span>
+                    </div>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ol>
+            {% else %}
+            <div style="padding:36px 16px;text-align:center;">
+                <p style="color:var(--v2-muted);font-size:15px;" data-v2-i18n="detail.no_history">Chưa ghi nhận mốc sự kiện nào từ nhà vận chuyển.</p>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+</div>
+{% endif %}
+{% endblock %}

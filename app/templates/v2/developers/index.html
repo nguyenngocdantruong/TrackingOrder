@@ -180,7 +180,9 @@
                         {% if partner.get('lastDeliveryAt') %}
                             <span data-v2-i18n="dev.wh.last_delivery">Lần gửi gần nhất:</span>
                             <strong class="v2-tabular" style="color:var(--v2-ink);">{{ partner.get('lastDeliveryAt') }}</strong>
-                            · <code class="v2-code">{{ partner.get('lastDeliveryEvent') }}</code>
+                            {% if partner.get('lastDeliveryEvent') %}
+                                · <code class="v2-code">{{ partner.get('lastDeliveryEvent') }}</code>
+                            {% endif %}
                             {% if partner.get('lastDeliveryOk') %}
                                 · <span class="v2-badge v2-badge-success">HTTP {{ partner.get('lastDeliveryStatus') }}</span>
                             {% else %}

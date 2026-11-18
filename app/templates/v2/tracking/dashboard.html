@@ -19,6 +19,12 @@
         <p class="v2-subtitle" data-v2-i18n="dash.subtitle">Theo dõi tiến trình vận chuyển thời gian thực từ mọi đơn vị giao nhận.</p>
     </div>
     <div class="v2-page-actions">
+        {% if total_active_cod and total_active_cod > 0 %}
+        <div class="v2-cod-summary v2-tabular">
+            <span data-v2-i18n="dash.cod_due">Tổng COD cần chuẩn bị:</span>
+            <strong>{{ total_active_cod | format_vnd }}</strong>
+        </div>
+        {% endif %}
         <a href="{{ url_for('v2.add_tracking') }}" class="v2-btn v2-btn-primary">
             <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
             <span data-v2-i18n="dash.add">Thêm vận đơn</span>
@@ -83,10 +89,15 @@
         class="v2-parcel-item"
         data-parcel-row
         data-active="{{ 'active' if t.isActive else 'completed' }}"
-        data-search="{{ ((t.alias or '') ~ ' ' ~ t.trackingNumber ~ ' ' ~ t._carrierName ~ ' ' ~ (t.currentStatus or '')) | lower }}"
+        data-search="{{ ((t.alias or '') ~ ' ' ~ t.trackingNumber ~ ' ' ~ t._carrierName ~ ' ' ~ (t.currentStatus or '') ~ ' ' ~ (t.note or '')) | lower }}"
     >
         <div class="v2-parcel-top">
-            <span class="v2-badge v2-badge-carrier">{{ t._carrierName }}</span>
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;">
+                <span class="v2-badge v2-badge-carrier">{{ t._carrierName }}</span>
+                {% if t.codAmount and t.codAmount > 0 %}
+                <span class="v2-badge v2-badge-warning v2-tabular">COD {{ t.codAmount | format_vnd }}</span>
+                {% endif %}
+            </div>
             {% if t._tone == 'success' %}
                 <span class="v2-badge v2-badge-success"><span class="v2-status-dot" aria-hidden="true"></span><span data-v2-i18n="status.completed">Đã hoàn tất</span></span>
             {% elif t._tone == 'danger' %}
@@ -115,6 +126,9 @@
             <div class="v2-status-well">
                 <span class="v2-status-well-label" data-v2-i18n="dash.status_label">Trạng thái mới nhất</span>
                 <div class="v2-status-well-value">{{ t.currentStatus or 'Pending' }}</div>
+                {% if t.note %}
+                <p class="v2-parcel-note">{{ t.note }}</p>
+                {% endif %}
             </div>
         </div>
 
@@ -166,11 +180,11 @@
             <tr
                 data-parcel-table-row
                 data-active="{{ 'active' if t.isActive else 'completed' }}"
-                data-search="{{ ((t.alias or '') ~ ' ' ~ t.trackingNumber ~ ' ' ~ t._carrierName ~ ' ' ~ (t.currentStatus or '')) | lower }}"
+                data-search="{{ ((t.alias or '') ~ ' ' ~ t.trackingNumber ~ ' ' ~ t._carrierName ~ ' ' ~ (t.currentStatus or '') ~ ' ' ~ (t.note or '')) | lower }}"
             >
                 <td>
                     <a href="{{ url_for('v2.detail', tracking_id=t.id) }}" style="font-weight:700;color:var(--v2-ink);text-decoration:none;display:inline-flex;align-items:center;min-height:44px;margin-block:-8px;">{{ t.alias or t.trackingNumber }}</a>
-                    <div class="v2-code" style="font-size:12px;color:var(--v2-muted);">{{ t.trackingNumber }}</div>
+                    <div class="v2-code" style="font-size:12px;color:var(--v2-muted);">{{ t.trackingNumber }}{% if t.codAmount and t.codAmount > 0 %} · <span style="color:var(--v2-warn-ink);font-weight:600;">COD {{ t.codAmount | format_vnd }}</span>{% endif %}</div>
                 </td>
                 <td><span class="v2-badge v2-badge-carrier">{{ t._carrierName }}</span></td>
                 <td>

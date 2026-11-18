@@ -1,0 +1,21 @@
+{% extends "v2/layout.html" %}
+{% block content %}
+<div class="v2-narrow-shell">
+    <div class="v2-surface v2-auth-card">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+            <svg class="v2-icon v2-icon-lg" style="color:var(--v2-muted);" viewBox="0 0 24 24" aria-hidden="true">
+                <line x1="2" y1="2" x2="22" y2="22"/>
+                <path d="M8.5 16.5a5 5 0 0 1 7 0"/>
+                <path d="M2 8.82a15 15 0 0 1 4.17-2.65"/>
+                <path d="M10.66 5c4.01-.36 8.14.9 11.34 3.76"/>
+                <path d="M16.85 11.25a10 10 0 0 1 2.22 1.68"/>
+                <path d="M5 13a10 10 0 0 1 5.24-2.76"/>
+                <line x1="12" y1="20" x2="12.01" y2="20"/>
+            </svg>
+            <h1 class="v2-section-title" data-v2-i18n="offline.title">Thiết bị đang mất kết nối mạng</h1>
+        </div>
+        <p class="v2-subtitle" style="margin-bottom:24px;" data-v2-i18n="offline.desc">Không thể tải dữ liệu vận đơn mới nhất lúc này. Hãy kiểm tra kết nối Wi-Fi hoặc dữ liệu di động rồi bấm thử lại.</p>
+        <button type="button" class="v2-btn v2-btn-primary v2-btn-lg" onclick="window.location.reload()" data-v2-i18n="offline.retry">Thử kết nối lại</button>
+    </div>
+</div>
+{% endblock %}

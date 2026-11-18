@@ -1,0 +1,103 @@
+{% extends "v2/layout.html" %}
+{% block head_extra %}
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="v2-narrow-shell">
+    <div id="v2-webapp-fallback" hidden>
+        <div class="v2-callout v2-callout-warn" style="margin-bottom:16px;" role="alert">
+            <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9.5 16.5H2.5L12 3Z"/><path d="M12 9v4M12 17h.01"/></svg>
+            <span id="v2-webapp-err" data-v2-i18n="webapp.outside_tg">Trang này dành cho Telegram Mini App. Nếu bạn đang mở bằng trình duyệt thường, hãy đăng nhập trực tiếp bên dưới.</span>
+        </div>
+    </div>
+
+    <div class="v2-surface v2-auth-card">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+            <svg class="v2-icon v2-icon-lg" style="color:var(--v2-link);" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                <line x1="12" y1="18" x2="12.01" y2="18"/>
+            </svg>
+            <h1 id="v2-webapp-title" class="v2-section-title" data-v2-i18n="webapp.connecting.title">Đang kết nối Telegram Mini App…</h1>
+        </div>
+        <p id="v2-webapp-desc" class="v2-subtitle" style="margin-bottom:24px;" data-v2-i18n="webapp.connecting.desc">Đang xác thực chữ ký phiên Telegram của bạn để đồng bộ danh sách vận đơn.</p>
+
+        <div id="v2-webapp-actions" hidden style="display:flex;flex-wrap:wrap;gap:10px;">
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('v2.dashboard') }}" class="v2-btn v2-btn-primary v2-btn-lg" data-v2-i18n="landing.cta.dashboard">Mở bảng điều khiển</a>
+            {% else %}
+                <a href="{{ url_for('v2.login') }}" class="v2-btn v2-btn-primary v2-btn-lg" data-v2-i18n="nav.login">Đăng nhập</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    const fallbackEl = document.getElementById('v2-webapp-fallback');
+    const actionsEl = document.getElementById('v2-webapp-actions');
+    const errEl = document.getElementById('v2-webapp-err');
+    const titleEl = document.getElementById('v2-webapp-title');
+    const showFallback = () => {
+        if (fallbackEl) fallbackEl.hidden = false;
+        if (actionsEl) actionsEl.hidden = false;
+    };
+
+    const tg = window.Telegram && window.Telegram.WebApp;
+    if (tg) {
+        try {
+            tg.ready();
+            tg.expand();
+            if (!localStorage.getItem('v2_theme') && (tg.colorScheme === 'dark' || tg.colorScheme === 'light')) {
+                document.documentElement.setAttribute('data-theme', tg.colorScheme);
+            }
+        } catch (_) {}
+    }
+
+    const initData = tg && tg.initData ? tg.initData : '';
+    if (!initData) {
+        {% if current_user.is_authenticated %}
+        window.location.replace({{ url_for('v2.dashboard') | tojson }});
+        return;
+        {% else %}
+        if (titleEl) {
+            titleEl.textContent = document.documentElement.lang === 'en' ? 'Open inside Telegram' : 'Mở từ bên trong Telegram';
+        }
+        showFallback();
+        return;
+        {% endif %}
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const nextUrl = params.get('next') || '';
+
+    try {
+        const resp = await fetch({{ url_for('v2.telegram_webapp_auth') | tojson }}, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ initData, next: nextUrl })
+        });
+        const data = await resp.json();
+        if (resp.ok && data && data.success && data.redirect) {
+            sessionStorage.setItem('v2_in_tma', '1');
+            window.location.replace(data.redirect);
+            return;
+        }
+        if (errEl && data && data.error) {
+            errEl.textContent = data.error;
+        }
+    } catch (_) {
+        if (errEl) {
+            errEl.textContent = document.documentElement.lang === 'en'
+                ? 'Network error while verifying Telegram Mini App session.'
+                : 'Lỗi kết nối mạng khi xác thực phiên Telegram Mini App.';
+        }
+    }
+
+    showFallback();
+});
+</script>
+{% endblock %}

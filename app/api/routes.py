@@ -13,7 +13,7 @@ from app.api.webhooks import (
 from app.providers.registry import registry as provider_registry
 from app.repos.trackings_repo import TrackingsRepo
 from app.repos.users_repo import UsersRepo
-from app.tracking.services import TrackingService
+from app.tracking.services import TrackingService, parse_cod_amount, sanitize_alias_and_note
 
 api_bp = Blueprint('api_v1', __name__)
 
@@ -132,6 +132,8 @@ def create_tracking():
     carrier_id = (payload.get('carrier_id') or payload.get('carrierId') or 'auto').strip()
     alias = (payload.get('alias') or '').strip() or None
     external_ref = (payload.get('external_ref') or payload.get('externalRef') or '').strip() or None
+    raw_cod = payload.get('cod_amount') if 'cod_amount' in payload else payload.get('codAmount', 0)
+    note = payload.get('note')
 
     if not tracking_number:
         return _api_error('validation_error', 'tracking_number is required.', 422)
@@ -142,8 +144,20 @@ def create_tracking():
         alias=alias,
         carrier_id=carrier_id,
         send_notification=bool(payload.get('notify_channels', False)),
+        cod_amount=raw_cod,
+        note=note,
     )
     if not result.get('success'):
+        if result.get('duplicate') and result.get('tracking_id'):
+            existing = TrackingsRepo.get_by_id(result['tracking_id']) or {}
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'duplicate_tracking',
+                    'message': result.get('error', 'Tracking number already exists.'),
+                },
+                'data': serialize_tracking(result['tracking_id'], existing),
+            }), 409
         return _api_error('tracking_rejected', result.get('error', 'Unable to create tracking.'), 422)
 
     tracking_id = result['tracking_id']
@@ -197,6 +211,47 @@ def refresh_tracking(tracking_id: str):
     return jsonify({
         'success': True,
         'data': serialize_tracking(tracking_id, updated),
+    })
+
+
+@api_bp.route('/trackings/<tracking_id>', methods=['PATCH', 'PUT'])
+@require_partner_api_key
+def update_tracking_meta(tracking_id: str):
+    tracking = TrackingsRepo.get_by_id(tracking_id)
+    if not tracking or tracking.get('userId') != g.api_user.id:
+        return _api_error('not_found', 'Tracking not found.', 404)
+
+    payload = request.get_json(silent=True) or {}
+    updates = {}
+
+    if 'alias' in payload or 'note' in payload:
+        clean_alias, clean_note = sanitize_alias_and_note(
+            payload.get('alias', tracking.get('alias')),
+            payload.get('note', tracking.get('note')),
+        )
+        if 'alias' in payload:
+            updates['alias'] = clean_alias
+        if 'note' in payload:
+            updates['note'] = clean_note
+
+    if 'cod_amount' in payload or 'codAmount' in payload:
+        raw_cod = payload.get('cod_amount') if 'cod_amount' in payload else payload.get('codAmount')
+        cod_val, cod_err = parse_cod_amount(raw_cod)
+        if cod_err:
+            return _api_error('validation_error', cod_err, 422)
+        updates['codAmount'] = cod_val
+
+    if 'external_ref' in payload or 'externalRef' in payload:
+        ext = (payload.get('external_ref') or payload.get('externalRef') or '').strip()
+        updates['externalRef'] = ext[:128] or None
+
+    if updates:
+        TrackingsRepo.update(tracking_id, updates)
+        tracking = TrackingsRepo.get_by_id(tracking_id) or {**tracking, **updates}
+
+    return jsonify({
+        'success': True,
+        'data': serialize_tracking(tracking_id, tracking),
     })
 
 

@@ -1,9 +1,18 @@
+import json
 import threading
 import time
 import requests
 from urllib.parse import urlencode
 
 from app.notifications.telegram import TelegramNotifier
+from app.notifications.telegram_group import (
+    handle_callback_query,
+    handle_group_message,
+    handle_inline_query,
+    register_bot_command_scopes,
+    send_dm_management_menu,
+)
+from app.notifications.telegram_webapp import build_private_webapp_button
 from app.providers.registry import registry
 from app.repos.trackings_repo import TrackingsRepo
 from app.repos.users_repo import UsersRepo
@@ -25,9 +34,11 @@ def _help_text():
         "🤖 Telegram Tracking Bot\n\n"
         "Các lệnh hỗ trợ:\n"
         "/add <mã vận đơn> [tên gợi nhớ] - thêm đơn hàng\n"
+        "/edit <mã vận đơn> <tên mới> - đổi tên gợi nhớ\n"
         "/remove <mã vận đơn> - xóa đơn hàng\n"
         "/providers - hiển thị danh sách đơn vị vận chuyển\n"
         "/list - hiển thị danh sách đơn hàng\n"
+        "/app - mở ứng dụng Mini App trực quan\n"
         "/stats - xem thống kê cá nhân\n"
         "/admin - xác nhận quyền quản trị\n"
         "/help - hướng dẫn sử dụng\n"
@@ -42,18 +53,14 @@ def _build_link_url(app, user, chat_id):
 
 
 def _link_button_markup(app, user, chat_id):
-    if not user.is_temporary:
-        return None
-
-    link_url = _build_link_url(app, user, chat_id)
-    return {
-        'inline_keyboard': [[
-            {
-                'text': '🔗 Liên kết tài khoản',
-                'url': link_url
-            }
-        ]]
-    }
+    rows = []
+    webapp_btn = build_private_webapp_button(app)
+    if webapp_btn:
+        rows.append([webapp_btn])
+    if user.is_temporary:
+        link_url = _build_link_url(app, user, chat_id)
+        rows.append([{'text': '🔗 Liên kết tài khoản', 'url': link_url}])
+    return {'inline_keyboard': rows} if rows else None
 
 
 def _get_chat_user(app, chat_id, remind_link=False):
@@ -108,10 +115,19 @@ def _handle_add_command(app, chat_id, text):
     )
 
     if not result['success']:
+        if result.get('duplicate'):
+            TelegramNotifier.send_message(
+                chat_id,
+                f"ℹ️ {result.get('error', 'Mã vận đơn này đã có trong danh sách theo dõi của bạn.')}",
+                parse_mode=None,
+            )
+            return
         TelegramNotifier.send_message(
             chat_id,
-            "Không thể tự động nhận diện đơn vị vận chuyển cho mã này. "
-            "Vui lòng kiểm tra lại mã vận đơn hoặc dùng /providers để xem danh sách hỗ trợ.",
+            result.get('error') or (
+                "Không thể tự động nhận diện đơn vị vận chuyển cho mã này. "
+                "Vui lòng kiểm tra lại mã vận đơn hoặc dùng /providers để xem danh sách hỗ trợ."
+            ),
             parse_mode=None,
         )
         return
@@ -261,10 +277,15 @@ def _handle_stats_command(app, chat_id):
 
 def _handle_message(app, message):
     chat = message.get('chat') or {}
+    chat_type = chat.get('type')
+    if chat_type in ('group', 'supergroup'):
+        handle_group_message(app, message)
+        return
+
     chat_id = chat.get('id')
     text = (message.get('text') or '').strip()
 
-    if chat.get('type') != 'private' or str((message.get('from') or {}).get('id')) != str(chat_id):
+    if chat_type != 'private' or str((message.get('from') or {}).get('id')) != str(chat_id):
         return
 
     if not chat_id or not text:
@@ -291,7 +312,37 @@ def _handle_message(app, message):
         command = _normalize_command(text)
         user = _get_chat_user(app, chat_id)
 
-        if command in ('/start', '/help'):
+        if command in ('/start', '/help', '/app'):
+            parts = text.split(maxsplit=1)
+            start_arg = parts[1].strip().lower() if (command == '/start' and len(parts) == 2) else ''
+            if command == '/app' or start_arg == 'app':
+                webapp_btn = build_private_webapp_button(app)
+                if webapp_btn:
+                    TelegramNotifier.send_message(
+                        chat_id,
+                        "📱 Nhấn nút bên dưới để mở bảng điều khiển Order Tracker ngay trong Telegram:",
+                        parse_mode=None,
+                        reply_markup={'inline_keyboard': [[webapp_btn]]},
+                    )
+                else:
+                    base_url = (app.config.get('WEBSITE_URL') or '').rstrip('/')
+                    TelegramNotifier.send_message(
+                        chat_id,
+                        f"🌐 Mở bảng điều khiển trên trình duyệt: {base_url}/dashboard",
+                        parse_mode=None,
+                    )
+                return
+            if start_arg == 'list':
+                send_dm_management_menu(app, str(chat_id))
+                _send_link_reminder_if_needed(app, user, chat_id)
+                return
+            if start_arg == 'admin':
+                from app.admin import create_admin_link
+                link = create_admin_link(app, chat_id)
+                if link:
+                    TelegramNotifier.send_message(chat_id, 'Xác nhận quyền quản trị (hết hạn sau 10 phút): ' + link, parse_mode=None)
+                    return
+
             TelegramNotifier.send_message(
                 chat_id,
                 _help_text(),
@@ -322,6 +373,20 @@ def _handle_message(app, message):
             _handle_add_command(app, chat_id, text)
             return
 
+        if command in ('/edit', '/rename'):
+            parts = text.strip().split(maxsplit=2)
+            if len(parts) < 3:
+                TelegramNotifier.send_message(chat_id, "Cú pháp: /edit <mã vận đơn> <tên gợi nhớ mới>", parse_mode=None)
+                return
+            found = TrackingsRepo.find_by_user_and_number(user.id, parts[1].strip())
+            if not found:
+                TelegramNotifier.send_message(chat_id, f"Không tìm thấy đơn hàng với mã: {parts[1].strip()}", parse_mode=None)
+                return
+            new_alias = parts[2].strip()[:80]
+            TrackingsRepo.update(found['id'], {'alias': new_alias})
+            TelegramNotifier.send_message(chat_id, f"✅ Đã đổi tên đơn {found['trackingNumber']} thành: {new_alias}", parse_mode=None)
+            return
+
         if command == '/remove':
             _handle_remove_command(app, chat_id, text)
             return
@@ -342,6 +407,10 @@ def _poll_updates_loop(app):
     offset = 0
 
     app.logger.info("Telegram chat bot polling started")
+    try:
+        register_bot_command_scopes(app)
+    except Exception:
+        pass
 
     while not _stop_event.is_set():
         try:
@@ -350,7 +419,7 @@ def _poll_updates_loop(app):
                 params={
                     'offset': offset,
                     'timeout': 25,
-                    'allowed_updates': ['message']
+                    'allowed_updates': json.dumps(['message', 'callback_query', 'inline_query']),
                 },
                 timeout=30,
             )
@@ -362,9 +431,12 @@ def _poll_updates_loop(app):
             updates = data.get('result', [])
             for update in updates:
                 offset = max(offset, update.get('update_id', 0) + 1)
-                message = update.get('message')
-                if message:
-                    _handle_message(app, message)
+                if update.get('message'):
+                    _handle_message(app, update['message'])
+                elif update.get('callback_query'):
+                    handle_callback_query(app, update['callback_query'])
+                elif update.get('inline_query'):
+                    handle_inline_query(app, update['inline_query'])
         except Exception as exc:
             app.logger.error(f"Telegram polling error: {exc}")
             time.sleep(3)

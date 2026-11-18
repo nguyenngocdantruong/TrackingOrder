@@ -98,27 +98,273 @@
     </aside>
 </section>
 
-<section class="v2-spec-band" aria-labelledby="v2-spec-heading">
+<!-- Act 1: Interactive Carrier Format & Unified Milestone Ledger -->
+<section class="v2-spec-band v2-ledger-section" aria-labelledby="v2-spec-heading">
     <div class="v2-spec-band-head">
-        <h2 id="v2-spec-heading" class="v2-section-title" data-v2-i18n="landing.spec.heading">Thiết kế cho người nhận hàng &amp; đối tác tích hợp</h2>
-        <span class="v2-tabular" style="font-size:13px;color:var(--v2-muted);">
-            <span data-lang-block="vi">Chu kỳ đồng bộ hiện tại: {{ poll_minutes }} phút/lần · {{ providers|length if providers else 3 }} hãng vận chuyển</span>
-            <span data-lang-block="en" hidden>Sync cadence: every {{ poll_minutes }} min · {{ providers|length if providers else 3 }} carriers supported</span>
+        <div>
+            <h2 id="v2-spec-heading" class="v2-page-title" data-v2-i18n="landing.ledger.heading">Nhận diện tự động hãng vận chuyển &amp; chuẩn hóa hành trình</h2>
+            <p class="v2-subtitle" data-v2-i18n="landing.ledger.sub">Dán mã đơn nguyên bản từ sàn thương mại điện tử — hệ thống tự phân tích định dạng, quy chiếu về 4 chặng giao nhận thống nhất và khử trùng lặp sự kiện.</p>
+        </div>
+        <span class="v2-ledger-cadence v2-tabular">
+            <span class="v2-cadence-dot" aria-hidden="true"></span>
+            <span data-lang-block="vi">Chu kỳ đồng bộ: {{ poll_minutes }} phút/lần · {{ providers|length if providers else 3 }} hãng</span>
+            <span data-lang-block="en" hidden>Sync cadence: every {{ poll_minutes }} min · {{ providers|length if providers else 3 }} carriers</span>
         </span>
     </div>
-    <div class="v2-spec-grid">
-        <div class="v2-spec-cell">
-            <h3 data-v2-i18n="landing.spec1.title">Đồng bộ định kỳ tự động</h3>
-            <p data-v2-i18n="landing.spec1.desc">Hệ thống kiểm tra trạng thái mới từ nhà vận chuyển định kỳ và lưu toàn bộ mốc thời gian minh bạch.</p>
+
+    <div class="v2-carrier-rows">
+        <div class="v2-carrier-row">
+            <div class="v2-carrier-identity">
+                <strong class="v2-carrier-name">Shopee Express VN</strong>
+                <span class="v2-carrier-slug v2-code">spx_vn</span>
+            </div>
+            <div class="v2-carrier-format">
+                <code class="v2-format-sample v2-code">SPXVN048291049281</code>
+            </div>
+            <p class="v2-carrier-rule" data-v2-i18n="landing.carrier.spx_rule">Nhận diện tức thì tiền tố SPXVN… và đồng bộ chi tiết trạm trung chuyển, bưu cục phát.</p>
+            <div class="v2-carrier-action">
+                <button type="button" class="v2-ledger-try" data-try-code="SPXVN048291049281">
+                    <span data-v2-i18n="landing.carrier.try">Thử mã mẫu</span>
+                    <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg>
+                </button>
+            </div>
         </div>
-        <div class="v2-spec-cell">
-            <h3 data-v2-i18n="landing.spec2.title">Thông báo đẩy Telegram &amp; Zalo</h3>
-            <p data-v2-i18n="landing.spec2.desc">Nhận tin nhắn qua Telegram và Zalo ngay khi kiện hàng rời kho, đang giao hoặc đã phát thành công.</p>
+
+        <div class="v2-carrier-row">
+            <div class="v2-carrier-identity">
+                <strong class="v2-carrier-name">Lazada Express</strong>
+                <span class="v2-carrier-slug v2-code">lex</span>
+            </div>
+            <div class="v2-carrier-format">
+                <code class="v2-format-sample v2-code">LEXPU0391827364</code>
+            </div>
+            <p class="v2-carrier-rule" data-v2-i18n="landing.carrier.lex_rule">Hỗ trợ chuỗi mã LEX / LEXPU / LEXST và lưu vết đầy đủ lịch sử khai thác kho phân loại.</p>
+            <div class="v2-carrier-action">
+                <button type="button" class="v2-ledger-try" data-try-code="LEXPU0391827364">
+                    <span data-v2-i18n="landing.carrier.try">Thử mã mẫu</span>
+                    <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg>
+                </button>
+            </div>
         </div>
-        <div class="v2-spec-cell">
-            <h3 data-v2-i18n="landing.spec3.title">Partner REST API &amp; Webhook</h3>
-            <p data-v2-i18n="landing.spec3.desc">Cung cấp API chuẩn JSON và đẩy sự kiện Webhook ký số HMAC-SHA256 tức thì cho hệ thống đối tác thứ ba.</p>
+
+        <div class="v2-carrier-row">
+            <div class="v2-carrier-identity">
+                <strong class="v2-carrier-name">J&amp;T Express</strong>
+                <span class="v2-carrier-slug v2-code">jt_express</span>
+            </div>
+            <div class="v2-carrier-format">
+                <code class="v2-format-sample v2-code">841092837465-4829</code>
+            </div>
+            <p class="v2-carrier-rule" data-v2-i18n="landing.carrier.jnt_rule">Kết hợp mã vận đơn cùng 4 chữ số cuối SĐT người nhận để xác thực tra cứu chính xác.</p>
+            <div class="v2-carrier-action">
+                <button type="button" class="v2-ledger-try" data-try-code="841092837465-4829">
+                    <span data-v2-i18n="landing.carrier.try">Thử mã mẫu</span>
+                    <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg>
+                </button>
+            </div>
         </div>
+    </div>
+
+    <div class="v2-ledger-pipeline">
+        <span class="v2-pipeline-caption" data-v2-i18n="landing.pipeline.label">Chuẩn hóa trạng thái thống nhất:</span>
+        <ol class="v2-pipeline-steps">
+            <li><span data-v2-i18n="detail.step1">Đã lấy hàng</span></li>
+            <li aria-hidden="true" class="v2-pipeline-sep">→</li>
+            <li><span data-v2-i18n="detail.step2">Đang trung chuyển</span></li>
+            <li aria-hidden="true" class="v2-pipeline-sep">→</li>
+            <li><span data-v2-i18n="detail.step3">Đang giao hàng</span></li>
+            <li aria-hidden="true" class="v2-pipeline-sep">→</li>
+            <li class="is-final"><span data-v2-i18n="detail.step4">Giao thành công</span></li>
+        </ol>
+    </div>
+</section>
+
+<!-- Act 2: Asymmetric Two-Way Omnichannel Workspace (Web <-> Telegram <-> Zalo) -->
+<section class="v2-omni-stage" aria-labelledby="v2-omni-heading">
+    <div class="v2-omni-copy">
+        <h2 id="v2-omni-heading" class="v2-page-title" data-v2-i18n="landing.omni.heading">Theo dõi trên trình duyệt hoặc nhắn thẳng mã đơn cho Bot</h2>
+        <p class="v2-subtitle" data-v2-i18n="landing.omni.sub">Không cần mở từng ứng dụng mua sắm để làm mới thủ công. Thêm vận đơn từ bất kỳ kênh nào và nhận tin báo tự động ngay khi kiện hàng di chuyển.</p>
+
+        <dl class="v2-omni-list">
+            <div class="v2-omni-item">
+                <dt>
+                    <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>
+                    </svg>
+                    <span data-v2-i18n="landing.omni.f1_title">Gửi mã đơn trực tiếp trong khung chat</span>
+                </dt>
+                <dd data-v2-i18n="landing.omni.f1_desc">Nhắn mã vận đơn kèm tên gợi nhớ cho Telegram hoặc Zalo Bot để đăng ký theo dõi tức thì ngay trên điện thoại.</dd>
+            </div>
+            <div class="v2-omni-item">
+                <dt>
+                    <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M17 2.1l4 4-4 4"/><path d="M3 12.2v-2a4 4 0 0 1 4-4h14"/><path d="M7 21.9l-4-4 4-4"/><path d="M21 11.8v2a4 4 0 0 1-4 4H3"/>
+                    </svg>
+                    <span data-v2-i18n="landing.omni.f2_title">Đồng bộ hai chiều với tài khoản Web</span>
+                </dt>
+                <dd data-v2-i18n="landing.omni.f2_desc">Liên kết một lần để toàn bộ danh sách kiện hàng trên Telegram, Zalo và bảng điều khiển trình duyệt luôn khớp nhau.</dd>
+            </div>
+            <div class="v2-omni-item">
+                <dt>
+                    <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/>
+                    </svg>
+                    <span data-v2-i18n="landing.omni.f3_title">Khử trùng lặp, chỉ báo khi có mốc mới</span>
+                </dt>
+                <dd data-v2-i18n="landing.omni.f3_desc">Đối chiếu mã băm từng sự kiện từ bưu cục, chỉ gửi tin nhắn khi đơn hàng thực sự phát sinh thay đổi trạng thái.</dd>
+            </div>
+        </dl>
+    </div>
+
+    <div class="v2-chat-specimen">
+        <div class="v2-chat-head">
+            <div class="v2-chat-tabs" role="tablist" aria-label="Notification channels">
+                <button type="button" role="tab" class="v2-chat-tab" aria-selected="true" data-chat-tab="telegram">
+                    <img src="{{ url_for('static', filename='telegram.webp') }}" width="18" height="18" alt="" aria-hidden="true">
+                    <span>Telegram Bot</span>
+                </button>
+                <button type="button" role="tab" class="v2-chat-tab" aria-selected="false" data-chat-tab="zalo">
+                    <img src="{{ url_for('static', filename='zalo.webp') }}" width="18" height="18" alt="" aria-hidden="true">
+                    <span>Zalo Bot</span>
+                </button>
+            </div>
+            <span class="v2-chat-live-tag" data-v2-i18n="landing.omni.live_tag">Tự động 24/7</span>
+        </div>
+
+        <div class="v2-chat-body" data-chat-panel="telegram">
+            <div class="v2-chat-msg is-user">
+                <div class="v2-chat-bubble">
+                    <code class="v2-code">SPXVN048291049281</code> <span data-v2-i18n="landing.chat.tg_user_note">Bàn phím cơ</span>
+                </div>
+                <span class="v2-chat-meta v2-tabular" data-v2-i18n="landing.chat.sent_now">Bạn · 08:10</span>
+            </div>
+
+            <div class="v2-chat-msg is-bot">
+                <div class="v2-chat-bubble">
+                    <strong data-v2-i18n="landing.chat.tg_ack_title">Đã thêm vận đơn Shopee Express VN</strong>
+                    <p data-v2-i18n="landing.chat.tg_ack_body">Bàn phím cơ (SPXVN048291049281) đang ở trạng thái Đã đến kho phân loại TP.HCM. Bot sẽ nhắn ngay khi có mốc mới.</p>
+                </div>
+                <span class="v2-chat-meta v2-tabular">Telegram Bot · 08:10</span>
+            </div>
+
+            <div class="v2-chat-msg is-bot is-alert">
+                <div class="v2-chat-bubble">
+                    <strong data-v2-i18n="landing.chat.tg_push_title">Cập nhật mới · Bàn phím cơ</strong>
+                    <p data-v2-i18n="landing.chat.tg_push_body">Tài xế đang giao hàng đến bạn — Bưu tá khu vực Quận 7 đang trên tuyến phát kiện hàng.</p>
+                </div>
+                <span class="v2-chat-meta v2-tabular">Telegram Bot · 08:45</span>
+            </div>
+        </div>
+
+        <div class="v2-chat-body" data-chat-panel="zalo" hidden>
+            <div class="v2-chat-msg is-user">
+                <div class="v2-chat-bubble">
+                    <code class="v2-code">LEXPU0391827364</code> <span data-v2-i18n="landing.chat.zl_user_note">Màn hình 27 inch</span>
+                </div>
+                <span class="v2-chat-meta v2-tabular" data-v2-i18n="landing.chat.zl_sent_time">Bạn · 14:05</span>
+            </div>
+
+            <div class="v2-chat-msg is-bot">
+                <div class="v2-chat-bubble">
+                    <strong data-v2-i18n="landing.chat.zl_ack_title">Đã đồng bộ Lazada Express</strong>
+                    <p data-v2-i18n="landing.chat.zl_ack_body">Đơn Màn hình 27 inch đã gắn vào tài khoản của bạn trên cả Zalo và Web Dashboard.</p>
+                </div>
+                <span class="v2-chat-meta v2-tabular">Zalo Bot · 14:05</span>
+            </div>
+
+            <div class="v2-chat-msg is-bot is-alert">
+                <div class="v2-chat-bubble">
+                    <strong data-v2-i18n="landing.chat.zl_push_title">Giao hàng thành công · Màn hình 27 inch</strong>
+                    <p data-v2-i18n="landing.chat.zl_push_body">Kiện hàng LEXPU0391827364 đã được phát thành công tới người nhận. Tự động khép lại chu kỳ theo dõi.</p>
+                </div>
+                <span class="v2-chat-meta v2-tabular">Zalo Bot · 16:10</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Act 3: Committed Indigo Color-Field — Partner REST API & Signed Webhooks -->
+<section class="v2-partner-stage" aria-labelledby="v2-partner-heading">
+    <div class="v2-partner-copy">
+        <h2 id="v2-partner-heading" class="v2-page-title" data-v2-i18n="landing.api.heading">Tích hợp Partner REST API &amp; Webhook ký số thời gian thực</h2>
+        <p class="v2-partner-lead" data-v2-i18n="landing.api.sub">Kết nối cửa hàng thương mại điện tử, OMS hoặc ERP của bạn qua chuẩn JSON RESTful v1. Tự động nhận bản tin HTTP POST kèm chữ ký bảo mật ngay khi đơn hàng chuyển trạng thái.</p>
+
+        <ul class="v2-partner-points">
+            <li>
+                <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                <span data-v2-i18n="landing.api.p1">Xác thực linh hoạt qua Bearer Token hoặc X-API-Key, gắn mã tham chiếu nội bộ external_ref cho từng đơn.</span>
+            </li>
+            <li>
+                <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                <span data-v2-i18n="landing.api.p2">Đẩy sự kiện tracking.created, tracking.updated và tracking.completed tức thì tới HTTPS endpoint của đối tác.</span>
+            </li>
+            <li>
+                <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                <span data-v2-i18n="landing.api.p3">Chữ ký HMAC-SHA256 trên header X-OrderTracker-Signature chống giả mạo và phát lại bản tin.</span>
+            </li>
+        </ul>
+
+        <div class="v2-partner-actions">
+            <a href="{{ url_for('v2.docs') }}" class="v2-btn v2-btn-primary v2-btn-lg">
+                <span data-v2-i18n="landing.api.cta_docs">Xem tài liệu tích hợp</span>
+                <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+            <a href="{{ url_for('v2.developers') if current_user.is_authenticated else url_for('v2.login', next=url_for('v2.developers')) }}" class="v2-btn v2-partner-ghost-btn v2-btn-lg" data-v2-i18n="landing.api.cta_key">Quản lý API Key</a>
+        </div>
+    </div>
+
+    <div class="v2-partner-code">
+        <div class="v2-code-block" data-code-tabs>
+            <div class="v2-code-head">
+                <div class="v2-code-tabs" role="tablist" aria-label="Partner API examples">
+                    <button type="button" role="tab" class="v2-code-tab" aria-selected="true" data-tab="rest">POST /api/v1/trackings</button>
+                    <button type="button" role="tab" class="v2-code-tab" aria-selected="false" data-tab="webhook">Webhook Payload</button>
+                </div>
+                <button type="button" class="v2-code-copy" data-copy-snippet data-v2-i18n="common.copy">Sao chép</button>
+            </div>
+            <pre class="v2-code-pre" data-panel="rest"><code>curl -X POST "{{ request.url_root.rstrip('/') }}/api/v1/trackings" \
+  -H "Authorization: Bearer oth_live_your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tracking_number": "SPXVN048291049281",
+    "carrier_id": "auto",
+    "alias": "Đơn hàng #INV-2048",
+    "external_ref": "INV-2048"
+  }'</code></pre>
+            <pre class="v2-code-pre" data-panel="webhook" hidden><code>// X-OrderTracker-Event: tracking.updated
+// X-OrderTracker-Signature: sha256=9f86d081884c7d659a2feaa0...
+{
+  "event": "tracking.updated",
+  "data": {
+    "latestCheckpoint": {
+      "name": "Tài xế đang giao hàng",
+      "location": { "address": "Quận 7, TP. Hồ Chí Minh" }
+    },
+    "tracking": {
+      "trackingNumber": "SPXVN048291049281",
+      "externalRef": "INV-2048",
+      "isActive": true
+    }
+  }
+}</code></pre>
+        </div>
+    </div>
+</section>
+
+<!-- Act 4: Closing Conversion Bar -->
+<section class="v2-closing-bar" aria-labelledby="v2-closing-heading">
+    <div>
+        <h2 id="v2-closing-heading" class="v2-section-title" data-v2-i18n="landing.close.heading">Sẵn sàng gom mọi vận đơn về một nơi duy nhất?</h2>
+        <p class="v2-subtitle" data-v2-i18n="landing.close.sub">Tạo tài khoản miễn phí trong vài giây, bật thông báo Telegram hoặc Zalo bất cứ lúc nào.</p>
+    </div>
+    <div class="v2-closing-actions">
+        {% if current_user.is_authenticated %}
+            <a href="{{ url_for('v2.dashboard') }}" class="v2-btn v2-btn-primary v2-btn-lg" data-v2-i18n="landing.cta.dashboard">Mở bảng điều khiển</a>
+            <a href="{{ url_for('v2.add_tracking') }}" class="v2-btn v2-btn-secondary v2-btn-lg" data-v2-i18n="dash.add">Thêm vận đơn</a>
+        {% else %}
+            <a href="{{ url_for('v2.register') }}" class="v2-btn v2-btn-primary v2-btn-lg" data-v2-i18n="landing.cta.register">Tạo tài khoản miễn phí</a>
+            <a href="{{ url_for('v2.support') }}" class="v2-btn v2-btn-secondary v2-btn-lg" data-v2-i18n="nav.support">Ủng hộ</a>
+        {% endif %}
     </div>
 </section>
 {% endblock %}
@@ -129,17 +375,69 @@
 document.addEventListener('DOMContentLoaded', () => {
     const rotator = document.getElementById('v2-carrier-rotator');
     const dataEl = document.getElementById('v2-provider-data');
-    if (!rotator || !dataEl) return;
+    if (rotator && dataEl) {
+        const list = JSON.parse(dataEl.textContent || '[]').map(p => p.name).filter(Boolean);
+        const names = list.length ? list : ['Shopee Express VN', 'Lazada Express', 'J&T Express'];
+        if (names.length > 1 && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            let idx = 0;
+            setInterval(() => {
+                idx = (idx + 1) % names.length;
+                rotator.textContent = names[idx];
+            }, 3500);
+        }
+    }
 
-    const list = JSON.parse(dataEl.textContent || '[]').map(p => p.name).filter(Boolean);
-    const names = list.length ? list : ['Shopee Express VN', 'Lazada Express', 'J&T Express'];
-    if (names.length <= 1 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    // "Thử mã mẫu" populates hero quick-track input & focuses smoothly
+    const quickInput = document.getElementById('v2-quick-q');
+    document.querySelectorAll('[data-try-code]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const code = btn.getAttribute('data-try-code') || '';
+            if (!quickInput || !code) return;
+            quickInput.value = code;
+            const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+            quickInput.scrollIntoView({ behavior, block: 'center' });
+            quickInput.focus({ preventScroll: true });
+        });
+    });
 
-    let idx = 0;
-    setInterval(() => {
-        idx = (idx + 1) % names.length;
-        rotator.textContent = names[idx];
-    }, 3500);
+    // Interactive Telegram / Zalo Bot specimen tabs
+    document.querySelectorAll('[data-chat-tab]').forEach((tab) => {
+        tab.addEventListener('click', () => {
+            const target = tab.getAttribute('data-chat-tab');
+            document.querySelectorAll('[data-chat-tab]').forEach((t) => {
+                t.setAttribute('aria-selected', String(t === tab));
+            });
+            document.querySelectorAll('[data-chat-panel]').forEach((panel) => {
+                panel.hidden = panel.getAttribute('data-chat-panel') !== target;
+            });
+        });
+    });
+
+    // Interactive Partner API code tabs + copy on landing
+    document.querySelectorAll('[data-code-tabs]').forEach((block) => {
+        const tabs = block.querySelectorAll('[data-tab]');
+        const panels = block.querySelectorAll('[data-panel]');
+        tabs.forEach((tab) => {
+            tab.addEventListener('click', () => {
+                const name = tab.getAttribute('data-tab');
+                tabs.forEach((t) => t.setAttribute('aria-selected', String(t === tab)));
+                panels.forEach((p) => { p.hidden = p.getAttribute('data-panel') !== name; });
+            });
+        });
+        const copyBtn = block.querySelector('[data-copy-snippet]');
+        if (copyBtn) {
+            copyBtn.addEventListener('click', async () => {
+                const activePre = Array.from(panels).find((p) => !p.hidden);
+                if (!activePre) return;
+                try {
+                    await navigator.clipboard.writeText(activePre.textContent.trim());
+                    const prev = copyBtn.textContent;
+                    copyBtn.textContent = document.documentElement.lang === 'en' ? 'Copied' : 'Đã chép';
+                    setTimeout(() => { copyBtn.textContent = prev; }, 1800);
+                } catch (_) {}
+            });
+        }
+    });
 });
 </script>
 {% endblock %}

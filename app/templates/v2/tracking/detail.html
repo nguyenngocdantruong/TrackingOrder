@@ -39,6 +39,27 @@
             </button>
         </form>
         {% endif %}
+
+        <button type="button" id="v2-open-edit" class="v2-btn v2-btn-secondary" aria-haspopup="dialog">
+            <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+            </svg>
+            <span data-v2-i18n="detail.edit">Sửa đơn / COD</span>
+        </button>
+
+        {% if not share_url %}
+        <form action="{{ url_for('v2.share_tracking', tracking_id=tracking_id) }}" method="POST" data-v2-busy="…">
+            {{ share_form.hidden_tag() }}
+            <button type="submit" class="v2-btn v2-btn-tinted">
+                <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                </svg>
+                <span data-btn-label data-v2-i18n="detail.share">Chia sẻ hành trình</span>
+            </button>
+        </form>
+        {% endif %}
+
         <button type="button" id="v2-open-delete" class="v2-btn v2-btn-danger-outline" aria-haspopup="dialog">
             <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
@@ -48,6 +69,29 @@
         </button>
     </div>
 </div>
+
+{% if share_url %}
+<div class="v2-callout v2-callout-info v2-share-strip" style="margin-bottom:24px;">
+    <div class="v2-share-strip-info">
+        <strong data-v2-i18n="share.active_label">Liên kết chia sẻ công khai đang bật:</strong>
+        <a href="{{ share_url }}" target="_blank" rel="noopener" class="v2-code v2-share-link">{{ share_url }}</a>
+    </div>
+    <div class="v2-share-strip-actions">
+        <button type="button" class="v2-btn v2-btn-secondary" data-copy-text="{{ share_url }}">
+            <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            <span data-copy-label data-v2-i18n="share.copy_link">Chép link</span>
+        </button>
+        <form action="{{ url_for('v2.unshare_tracking', tracking_id=tracking_id) }}" method="POST" data-v2-busy="…">
+            {{ share_form.hidden_tag() }}
+            <button type="submit" class="v2-btn v2-btn-danger-outline">
+                <span data-btn-label data-v2-i18n="share.revoke">Thu hồi link</span>
+            </button>
+        </form>
+    </div>
+</div>
+{% endif %}
 
 <!-- Milestone Progress Strip -->
 {% if state_meta.is_cancelled %}
@@ -107,6 +151,20 @@
                     <dd class="v2-code">{{ tracking.trackingNumber }}</dd>
                 </div>
                 <div class="v2-meta-item">
+                    <dt data-v2-i18n="detail.dt.cod">Tiền thu hộ (COD)</dt>
+                    {% if tracking.codAmount and tracking.codAmount > 0 %}
+                    <dd class="v2-tabular" style="color:var(--v2-warn-ink);">{{ tracking.codAmount | format_vnd }}</dd>
+                    {% else %}
+                    <dd class="v2-tabular" style="font-size:14px;font-weight:500;color:var(--v2-muted);" data-v2-i18n="detail.cod_zero">0 ₫ · Đã trả trước</dd>
+                    {% endif %}
+                </div>
+                {% if tracking.note %}
+                <div class="v2-meta-item">
+                    <dt data-v2-i18n="detail.dt.note">Ghi chú nhận hàng</dt>
+                    <dd style="font-size:14px;font-weight:500;line-height:1.55;">{{ tracking.note }}</dd>
+                </div>
+                {% endif %}
+                <div class="v2-meta-item">
                     <dt data-v2-i18n="detail.dt.checked">Kiểm tra gần nhất</dt>
                     <dd class="v2-tabular" style="font-size:14px;font-weight:500;">
                         {% if tracking.lastCheckedAt %}
@@ -146,7 +204,7 @@
                     {% endif %}
                     {% if event.currentLocation and event.currentLocation.address %}
                     <div class="v2-timeline-loc">
-                        <svg class="v2-icon" style="width:14px;height:14px;color:var(--v2-primary);" viewBox="0 0 24 24" aria-hidden="true">
+                        <svg class="v2-icon" style="width:14px;height:14px;color:var(--v2-link);" viewBox="0 0 24 24" aria-hidden="true">
                             <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
                         </svg>
                         <span>{{ event.currentLocation.address }}</span>
@@ -164,7 +222,56 @@
     </section>
 </div>
 
-<!-- Accessible Native Confirmation Dialog -->
+<!-- Edit Shipment Dialog (Alias + COD + Note) -->
+<dialog id="v2-edit-dialog" class="v2-dialog" style="width:min(480px,calc(100vw - 32px));" aria-labelledby="v2-edit-title">
+    <h2 id="v2-edit-title" class="v2-section-title" style="margin-bottom:16px;" data-v2-i18n="edit.title">Cập nhật thông tin vận đơn</h2>
+    <form action="{{ url_for('v2.edit_tracking', tracking_id=tracking_id) }}" method="POST" data-v2-busy="…">
+        {{ edit_form.hidden_tag() }}
+        <div class="v2-field-group">
+            <label class="v2-label" for="edit-alias" data-v2-i18n="add.alias">Tên gợi nhớ (không bắt buộc)</label>
+            {{ edit_form.alias(
+                id="edit-alias",
+                class="v2-input",
+                maxlength="80",
+                placeholder="Ví dụ: Bàn phím cơ, Sách công nghệ…",
+                **{"data-v2-i18n": "add.alias.placeholder", "data-v2-i18n-attr": "placeholder"}
+            ) }}
+        </div>
+        <div class="v2-field-group">
+            <label class="v2-label" for="edit-cod" data-v2-i18n="add.cod">Tiền thu hộ COD — VND (không bắt buộc)</label>
+            <div class="v2-input-wrap">
+                {{ edit_form.cod_amount(
+                    id="edit-cod",
+                    class="v2-input v2-input-has-suffix v2-tabular",
+                    inputmode="numeric",
+                    placeholder="0 (Để trống nếu đã trả trước)",
+                    **{"data-v2-i18n": "add.cod.placeholder", "data-v2-i18n-attr": "placeholder"}
+                ) }}
+                <span class="v2-input-suffix-tag">VND</span>
+            </div>
+        </div>
+        <div class="v2-field-group" style="margin-bottom:0;">
+            <label class="v2-label" for="edit-note" data-v2-i18n="add.note">Ghi chú nhận hàng (không bắt buộc)</label>
+            {{ edit_form.note(
+                id="edit-note",
+                class="v2-textarea",
+                rows="2",
+                maxlength="240",
+                style="min-height:76px;",
+                placeholder="Ví dụ: Nhờ lễ tân nhận giúp, đồng kiểm…",
+                **{"data-v2-i18n": "add.note.placeholder", "data-v2-i18n-attr": "placeholder"}
+            ) }}
+        </div>
+        <div class="v2-dialog-actions">
+            <button type="button" id="v2-cancel-edit" class="v2-btn v2-btn-secondary" data-v2-i18n="delete.cancel">Hủy bỏ</button>
+            <button type="submit" class="v2-btn v2-btn-primary">
+                <span data-btn-label data-v2-i18n="edit.save">Lưu thay đổi</span>
+            </button>
+        </div>
+    </form>
+</dialog>
+
+<!-- Delete Confirmation Dialog -->
 <dialog id="v2-delete-dialog" class="v2-dialog" aria-labelledby="v2-delete-title">
     <h2 id="v2-delete-title" class="v2-section-title" style="margin-bottom:8px;" data-v2-i18n="delete.title">Xóa vận đơn khỏi danh sách?</h2>
     <p style="font-size:14px;color:var(--v2-muted);line-height:1.55;">
@@ -185,20 +292,24 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const dialog = document.getElementById('v2-delete-dialog');
-    const openBtn = document.getElementById('v2-open-delete');
-    const cancelBtn = document.getElementById('v2-cancel-delete');
-    if (!dialog || !openBtn) return;
+    const wireDialog = (dialogId, openBtnId, cancelBtnId) => {
+        const dialog = document.getElementById(dialogId);
+        const openBtn = document.getElementById(openBtnId);
+        const cancelBtn = document.getElementById(cancelBtnId);
+        if (!dialog || !openBtn) return;
+        openBtn.addEventListener('click', () => {
+            if (typeof dialog.showModal === 'function') dialog.showModal();
+        });
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => dialog.close());
+        }
+        dialog.addEventListener('click', (e) => {
+            if (e.target === dialog) dialog.close();
+        });
+    };
 
-    openBtn.addEventListener('click', () => {
-        if (typeof dialog.showModal === 'function') dialog.showModal();
-    });
-    if (cancelBtn) {
-        cancelBtn.addEventListener('click', () => dialog.close());
-    }
-    dialog.addEventListener('click', (e) => {
-        if (e.target === dialog) dialog.close();
-    });
+    wireDialog('v2-edit-dialog', 'v2-open-edit', 'v2-cancel-edit');
+    wireDialog('v2-delete-dialog', 'v2-open-delete', 'v2-cancel-delete');
 });
 </script>
 {% endblock %}

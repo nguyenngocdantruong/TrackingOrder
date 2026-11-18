@@ -1,15 +1,48 @@
+import re
 from app.firebase import get_db
 from google.cloud import firestore
 from google.cloud.firestore_v1.base_query import FieldFilter
+
+_SHARE_TOKEN_RE = re.compile(r'^[A-Za-z0-9_\-]{12,64}$')
+
 
 class TrackingsRepo:
     COLLECTION = 'trackings'
 
     @staticmethod
     def get_by_id(tracking_id):
+        if not tracking_id:
+            return None
         db = get_db()
         doc = db.collection(TrackingsRepo.COLLECTION).document(tracking_id).get()
         return doc.to_dict() if doc.exists else None
+
+    @staticmethod
+    def get_by_share_token(share_token: str):
+        token = (share_token or '').strip()
+        if not _SHARE_TOKEN_RE.match(token):
+            return None
+        db = get_db()
+        docs = (
+            db.collection(TrackingsRepo.COLLECTION)
+            .where(filter=FieldFilter('shareToken', '==', token))
+            .limit(1)
+            .stream()
+        )
+        for doc in docs:
+            return {'id': doc.id, **(doc.to_dict() or {})}
+        return None
+
+    @staticmethod
+    def find_by_user_and_number(user_id: str, tracking_number: str):
+        if not user_id or not tracking_number:
+            return None
+        needle = tracking_number.strip().upper()
+        for item in TrackingsRepo.get_user_trackings(user_id):
+            existing_code = (item.get('trackingNumber') or '').strip().upper()
+            if existing_code == needle:
+                return item
+        return None
 
     @staticmethod
     def get_user_trackings(user_id):
