@@ -32,7 +32,7 @@
         } catch (_) {}
     })();
     </script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='v2.css', v='5') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='v2.css', v='6') }}">
     {% block head_extra %}{% endblock %}
 </head>
 <body class="{{ body_class | default('') }}">
@@ -240,7 +240,7 @@
         {% endif %}
     {% endwith %}
 
-    <script src="{{ url_for('static', filename='v2.js', v='5') }}" defer></script>
+    <script src="{{ url_for('static', filename='v2.js', v='6') }}" defer></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

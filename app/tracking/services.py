@@ -4,6 +4,7 @@ from flask import current_app
 from app.repos.trackings_repo import TrackingsRepo
 from app.providers.registry import registry
 from app.notifications.service import NotificationService
+from app.tracking.stages import STAGE_LABELS, classify_event, wants_stage
 
 _ZERO_WIDTH_RE = re.compile(r'[\u200b-\u200d\ufeff]')
 MAX_COD_VND = 1_000_000_000
@@ -184,6 +185,7 @@ class TrackingService:
         for event in result.events:
             if event.eventHash not in existing_hashes:
                 new_events.append(event.to_dict())
+                existing_hashes.add(event.eventHash)
 
         has_changes = len(new_events) > 0
 
@@ -221,21 +223,37 @@ class TrackingService:
             # Trigger notification
             from app.repos.users_repo import UsersRepo
             user = UsersRepo.get_by_id(tracking['userId'])
-            if user and user.settings.get('notifyEnabled'):
-                status_emoji = "✅" if is_final and result.currentStatus != "Cancelled" else "📦"
-                if "Cancel" in result.currentStatus or "Hủy" in result.currentStatus:
-                    status_emoji = "❌"
+            if user and user.settings.get('notifyEnabled', True):
+                # Initial sync is a snapshot, not a replay of the entire history.
+                # Later polls can contain multiple events, including the same stage.
+                notification_events = (
+                    sorted(new_events, key=get_actual_time) if existing_events
+                    else final_events[:1]
+                )
+                for event in notification_events:
+                    stage = classify_event(tracking['carrierId'], event)
+                    if stage is None:
+                        current_app.logger.info(
+                            "Unmapped shipment event: carrier=%s code=%s milestone=%s",
+                            tracking['carrierId'], event.get('code'), event.get('milestoneCode'),
+                        )
+                    if not wants_stage(user.settings, stage):
+                        continue
 
-                msg = f"{status_emoji} *Cập nhật đơn hàng: {tracking.get('alias') or tracking['trackingNumber']}*\n" \
-                      f"Trạng thái: {result.currentStatus}\n" \
-                      f"Thời gian: {provider.format_time(get_actual_time(final_events[0]))}\n" \
-                      f"Tình trạng: {final_events[0]['name']}\n" \
-                      f"Chi tiết: {final_events[0]['descBuyer']}"
+                    status_emoji = "✅" if stage == 'delivered' else "📦"
+                    stage_label = STAGE_LABELS.get(stage) or event.get('milestoneName') or event.get('name', '')
+                    # Describe this event, not the latest status of the shipment:
+                    # a poll can include both warehouse and delivery events.
+                    msg = f"{status_emoji} *Cập nhật đơn hàng: {tracking.get('alias') or tracking['trackingNumber']}*\n" \
+                          f"Trạng thái: {stage_label}\n" \
+                          f"Thời gian: {provider.format_time(get_actual_time(event))}\n" \
+                          f"Tình trạng: {event.get('name', '')}\n" \
+                          f"Chi tiết: {event.get('descBuyer', '')}"
 
-                if is_final:
-                    msg += "\n\n🏁 *Đơn hàng này đã hoàn tất. Ngừng theo dõi.*"
+                    if is_final and event['eventHash'] == final_events[0]['eventHash']:
+                        msg += "\n\n🏁 *Đơn hàng này đã hoàn tất. Ngừng theo dõi.*"
 
-                NotificationService.send_to_user(user, msg)
+                    NotificationService.send_to_user(user, msg)
 
         TrackingsRepo.update(tracking_id, update_data)
 

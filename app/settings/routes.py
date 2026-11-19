@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, url_for, flash, redirect, request, current_app
 from flask_login import current_user, login_required
 from app.settings.forms import SettingsForm
+from app.tracking.stages import selected_stages
 from app.repos.users_repo import UsersRepo
 from app.notifications.registry import registry
 
@@ -12,6 +13,7 @@ def index():
     form = SettingsForm()
     if form.validate_on_submit():
         settings = {
+            **current_user.settings,
             'telegramChatId': form.telegram_chat_id.data,
             'zaloAccountId': form.zalo_chat_id.data,  # backward compatible key
             'zalo': {
@@ -20,6 +22,7 @@ def index():
                 'enabled': form.zalo_enabled.data,
             },
             'notifyEnabled': form.notify_enabled.data,
+            'notifyStages': form.notify_stages.data,
             'telegramEnabled': form.telegram_enabled.data,
             'zaloEnabled': form.zalo_enabled.data,
             'channels': current_user.settings.get('channels', ['telegram'])
@@ -32,6 +35,7 @@ def index():
         zalo_settings = current_user.settings.get('zalo') or {}
         form.zalo_chat_id.data = zalo_settings.get('chatId') or current_user.settings.get('zaloAccountId')
         form.notify_enabled.data = current_user.settings.get('notifyEnabled', True)
+        form.notify_stages.data = selected_stages(current_user.settings)
         form.telegram_enabled.data = current_user.settings.get('telegramEnabled', True)
         form.zalo_enabled.data = zalo_settings.get('enabled')
         if form.zalo_enabled.data is None:

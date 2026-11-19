@@ -3169,3 +3169,13 @@ html[data-theme="dark"] .v2-dialog::backdrop {
     scroll-behavior: auto !important;
   }
 }
+
+/* Shipment notification preferences reuse the existing checkbox controls. */
+.v2-stage-section { margin-bottom: 20px; }
+.v2-stage-preferences { border: 0; padding: 0; margin: 0; min-width: 0; }
+.v2-stage-preferences legend { padding: 0; margin-bottom: 8px; }
+.v2-stage-preferences .v2-check-list { margin-bottom: 12px; }
+.v2-stage-preferences input:focus-visible {
+  outline: 2px solid var(--v2-primary);
+  outline-offset: 4px;
+}

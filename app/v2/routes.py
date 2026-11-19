@@ -32,6 +32,7 @@ from app.providers.registry import registry as provider_registry
 from app.repos.trackings_repo import TrackingsRepo
 from app.repos.users_repo import UsersRepo
 from app.settings.forms import SettingsForm
+from app.tracking.stages import selected_stages
 from app.tracking.forms import AddTrackingForm, EditTrackingForm
 from app.tracking.services import TrackingService, parse_cod_amount, sanitize_alias_and_note
 
@@ -636,6 +637,7 @@ def settings():
     form = SettingsForm()
     if form.validate_on_submit():
         updated_settings = {
+            **current_user.settings,
             'telegramChatId': form.telegram_chat_id.data.strip() if form.telegram_chat_id.data else '',
             'zaloAccountId': form.zalo_chat_id.data.strip() if form.zalo_chat_id.data else '',
             'zalo': {
@@ -644,6 +646,7 @@ def settings():
                 'enabled': form.zalo_enabled.data,
             },
             'notifyEnabled': form.notify_enabled.data,
+            'notifyStages': form.notify_stages.data,
             'telegramEnabled': form.telegram_enabled.data,
             'zaloEnabled': form.zalo_enabled.data,
             'channels': current_user.settings.get('channels', ['telegram']),
@@ -656,6 +659,7 @@ def settings():
         zalo_settings = current_user.settings.get('zalo') or {}
         form.zalo_chat_id.data = zalo_settings.get('chatId') or current_user.settings.get('zaloAccountId')
         form.notify_enabled.data = current_user.settings.get('notifyEnabled', True)
+        form.notify_stages.data = selected_stages(current_user.settings)
         form.telegram_enabled.data = current_user.settings.get('telegramEnabled', True)
         form.zalo_enabled.data = zalo_settings.get('enabled')
         if form.zalo_enabled.data is None:

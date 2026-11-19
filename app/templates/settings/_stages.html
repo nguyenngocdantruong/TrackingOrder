@@ -1,0 +1,16 @@
+<fieldset class="{{ 'v2-stage-preferences' if stage_ui_v2 else 'border-0 p-0 mb-4' }}" aria-describedby="notify-stages-help">
+    <legend class="{{ 'v2-section-title' if stage_ui_v2 else 'fs-5 fw-bold' }}" data-v2-i18n="settings.stages.title" data-i18n="settings.stages.title">Thông báo theo giai đoạn</legend>
+    <p id="notify-stages-help" class="{{ 'v2-help' if stage_ui_v2 else 'text-muted small' }}" data-v2-i18n="settings.stages.help" data-i18n="settings.stages.help">Nhận các cập nhật trong giai đoạn bạn chọn, kể cả nhiều cập nhật cùng giai đoạn. Bỏ chọn hết để tắt thông báo cập nhật giao hàng.</p>
+    <div class="{{ 'v2-check-list' if stage_ui_v2 else 'd-grid gap-2 mt-3' }}">
+        {% for option in form.notify_stages %}
+        <label class="{{ 'v2-check-item' if stage_ui_v2 else 'd-flex align-items-center gap-2 py-2' }}" for="{{ option.id }}">
+            {{ option(**{"aria-describedby": "notify-stages-help"}) }}
+            <span data-v2-i18n="settings.stages.{{ option.data }}" data-i18n="settings.stages.{{ option.data }}">{{ option.label.text }}</span>
+        </label>
+        {% endfor %}
+    </div>
+    <p class="{{ 'v2-help' if stage_ui_v2 else 'text-muted small mt-2' }}" data-v2-i18n="settings.stages.all_help" data-i18n="settings.stages.all_help">Chọn cả 6 để nhận mọi cập nhật, bao gồm các phát sinh khác. Cài đặt này áp dụng cho cả Telegram và Zalo khi thông báo tự động được bật.</p>
+    {% for error in form.notify_stages.errors %}
+    <p role="alert" class="{{ 'v2-help' if stage_ui_v2 else 'text-danger' }}">{{ error }}</p>
+    {% endfor %}
+</fieldset>

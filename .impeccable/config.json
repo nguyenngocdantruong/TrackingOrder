@@ -1,0 +1,26 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "files": [
+          "app/templates/layout.html"
+        ],
+        "createdAt": "2026-11-19T04:59:36.921Z",
+        "reason": "Agent: DESIGN.md explicitly prescribes Inter for the incumbent interface; preserving the established typography."
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "app/templates/layout.html"
+        ],
+        "createdAt": "2026-11-19T04:59:36.934Z",
+        "reason": "Agent: false positive on toast wrapper; every toast child is inside toast-body p-3, providing 1rem padding via the Bootstrap 5.3 stylesheet loaded by this template."
+      }
+    ]
+  }
+}
