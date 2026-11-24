@@ -61,6 +61,7 @@ class TrackingService:
         send_notification=True,
         cod_amount=0,
         note=None,
+        address_id=None,
     ):
         if not current_app.config.get('TRACKING_ENABLED', True):
             return {'success': False, 'error': 'Theo dõi đơn hàng đang tạm dừng.'}
@@ -74,6 +75,11 @@ class TrackingService:
             return {'success': False, 'error': cod_err}
 
         clean_alias, clean_note = sanitize_alias_and_note(alias, note)
+        clean_address_id = None
+        if address_id:
+            candidate = str(address_id).strip()
+            if hasattr(user, 'get_address_by_id') and user.get_address_by_id(candidate):
+                clean_address_id = candidate
 
         # Prevent duplicate tracking for the same user before hitting external carrier APIs
         existing = TrackingsRepo.find_by_user_and_number(user.id, tracking_number)
@@ -118,6 +124,7 @@ class TrackingService:
             'trackingNumber': tracking_number,
             'carrierId': selected_carrier_id,
             'alias': clean_alias,
+            'addressId': clean_address_id,
             'codAmount': cod_val,
             'note': clean_note,
             'isActive': True,

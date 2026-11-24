@@ -557,6 +557,151 @@ class PrimaryUIAndPartnerAPITests(unittest.TestCase):
         bot_init = make_init_data({'id': 777888, 'first_name': 'Bot', 'is_bot': True}, now_ts)
         self.assertEqual(self.client.post('/auth/telegram-webapp', json={'initData': bot_init}).status_code, 401)
 
+    def test_delivery_addresses_crud_single_default_and_dashboard_filtering(self):
+        self.login_session()
+
+        # 1. Without any addresses: dashboard behaves normally, no address bar shown
+        with patch('app.v2.routes.TrackingsRepo.get_user_trackings', return_value=[self.sample_tracking]):
+            dash_no_addr = self.client.get('/dashboard').get_data(as_text=True)
+        self.assertNotIn('class="v2-address-bar"', dash_no_addr)
+        self.assertIn('data-v2-i18n="nav.addresses"', dash_no_addr)
+        self.assertIn('/settings/addresses', dash_no_addr)
+
+        # 2. Address book CRUD + enforce at most 1 default address
+        stored_addresses = []
+
+        def fake_update_addresses(uid, addrs):
+            stored_addresses.clear()
+            stored_addresses.extend(addrs)
+            return list(stored_addresses)
+
+        with patch('app.v2.routes.UsersRepo.update_addresses', side_effect=fake_update_addresses), \
+             patch('app.v2.routes.TrackingsRepo.get_user_trackings', return_value=[self.sample_tracking]):
+            # GET empty address book
+            page_empty = self.client.get('/settings/addresses')
+            self.assertEqual(page_empty.status_code, 200)
+            self.assertIn('Chưa có địa chỉ nhận hàng nào', page_empty.get_data(as_text=True))
+
+            # Add first address (default)
+            r1 = self.client.post(
+                '/settings/addresses',
+                data={
+                    'name': 'Nhà riêng',
+                    'detail': '123 Nguyễn Huệ, Quận 1, TP.HCM',
+                    'note': 'Gửi bảo vệ tầng 1',
+                    'is_default': 'y',
+                },
+            )
+            self.assertEqual(r1.status_code, 302)
+            self.assertEqual(len(stored_addresses), 1)
+            self.assertTrue(stored_addresses[0]['isDefault'])
+            home_id = stored_addresses[0]['id']
+
+            # Add second address also marked default -> must clear default on first
+            r2 = self.client.post(
+                '/settings/addresses',
+                data={
+                    'name': 'Công ty',
+                    'detail': '456 Lê Lợi, Quận 1, TP.HCM',
+                    'note': 'Giờ hành chính',
+                    'is_default': 'y',
+                },
+            )
+            self.assertEqual(r2.status_code, 302)
+            self.assertEqual(len(stored_addresses), 2)
+            defaults = [a for a in stored_addresses if a['isDefault']]
+            self.assertEqual(len(defaults), 1)
+            self.assertEqual(defaults[0]['name'], 'Công ty')
+            office_id = defaults[0]['id']
+
+            # Edit first address
+            r_edit = self.client.post(
+                f'/settings/addresses/{home_id}/edit',
+                data={
+                    'name': 'Nhà bố mẹ',
+                    'detail': '789 Pasteur, Quận 3',
+                    'note': 'Gọi trước khi giao',
+                },
+            )
+            self.assertEqual(r_edit.status_code, 302)
+            edited = next(a for a in stored_addresses if a['id'] == home_id)
+            self.assertEqual(edited['name'], 'Nhà bố mẹ')
+            self.assertEqual(edited['detail'], '789 Pasteur, Quận 3')
+
+            # Switch default back to home_id
+            r_def = self.client.post(f'/settings/addresses/{home_id}/default')
+            self.assertEqual(r_def.status_code, 302)
+            self.assertEqual(self.user.get_default_address()['id'], home_id)
+
+            # 3. Dashboard defaults to filtering by default address (home_id)
+            trk_home = {**self.sample_tracking, 'id': 'trk-home', 'addressId': home_id, 'codAmount': 120000}
+            trk_office = {
+                **self.sample_tracking,
+                'id': 'trk-office',
+                'trackingNumber': 'LEX1234567890',
+                'carrierId': 'lex',
+                'alias': 'Bàn phím văn phòng',
+                'addressId': office_id,
+                'codAmount': 350000,
+            }
+            with patch('app.v2.routes.TrackingsRepo.get_user_trackings', return_value=[trk_home, trk_office]):
+                dash_html = self.client.get('/dashboard').get_data(as_text=True)
+                self.assertIn('class="v2-address-bar"', dash_html)
+                self.assertIn(f'let activeAddress = "{home_id}"', dash_html)
+                self.assertIn('120.000 ₫', dash_html)
+
+                # Explicit ?address=all overrides default filter
+                dash_all = self.client.get('/dashboard?address=all').get_data(as_text=True)
+                self.assertIn('let activeAddress = "all"', dash_all)
+                self.assertIn('470.000 ₫', dash_all)
+
+            # 4. Add tracking pre-selects default address and passes address_id
+            add_html = self.client.get('/tracking/add').get_data(as_text=True)
+            self.assertIn('Nhà bố mẹ (Mặc định)', add_html)
+            with patch('app.v2.routes.TrackingService.create_tracking_for_user', return_value={'success': True, 'tracking_id': 'trk-new'}) as mock_create:
+                res_add = self.client.post(
+                    '/tracking/add',
+                    data={
+                        'tracking_number': 'SPXVN888888888',
+                        'carrier_id': 'auto',
+                        'alias': 'Đơn nhà',
+                        'address_id': office_id,
+                    },
+                )
+                self.assertEqual(res_add.status_code, 302)
+                self.assertEqual(mock_create.call_args.kwargs.get('address_id'), office_id)
+
+            # 5. Detail page displays address & edit_tracking updates addressId
+            with patch('app.v2.routes.TrackingsRepo.get_by_id', return_value=trk_home), \
+                 patch('app.v2.routes.TrackingsRepo.update') as mock_upd:
+                detail_html = self.client.get('/tracking/trk-home').get_data(as_text=True)
+                self.assertIn('Nhà bố mẹ', detail_html)
+                self.assertIn('789 Pasteur, Quận 3', detail_html)
+
+                res_upd = self.client.post(
+                    '/tracking/trk-home/edit',
+                    data={'alias': 'Tai nghe', 'address_id': office_id, 'cod_amount': '120000', 'note': ''},
+                )
+                self.assertEqual(res_upd.status_code, 302)
+                mock_upd.assert_called_once_with('trk-home', {
+                    'alias': 'Tai nghe',
+                    'addressId': office_id,
+                    'codAmount': 120000,
+                    'note': None,
+                })
+
+            # 6. Unset default -> dashboard falls back to 'all'
+            self.client.post(f'/settings/addresses/{home_id}/default', data={'unset': '1'})
+            self.assertIsNone(self.user.get_default_address())
+            with patch('app.v2.routes.TrackingsRepo.get_user_trackings', return_value=[trk_home, trk_office]):
+                dash_no_def = self.client.get('/dashboard').get_data(as_text=True)
+                self.assertIn('let activeAddress = "all"', dash_no_def)
+
+            # 7. Delete address removes it cleanly
+            r_del = self.client.post(f'/settings/addresses/{office_id}/delete')
+            self.assertEqual(r_del.status_code, 302)
+            self.assertEqual(len(stored_addresses), 1)
+
 
 if __name__ == '__main__':
     unittest.main()

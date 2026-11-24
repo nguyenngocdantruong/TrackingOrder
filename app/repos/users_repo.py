@@ -5,10 +5,41 @@ from google.cloud.firestore_v1.base_query import FieldFilter
 from werkzeug.security import generate_password_hash, check_password_hash
 import secrets
 
+def normalize_addresses(raw_addresses):
+    """Normalize a user's saved delivery addresses and enforce at most one default."""
+    if not isinstance(raw_addresses, list):
+        return []
+    normalized = []
+    seen_ids = set()
+    has_default = False
+    for item in raw_addresses:
+        if not isinstance(item, dict):
+            continue
+        addr_id = str(item.get('id') or '').strip()
+        name = str(item.get('name') or '').strip()[:60]
+        if not addr_id or not name or addr_id in seen_ids:
+            continue
+        seen_ids.add(addr_id)
+        detail = str(item.get('detail') or '').strip()[:240]
+        note = str(item.get('note') or '').strip()[:240]
+        is_default = bool(item.get('isDefault')) and not has_default
+        if is_default:
+            has_default = True
+        normalized.append({
+            'id': addr_id,
+            'name': name,
+            'detail': detail,
+            'note': note,
+            'isDefault': is_default,
+        })
+    return normalized
+
+
 class User(UserMixin):
-    def __init__(self, user_id, username, password_hash, settings=None, is_temporary=False, link_token=None, telegram_verified_id=None, partner_api=None):
+    def __init__(self, user_id, username, password_hash, settings=None, is_temporary=False, link_token=None, telegram_verified_id=None, partner_api=None, addresses=None):
         self.telegram_verified_id = telegram_verified_id
         self.partner_api = partner_api or {}
+        self.addresses = normalize_addresses(addresses)
         self.id = user_id
         self.username = username
         self.password_hash = password_hash
@@ -25,6 +56,24 @@ class User(UserMixin):
         if self.settings.get('zaloAccountId') and not self.settings['zalo'].get('chatId'):
             self.settings['zalo']['chatId'] = str(self.settings.get('zaloAccountId'))
 
+    def get_addresses(self):
+        return normalize_addresses(self.addresses)
+
+    def get_default_address(self):
+        for addr in self.get_addresses():
+            if addr.get('isDefault'):
+                return addr
+        return None
+
+    def get_address_by_id(self, address_id):
+        needle = str(address_id or '').strip()
+        if not needle:
+            return None
+        for addr in self.get_addresses():
+            if addr['id'] == needle:
+                return addr
+        return None
+
     def verify_password(self, password):
         return check_password_hash(self.password_hash, password)
 
@@ -40,21 +89,26 @@ class UsersRepo:
         return current_channels
 
     @staticmethod
+    def _build_user(doc_id, data):
+        data = data or {}
+        return User(
+            doc_id,
+            data.get('username'),
+            data.get('password_hash'),
+            data.get('settings'),
+            data.get('isTemporary', False),
+            data.get('linkToken'),
+            data.get('telegramVerifiedId'),
+            data.get('partnerApi'),
+            data.get('addresses'),
+        )
+
+    @staticmethod
     def get_by_id(user_id):
         db = get_db()
         doc = db.collection(UsersRepo.COLLECTION).document(user_id).get()
         if doc.exists:
-            data = doc.to_dict()
-            return User(
-                doc.id,
-                data['username'],
-                data['password_hash'],
-                data.get('settings'),
-                data.get('isTemporary', False),
-                data.get('linkToken'),
-                data.get('telegramVerifiedId'),
-                data.get('partnerApi'),
-            )
+            return UsersRepo._build_user(doc.id, doc.to_dict())
         return None
 
     @staticmethod
@@ -62,17 +116,7 @@ class UsersRepo:
         db = get_db()
         docs = db.collection(UsersRepo.COLLECTION).where(filter=FieldFilter('username', '==', username)).limit(1).stream()
         for doc in docs:
-            data = doc.to_dict()
-            return User(
-                doc.id,
-                data['username'],
-                data['password_hash'],
-                data.get('settings'),
-                data.get('isTemporary', False),
-                data.get('linkToken'),
-                data.get('telegramVerifiedId'),
-                data.get('partnerApi'),
-            )
+            return UsersRepo._build_user(doc.id, doc.to_dict())
         return None
 
     @staticmethod
@@ -90,16 +134,7 @@ class UsersRepo:
                 .limit(1) \
                 .stream()
             for doc in docs:
-                data = doc.to_dict()
-                return User(
-                    doc.id,
-                    data['username'],
-                    data['password_hash'],
-                    data.get('settings'),
-                    data.get('isTemporary', False),
-                    data.get('linkToken'),
-                    data.get('telegramVerifiedId')
-                )
+                return UsersRepo._build_user(doc.id, doc.to_dict())
         return None
 
     @staticmethod
@@ -257,16 +292,7 @@ class UsersRepo:
                 .stream()
 
             for doc in docs:
-                data = doc.to_dict()
-                return User(
-                    doc.id,
-                    data['username'],
-                    data['password_hash'],
-                    data.get('settings'),
-                    data.get('isTemporary', False),
-                    data.get('linkToken'),
-                    data.get('telegramVerifiedId')
-                )
+                return UsersRepo._build_user(doc.id, doc.to_dict())
         return None
 
     @staticmethod
@@ -393,17 +419,7 @@ class UsersRepo:
             .stream()
         )
         for doc in docs:
-            data = doc.to_dict() or {}
-            return User(
-                doc.id,
-                data.get('username'),
-                data.get('password_hash'),
-                data.get('settings'),
-                data.get('isTemporary', False),
-                data.get('linkToken'),
-                data.get('telegramVerifiedId'),
-                data.get('partnerApi'),
-            )
+            return UsersRepo._build_user(doc.id, doc.to_dict())
         return None
 
     @staticmethod
@@ -413,3 +429,13 @@ class UsersRepo:
         db.collection(UsersRepo.COLLECTION).document(user_id).update({
             'partnerApi': partner_api
         })
+
+    @staticmethod
+    def update_addresses(user_id: str, addresses: list):
+        """Persist normalized delivery addresses on user document."""
+        normalized = normalize_addresses(addresses)
+        db = get_db()
+        db.collection(UsersRepo.COLLECTION).document(user_id).update({
+            'addresses': normalized
+        })
+        return normalized

@@ -1,0 +1,359 @@
+{% extends "v2/layout.html" %}
+{% block content %}
+<div class="v2-medium-shell">
+    <div class="v2-page-head">
+        <div>
+            <h1 class="v2-page-title" data-v2-i18n="addr.title">Địa chỉ nhận hàng</h1>
+            <p class="v2-subtitle" data-v2-i18n="addr.subtitle">Quản lý các điểm nhận hàng của bạn. Khi đặt một địa chỉ mặc định, danh sách vận đơn sẽ tự động lọc theo địa chỉ đó.</p>
+        </div>
+        <div class="v2-page-actions">
+            <a href="{{ url_for('v2.dashboard') }}" class="v2-btn v2-btn-secondary">
+                <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+                <span data-v2-i18n="addr.back_dash">Về danh sách đơn</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="v2-settings-stack">
+        <!-- Saved Addresses List -->
+        <section class="v2-surface v2-addr-panel" aria-labelledby="v2-addr-list-title">
+            <div class="v2-panel-head">
+                <div>
+                    <h2 id="v2-addr-list-title" class="v2-section-title" data-v2-i18n="addr.list_title">Địa chỉ đã lưu</h2>
+                    <p class="v2-help" style="margin-top:4px;font-size:14px;" data-v2-i18n="addr.list_hint">Mỗi tài khoản chỉ có tối đa 1 địa chỉ mặc định. Nếu không chọn mặc định, trang danh sách sẽ hiển thị tất cả đơn.</p>
+                </div>
+                <span class="v2-badge v2-badge-neutral v2-tabular">{{ addresses | length }} / {{ max_addresses }}</span>
+            </div>
+
+            {% if addresses %}
+            <ul class="v2-addr-list">
+                {% for addr in addresses %}
+                {% set order_count = address_counts.get(addr.id, 0) %}
+                <li class="v2-addr-row" data-addr-row="{{ addr.id }}">
+                    <div class="v2-addr-row-main">
+                        <div class="v2-addr-row-head">
+                            <div class="v2-addr-name-wrap">
+                                <span class="v2-addr-pin" aria-hidden="true">
+                                    <svg class="v2-icon" viewBox="0 0 24 24">
+                                        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                                        <circle cx="12" cy="10" r="3"/>
+                                    </svg>
+                                </span>
+                                <h3 class="v2-addr-name">{{ addr.name }}</h3>
+                                {% if addr.isDefault %}
+                                <span class="v2-badge v2-badge-primary" data-v2-i18n="addr.default_badge">Mặc định</span>
+                                {% endif %}
+                                <a href="{{ url_for('v2.dashboard', address=addr.id) }}" class="v2-addr-count-link v2-tabular">
+                                    {{ order_count }} <span data-v2-i18n="addr.orders_unit">đơn</span>
+                                </a>
+                            </div>
+
+                            <div class="v2-addr-actions">
+                                {% if addr.isDefault %}
+                                <form action="{{ url_for('v2.set_default_address', address_id=addr.id) }}" method="POST" data-v2-busy="…">
+                                    {{ action_form.hidden_tag() }}
+                                    <input type="hidden" name="unset" value="1">
+                                    <button type="submit" class="v2-btn v2-btn-secondary">
+                                        <span data-btn-label data-v2-i18n="addr.unset_default">Bỏ mặc định</span>
+                                    </button>
+                                </form>
+                                {% else %}
+                                <form action="{{ url_for('v2.set_default_address', address_id=addr.id) }}" method="POST" data-v2-busy="…">
+                                    {{ action_form.hidden_tag() }}
+                                    <button type="submit" class="v2-btn v2-btn-tinted">
+                                        <span data-btn-label data-v2-i18n="addr.set_default">Đặt mặc định</span>
+                                    </button>
+                                </form>
+                                {% endif %}
+
+                                <button
+                                    type="button"
+                                    class="v2-btn v2-btn-secondary"
+                                    data-addr-edit-toggle="{{ addr.id }}"
+                                    aria-expanded="false"
+                                    aria-controls="v2-addr-edit-{{ addr.id }}"
+                                >
+                                    <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                                    </svg>
+                                    <span data-v2-i18n="addr.edit">Sửa</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="v2-btn v2-btn-danger-outline"
+                                    data-addr-delete-trigger
+                                    data-addr-id="{{ addr.id }}"
+                                    data-addr-name="{{ addr.name }}"
+                                    data-addr-delete-url="{{ url_for('v2.delete_address', address_id=addr.id) }}"
+                                    aria-haspopup="dialog"
+                                >
+                                    <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                    </svg>
+                                    <span data-v2-i18n="addr.delete">Xóa</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {% if addr.detail %}
+                        <p class="v2-addr-detail">{{ addr.detail }}</p>
+                        {% endif %}
+                        {% if addr.note %}
+                        <p class="v2-addr-note">
+                            <span class="v2-addr-note-label" data-v2-i18n="addr.note_prefix">Ghi chú:</span>
+                            {{ addr.note }}
+                        </p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Inline Edit Panel (Progressive disclosure — avoids unnecessary modal interruption) -->
+                    <form
+                        id="v2-addr-edit-{{ addr.id }}"
+                        class="v2-addr-edit-panel"
+                        action="{{ url_for('v2.edit_address', address_id=addr.id) }}"
+                        method="POST"
+                        hidden
+                        data-v2-busy="…"
+                    >
+                        {{ action_form.hidden_tag() }}
+                        <div class="v2-addr-edit-grid">
+                            <div class="v2-field-group" style="margin-bottom:0;">
+                                <label class="v2-label" for="edit-name-{{ addr.id }}" data-v2-i18n="addr.field.name">Tên địa chỉ</label>
+                                <input
+                                    id="edit-name-{{ addr.id }}"
+                                    name="name"
+                                    type="text"
+                                    class="v2-input"
+                                    value="{{ addr.name }}"
+                                    maxlength="60"
+                                    required
+                                    autocomplete="off"
+                                >
+                            </div>
+                            <div class="v2-field-group" style="margin-bottom:0;">
+                                <label class="v2-label" for="edit-detail-{{ addr.id }}" data-v2-i18n="addr.field.detail">Địa chỉ cụ thể</label>
+                                <textarea
+                                    id="edit-detail-{{ addr.id }}"
+                                    name="detail"
+                                    class="v2-textarea"
+                                    rows="2"
+                                    maxlength="240"
+                                    style="min-height:72px;"
+                                >{{ addr.detail }}</textarea>
+                            </div>
+                            <div class="v2-field-group" style="margin-bottom:0;">
+                                <label class="v2-label" for="edit-note-{{ addr.id }}" data-v2-i18n="addr.field.note">Ghi chú (không bắt buộc)</label>
+                                <textarea
+                                    id="edit-note-{{ addr.id }}"
+                                    name="note"
+                                    class="v2-textarea"
+                                    rows="2"
+                                    maxlength="240"
+                                    style="min-height:72px;"
+                                >{{ addr.note }}</textarea>
+                            </div>
+                        </div>
+
+                        <div class="v2-addr-edit-foot">
+                            <label class="v2-switch-label" for="edit-default-{{ addr.id }}">
+                                <input
+                                    id="edit-default-{{ addr.id }}"
+                                    name="is_default"
+                                    type="checkbox"
+                                    value="y"
+                                    class="v2-switch"
+                                    role="switch"
+                                    {% if addr.isDefault %}checked{% endif %}
+                                >
+                                <span data-v2-i18n="addr.field.is_default">Đặt làm địa chỉ mặc định</span>
+                            </label>
+                            <div class="v2-addr-edit-btns">
+                                <button type="button" class="v2-btn v2-btn-secondary" data-addr-edit-cancel="{{ addr.id }}" data-v2-i18n="delete.cancel">Hủy bỏ</button>
+                                <button type="submit" class="v2-btn v2-btn-primary">
+                                    <span data-btn-label data-v2-i18n="edit.save">Lưu thay đổi</span>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="v2-addr-empty">
+                <div class="v2-empty-icon" aria-hidden="true" style="margin-bottom:14px;">
+                    <svg class="v2-icon v2-icon-lg" viewBox="0 0 24 24">
+                        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                        <circle cx="12" cy="10" r="3"/>
+                    </svg>
+                </div>
+                <h3 class="v2-section-title" style="font-size:16px;margin-bottom:6px;" data-v2-i18n="addr.empty.title">Chưa có địa chỉ nhận hàng nào</h3>
+                <p style="font-size:14px;color:var(--v2-muted);max-width:48ch;margin-inline:auto;" data-v2-i18n="addr.empty.desc">Thêm các điểm giao nhận như Nhà riêng, Công ty để phân loại đơn hàng và tự động lọc nhanh trên bảng điều khiển.</p>
+            </div>
+            {% endif %}
+        </section>
+
+        <!-- Add New Address Form -->
+        <section class="v2-surface v2-settings-section" aria-labelledby="v2-add-addr-title">
+            <div style="margin-bottom:20px;">
+                <h2 id="v2-add-addr-title" class="v2-section-title" data-v2-i18n="addr.add.title">Thêm địa chỉ mới</h2>
+                <p class="v2-help" style="font-size:14px;margin-top:4px;" data-v2-i18n="addr.add.desc">Đặt tên gợi nhớ ngắn gọn để dễ nhận biết khi chọn địa chỉ cho vận đơn mới.</p>
+            </div>
+
+            <form method="POST" action="{{ url_for('v2.addresses') }}" novalidate data-v2-busy="…">
+                {{ add_form.hidden_tag() }}
+
+                <div class="v2-field-group">
+                    <label class="v2-label" for="{{ add_form.name.id }}" data-v2-i18n="addr.field.name">Tên địa chỉ</label>
+                    {{ add_form.name(
+                        class="v2-input",
+                        maxlength="60",
+                        placeholder="Ví dụ: Nhà riêng, Công ty, Nhà bố mẹ…",
+                        autocomplete="off",
+                        **({"aria-invalid": "true", "data-v2-i18n": "addr.field.name_placeholder", "data-v2-i18n-attr": "placeholder"} if add_form.name.errors else {"data-v2-i18n": "addr.field.name_placeholder", "data-v2-i18n-attr": "placeholder"})
+                    ) }}
+                    <div class="v2-chip-row" role="group" aria-label="Address name presets">
+                        <button type="button" class="v2-chip" data-addr-preset="Nhà riêng" data-v2-i18n="addr.preset.home">Nhà riêng</button>
+                        <button type="button" class="v2-chip" data-addr-preset="Công ty" data-v2-i18n="addr.preset.office">Công ty</button>
+                        <button type="button" class="v2-chip" data-addr-preset="Nhà bố mẹ" data-v2-i18n="addr.preset.parents">Nhà bố mẹ</button>
+                        <button type="button" class="v2-chip" data-addr-preset="Kho hàng" data-v2-i18n="addr.preset.warehouse">Kho hàng</button>
+                    </div>
+                    {% for error in add_form.name.errors %}
+                        <div class="v2-field-error" role="alert" data-v2-err="{{ error }}">{{ error | v2_err }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="v2-field-group">
+                    <label class="v2-label" for="{{ add_form.detail.id }}" data-v2-i18n="addr.field.detail">Địa chỉ cụ thể</label>
+                    {{ add_form.detail(
+                        class="v2-textarea",
+                        rows="2",
+                        maxlength="240",
+                        style="min-height:76px;",
+                        placeholder="Ví dụ: Số 123 Nguyễn Huệ, P. Bến Nghé, Quận 1, TP.HCM…",
+                        **{"data-v2-i18n": "addr.field.detail_placeholder", "data-v2-i18n-attr": "placeholder"}
+                    ) }}
+                    {% for error in add_form.detail.errors %}
+                        <div class="v2-field-error" role="alert" data-v2-err="{{ error }}">{{ error | v2_err }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="v2-field-group">
+                    <label class="v2-label" for="{{ add_form.note.id }}" data-v2-i18n="addr.field.note">Ghi chú (không bắt buộc)</label>
+                    {{ add_form.note(
+                        class="v2-textarea",
+                        rows="2",
+                        maxlength="240",
+                        style="min-height:72px;",
+                        placeholder="Ví dụ: Gửi lễ tân tầng 1, chỉ nhận giờ hành chính…",
+                        **{"data-v2-i18n": "addr.field.note_placeholder", "data-v2-i18n-attr": "placeholder"}
+                    ) }}
+                    {% for error in add_form.note.errors %}
+                        <div class="v2-field-error" role="alert" data-v2-err="{{ error }}">{{ error | v2_err }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="v2-settings-row" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--v2-line);">
+                    <label class="v2-switch-label" for="{{ add_form.is_default.id }}">
+                        {{ add_form.is_default(class="v2-switch", role="switch") }}
+                        <span data-v2-i18n="addr.field.is_default">Đặt làm địa chỉ mặc định</span>
+                    </label>
+                    <button type="submit" class="v2-btn v2-btn-primary v2-btn-lg">
+                        <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                        <span data-btn-label data-v2-i18n="addr.add.submit">Thêm địa chỉ</span>
+                    </button>
+                </div>
+            </form>
+        </section>
+    </div>
+</div>
+
+<!-- Delete Address Confirmation Dialog -->
+<dialog id="v2-delete-addr-dialog" class="v2-dialog" aria-labelledby="v2-delete-addr-title">
+    <h2 id="v2-delete-addr-title" class="v2-section-title" style="margin-bottom:8px;" data-v2-i18n="addr.delete_dialog.title">Xóa địa chỉ nhận hàng này?</h2>
+    <p style="font-size:14px;color:var(--v2-muted);line-height:1.55;">
+        <span data-lang-block="vi">Địa chỉ <strong id="v2-del-addr-name-vi"></strong> sẽ bị xóa khỏi tài khoản. Các vận đơn đã gắn địa chỉ này vẫn được giữ nguyên và chuyển về trạng thái chưa gắn địa chỉ.</span>
+        <span data-lang-block="en" hidden>Address <strong id="v2-del-addr-name-en"></strong> will be removed from your account. Existing shipments assigned to it will remain intact as unassigned.</span>
+    </p>
+    <div class="v2-dialog-actions">
+        <button type="button" id="v2-cancel-delete-addr" class="v2-btn v2-btn-secondary" data-v2-i18n="delete.cancel">Hủy bỏ</button>
+        <form id="v2-delete-addr-form" action="" method="POST" data-v2-busy="…">
+            {{ action_form.hidden_tag() }}
+            <button type="submit" class="v2-btn v2-btn-danger">
+                <span data-btn-label data-v2-i18n="delete.confirm">Xóa vĩnh viễn</span>
+            </button>
+        </form>
+    </div>
+</dialog>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const nameInput = document.getElementById('{{ add_form.name.id }}');
+    document.querySelectorAll('[data-addr-preset]').forEach((chip) => {
+        chip.addEventListener('click', () => {
+            if (!nameInput) return;
+            nameInput.value = chip.textContent.trim();
+            nameInput.focus();
+        });
+    });
+
+    document.querySelectorAll('[data-addr-edit-toggle]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-addr-edit-toggle');
+            const panel = document.getElementById('v2-addr-edit-' + id);
+            if (!panel) return;
+            const willOpen = panel.hidden;
+            panel.hidden = !willOpen;
+            btn.setAttribute('aria-expanded', String(willOpen));
+            if (willOpen) {
+                const input = panel.querySelector('input[name="name"]');
+                if (input) input.focus();
+            }
+        });
+    });
+
+    document.querySelectorAll('[data-addr-edit-cancel]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-addr-edit-cancel');
+            const panel = document.getElementById('v2-addr-edit-' + id);
+            const toggle = document.querySelector('[data-addr-edit-toggle="' + id + '"]');
+            if (panel) panel.hidden = true;
+            if (toggle) {
+                toggle.setAttribute('aria-expanded', 'false');
+                toggle.focus();
+            }
+        });
+    });
+
+    const delDialog = document.getElementById('v2-delete-addr-dialog');
+    const delForm = document.getElementById('v2-delete-addr-form');
+    const delCancel = document.getElementById('v2-cancel-delete-addr');
+    const delNameVi = document.getElementById('v2-del-addr-name-vi');
+    const delNameEn = document.getElementById('v2-del-addr-name-en');
+
+    document.querySelectorAll('[data-addr-delete-trigger]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            if (!delDialog || !delForm) return;
+            const name = btn.getAttribute('data-addr-name') || '';
+            const url = btn.getAttribute('data-addr-delete-url') || '';
+            delForm.setAttribute('action', url);
+            if (delNameVi) delNameVi.textContent = name;
+            if (delNameEn) delNameEn.textContent = name;
+            if (typeof delDialog.showModal === 'function') delDialog.showModal();
+        });
+    });
+
+    if (delCancel && delDialog) {
+        delCancel.addEventListener('click', () => delDialog.close());
+    }
+    if (delDialog) {
+        delDialog.addEventListener('click', (e) => {
+            if (e.target === delDialog) delDialog.close();
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -32,7 +32,7 @@
         } catch (_) {}
     })();
     </script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='v2.css', v='6') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='v2.css', v='7') }}">
     {% block head_extra %}{% endblock %}
 </head>
 <body class="{{ body_class | default('') }}">
@@ -84,7 +84,7 @@
                                     class="v2-nav-link v2-nav-dropdown-btn"
                                     aria-expanded="false"
                                     aria-controls="v2-config-menu"
-                                    {% if ep in ('v2.settings', 'v2.developers', 'v2.admin_index', 'v2.admin_verify') %}data-active="true"{% endif %}
+                                    {% if ep in ('v2.settings', 'v2.addresses', 'v2.developers', 'v2.admin_index', 'v2.admin_verify') %}data-active="true"{% endif %}
                                 >
                                     <span data-v2-i18n="nav.config">Cấu hình</span>
                                     <svg class="v2-icon v2-dropdown-caret" viewBox="0 0 24 24" aria-hidden="true">
@@ -101,6 +101,18 @@
                                             <span>
                                                 <strong class="v2-dropdown-label" data-v2-i18n="nav.notifications">Thông báo</strong>
                                                 <small class="v2-dropdown-desc" data-v2-i18n="nav.notifications_desc">Telegram &amp; Zalo Bot</small>
+                                            </span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="v2-dropdown-item" href="{{ url_for('v2.addresses') }}" {% if ep == 'v2.addresses' %}aria-current="page"{% endif %}>
+                                            <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                                                <circle cx="12" cy="10" r="3"/>
+                                            </svg>
+                                            <span>
+                                                <strong class="v2-dropdown-label" data-v2-i18n="nav.addresses">Địa chỉ</strong>
+                                                <small class="v2-dropdown-desc" data-v2-i18n="nav.addresses_desc">Địa chỉ nhận hàng</small>
                                             </span>
                                         </a>
                                     </li>
@@ -240,7 +252,7 @@
         {% endif %}
     {% endwith %}
 
-    <script src="{{ url_for('static', filename='v2.js', v='6') }}" defer></script>
+    <script src="{{ url_for('static', filename='v2.js', v='7') }}" defer></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

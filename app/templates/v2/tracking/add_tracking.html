@@ -66,6 +66,27 @@
                 {% endfor %}
             </div>
 
+            {% if addresses %}
+            <div class="v2-field-group">
+                <div class="v2-label-row">
+                    <label class="v2-label" for="{{ form.address_id.id }}" data-v2-i18n="add.address">Địa chỉ nhận hàng (không bắt buộc)</label>
+                    <a href="{{ url_for('v2.addresses') }}" class="v2-inline-link" style="font-size:14px;min-height:32px;" data-v2-i18n="dash.addr.manage">Quản lý địa chỉ</a>
+                </div>
+                {{ form.address_id(class="v2-select") }}
+                <div class="v2-chip-row" role="group" aria-label="Address presets">
+                    {% for addr in addresses %}
+                    <button type="button" class="v2-chip" data-addr-pick="{{ addr.id }}">
+                        <svg class="v2-icon" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                            <circle cx="12" cy="10" r="3"/>
+                        </svg>
+                        <span>{{ addr.name }}</span>
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
             <div class="v2-field-group">
                 <label class="v2-label" for="{{ form.cod_amount.id }}" data-v2-i18n="add.cod">Tiền thu hộ COD — VND (không bắt buộc)</label>
                 <div class="v2-input-wrap">
@@ -186,6 +207,26 @@ document.addEventListener('DOMContentLoaded', () => {
             codInput.focus();
         });
     });
+
+    const addrSelect = document.getElementById('{{ form.address_id.id }}');
+    const addrChips = document.querySelectorAll('[data-addr-pick]');
+    if (addrSelect && addrChips.length) {
+        const syncAddrChips = () => {
+            const current = addrSelect.value;
+            addrChips.forEach((chip) => {
+                chip.setAttribute('aria-pressed', String(chip.getAttribute('data-addr-pick') === current));
+            });
+        };
+        addrSelect.addEventListener('change', syncAddrChips);
+        addrChips.forEach((chip) => {
+            chip.addEventListener('click', () => {
+                const pick = chip.getAttribute('data-addr-pick');
+                addrSelect.value = addrSelect.value === pick ? '' : pick;
+                syncAddrChips();
+            });
+        });
+        syncAddrChips();
+    }
 
     syncUI();
 });

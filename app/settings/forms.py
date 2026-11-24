@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, BooleanField, SubmitField, HiddenField, SelectMultipleField
+from wtforms import StringField, BooleanField, SubmitField, HiddenField, SelectMultipleField, TextAreaField
 from wtforms import widgets
-from wtforms.validators import DataRequired, Optional
+from wtforms.validators import DataRequired, Length, Optional
 from app.tracking.stages import STAGE_CHOICES
 
 class SettingsForm(FlaskForm):
@@ -16,3 +16,11 @@ class SettingsForm(FlaskForm):
     telegram_enabled = BooleanField('Enable Telegram', default=True)
     zalo_enabled = BooleanField('Enable Zalo', default=True)
     submit = SubmitField('Save Settings')
+
+
+class AddressForm(FlaskForm):
+    name = StringField('Tên địa chỉ', validators=[DataRequired(), Length(max=60)])
+    detail = TextAreaField('Địa chỉ cụ thể', validators=[Optional(), Length(max=240)])
+    note = TextAreaField('Ghi chú', validators=[Optional(), Length(max=240)])
+    is_default = BooleanField('Đặt làm địa chỉ mặc định', default=False)
+    submit = SubmitField('Lưu địa chỉ')

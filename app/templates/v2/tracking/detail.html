@@ -158,6 +158,26 @@
                     <dd class="v2-tabular" style="font-size:14px;font-weight:500;color:var(--v2-muted);" data-v2-i18n="detail.cod_zero">0 ₫ · Đã trả trước</dd>
                     {% endif %}
                 </div>
+                {% if tracking_address %}
+                <div class="v2-meta-item">
+                    <dt data-v2-i18n="detail.dt.address">Địa chỉ nhận hàng</dt>
+                    <dd style="font-size:14px;font-weight:600;line-height:1.5;">
+                        <span class="v2-badge v2-badge-address" style="margin-bottom:4px;">
+                            <svg class="v2-icon" style="width:12px;height:12px;" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                                <circle cx="12" cy="10" r="3"/>
+                            </svg>
+                            <span>{{ tracking_address.name }}</span>
+                        </span>
+                        {% if tracking_address.detail %}
+                        <div style="font-weight:500;color:var(--v2-ink);">{{ tracking_address.detail }}</div>
+                        {% endif %}
+                        {% if tracking_address.note %}
+                        <div style="font-size:14px;font-weight:400;color:var(--v2-muted);margin-top:2px;">{{ tracking_address.note }}</div>
+                        {% endif %}
+                    </dd>
+                </div>
+                {% endif %}
                 {% if tracking.note %}
                 <div class="v2-meta-item">
                     <dt data-v2-i18n="detail.dt.note">Ghi chú nhận hàng</dt>
@@ -237,6 +257,12 @@
                 **{"data-v2-i18n": "add.alias.placeholder", "data-v2-i18n-attr": "placeholder"}
             ) }}
         </div>
+        {% if addresses %}
+        <div class="v2-field-group">
+            <label class="v2-label" for="edit-address" data-v2-i18n="add.address">Địa chỉ nhận hàng (không bắt buộc)</label>
+            {{ edit_form.address_id(id="edit-address", class="v2-select") }}
+        </div>
+        {% endif %}
         <div class="v2-field-group">
             <label class="v2-label" for="edit-cod" data-v2-i18n="add.cod">Tiền thu hộ COD — VND (không bắt buộc)</label>
             <div class="v2-input-wrap">

@@ -19,13 +19,11 @@
         <p class="v2-subtitle" data-v2-i18n="dash.subtitle">Theo dõi tiến trình vận chuyển thời gian thực từ mọi đơn vị giao nhận.</p>
     </div>
     <div class="v2-page-actions">
-        {% if total_active_cod and total_active_cod > 0 %}
-        <div class="v2-cod-summary v2-tabular">
+        <div id="v2-cod-summary" class="v2-cod-summary v2-tabular" {% if not (total_active_cod and total_active_cod > 0) %}hidden{% endif %}>
             <span data-v2-i18n="dash.cod_due">Tổng COD cần chuẩn bị:</span>
-            <strong>{{ total_active_cod | format_vnd }}</strong>
+            <strong id="v2-cod-amount">{{ total_active_cod | format_vnd }}</strong>
         </div>
-        {% endif %}
-        <a href="{{ url_for('v2.add_tracking') }}" class="v2-btn v2-btn-primary">
+        <a id="v2-add-parcel-btn" href="{{ url_for('v2.add_tracking', address=initial_address_filter) if initial_address_filter not in ('all', 'none') else url_for('v2.add_tracking') }}" class="v2-btn v2-btn-primary">
             <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
             <span data-v2-i18n="dash.add">Thêm vận đơn</span>
         </a>
@@ -33,19 +31,72 @@
 </div>
 
 {% if trackings %}
+{% if addresses %}
+<div class="v2-address-bar" aria-label="Lọc theo địa chỉ nhận hàng">
+    <div class="v2-address-bar-pills" role="group" aria-label="Địa chỉ nhận hàng">
+        <button
+            type="button"
+            class="v2-addr-pill"
+            data-address-filter="all"
+            aria-pressed="{{ 'true' if initial_address_filter == 'all' else 'false' }}"
+        >
+            <span data-v2-i18n="dash.addr.all">Tất cả địa chỉ</span>
+            <span class="v2-tab-count">{{ all_trackings_count }}</span>
+        </button>
+        {% for addr in addresses %}
+        <button
+            type="button"
+            class="v2-addr-pill"
+            data-address-filter="{{ addr.id }}"
+            aria-pressed="{{ 'true' if initial_address_filter == addr.id else 'false' }}"
+            {% if addr.detail %}title="{{ addr.detail }}"{% endif %}
+        >
+            <svg class="v2-icon v2-addr-pill-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                <circle cx="12" cy="10" r="3"/>
+            </svg>
+            <span>{{ addr.name }}</span>
+            {% if addr.isDefault %}
+            <span class="v2-addr-default-tag" data-v2-i18n="addr.default_badge">Mặc định</span>
+            {% endif %}
+            <span class="v2-tab-count">{{ address_counts.get(addr.id, 0) }}</span>
+        </button>
+        {% endfor %}
+        {% if unassigned_count > 0 %}
+        <button
+            type="button"
+            class="v2-addr-pill"
+            data-address-filter="none"
+            aria-pressed="{{ 'true' if initial_address_filter == 'none' else 'false' }}"
+        >
+            <span data-v2-i18n="dash.addr.unassigned">Chưa gắn địa chỉ</span>
+            <span class="v2-tab-count">{{ unassigned_count }}</span>
+        </button>
+        {% endif %}
+    </div>
+    <a href="{{ url_for('v2.addresses') }}" class="v2-inline-link v2-addr-manage-link">
+        <svg class="v2-icon" style="width:15px;height:15px;" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+            <circle cx="12" cy="10" r="3"/>
+        </svg>
+        <span data-v2-i18n="dash.addr.manage">Quản lý địa chỉ</span>
+    </a>
+</div>
+{% endif %}
+
 <div class="v2-toolbar">
     <div class="v2-tabs" role="tablist" aria-label="Filter">
         <button type="button" class="v2-tab" role="tab" data-filter="all" aria-selected="true">
             <span data-v2-i18n="dash.tab.all">Tất cả</span>
-            <span class="v2-tab-count">{{ total_count }}</span>
+            <span class="v2-tab-count" data-tab-count="all">{{ total_count }}</span>
         </button>
         <button type="button" class="v2-tab" role="tab" data-filter="active" aria-selected="false">
             <span data-v2-i18n="dash.tab.active">Đang theo dõi</span>
-            <span class="v2-tab-count">{{ active_count }}</span>
+            <span class="v2-tab-count" data-tab-count="active">{{ active_count }}</span>
         </button>
         <button type="button" class="v2-tab" role="tab" data-filter="completed" aria-selected="false">
             <span data-v2-i18n="dash.tab.completed">Đã hoàn tất</span>
-            <span class="v2-tab-count">{{ completed_count }}</span>
+            <span class="v2-tab-count" data-tab-count="completed">{{ completed_count }}</span>
         </button>
     </div>
 
@@ -89,11 +140,22 @@
         class="v2-parcel-item"
         data-parcel-row
         data-active="{{ 'active' if t.isActive else 'completed' }}"
-        data-search="{{ ((t.alias or '') ~ ' ' ~ t.trackingNumber ~ ' ' ~ t._carrierName ~ ' ' ~ (t.currentStatus or '') ~ ' ' ~ (t.note or '')) | lower }}"
+        data-address="{{ t._addressId or 'none' }}"
+        data-cod="{{ t.codAmount if (t.isActive and t._tone != 'danger') else 0 }}"
+        data-search="{{ ((t.alias or '') ~ ' ' ~ t.trackingNumber ~ ' ' ~ t._carrierName ~ ' ' ~ (t.currentStatus or '') ~ ' ' ~ (t.note or '') ~ ' ' ~ (t._addressName or '') ~ ' ' ~ (t._addressDetail or '')) | lower }}"
     >
         <div class="v2-parcel-top">
             <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;">
                 <span class="v2-badge v2-badge-carrier">{{ t._carrierName }}</span>
+                {% if t._addressName %}
+                <span class="v2-badge v2-badge-address" {% if t._addressDetail %}title="{{ t._addressDetail }}"{% endif %}>
+                    <svg class="v2-icon" style="width:12px;height:12px;" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                        <circle cx="12" cy="10" r="3"/>
+                    </svg>
+                    <span>{{ t._addressName }}</span>
+                </span>
+                {% endif %}
                 {% if t.codAmount and t.codAmount > 0 %}
                 <span class="v2-badge v2-badge-warning v2-tabular">COD {{ t.codAmount | format_vnd }}</span>
                 {% endif %}
@@ -180,11 +242,13 @@
             <tr
                 data-parcel-table-row
                 data-active="{{ 'active' if t.isActive else 'completed' }}"
-                data-search="{{ ((t.alias or '') ~ ' ' ~ t.trackingNumber ~ ' ' ~ t._carrierName ~ ' ' ~ (t.currentStatus or '') ~ ' ' ~ (t.note or '')) | lower }}"
+                data-address="{{ t._addressId or 'none' }}"
+                data-cod="{{ t.codAmount if (t.isActive and t._tone != 'danger') else 0 }}"
+                data-search="{{ ((t.alias or '') ~ ' ' ~ t.trackingNumber ~ ' ' ~ t._carrierName ~ ' ' ~ (t.currentStatus or '') ~ ' ' ~ (t.note or '') ~ ' ' ~ (t._addressName or '') ~ ' ' ~ (t._addressDetail or '')) | lower }}"
             >
                 <td>
                     <a href="{{ url_for('v2.detail', tracking_id=t.id) }}" style="font-weight:700;color:var(--v2-ink);text-decoration:none;display:inline-flex;align-items:center;min-height:44px;margin-block:-8px;">{{ t.alias or t.trackingNumber }}</a>
-                    <div class="v2-code" style="font-size:12px;color:var(--v2-muted);">{{ t.trackingNumber }}{% if t.codAmount and t.codAmount > 0 %} · <span style="color:var(--v2-warn-ink);font-weight:600;">COD {{ t.codAmount | format_vnd }}</span>{% endif %}</div>
+                    <div class="v2-code" style="font-size:12px;color:var(--v2-muted);">{{ t.trackingNumber }}{% if t._addressName %} · <span style="color:var(--v2-primary-active);font-family:var(--v2-font-sans);font-weight:600;">{{ t._addressName }}</span>{% endif %}{% if t.codAmount and t.codAmount > 0 %} · <span style="color:var(--v2-warn-ink);font-weight:600;">COD {{ t.codAmount | format_vnd }}</span>{% endif %}</div>
                 </td>
                 <td><span class="v2-badge v2-badge-carrier">{{ t._carrierName }}</span></td>
                 <td>
@@ -235,43 +299,104 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const tabs = document.querySelectorAll('[data-filter]');
+    const addrBtns = document.querySelectorAll('[data-address-filter]');
     const searchInput = document.getElementById('v2-dash-search');
     const gridWrap = document.getElementById('v2-parcel-grid');
     const tableWrap = document.getElementById('v2-parcel-table');
     const emptyFilter = document.getElementById('v2-filter-empty');
     const resetBtn = document.getElementById('v2-reset-filter');
     const viewBtns = document.querySelectorAll('[data-view-mode]');
+    const codSummary = document.getElementById('v2-cod-summary');
+    const codAmountEl = document.getElementById('v2-cod-amount');
+    const addParcelBtn = document.getElementById('v2-add-parcel-btn');
+    const baseAddUrl = {{ url_for('v2.add_tracking') | tojson }};
 
     if (!gridWrap) return;
 
     let activeFilter = 'all';
+    let activeAddress = {{ initial_address_filter | tojson }};
     let viewMode = localStorage.getItem('v2_dash_view') || 'grid';
 
     const cards = [...document.querySelectorAll('[data-parcel-row]')];
     const rows = [...document.querySelectorAll('[data-parcel-table-row]')];
+    const tabCountAll = document.querySelector('[data-tab-count="all"]');
+    const tabCountActive = document.querySelector('[data-tab-count="active"]');
+    const tabCountCompleted = document.querySelector('[data-tab-count="completed"]');
+
+    function formatVnd(amount) {
+        const val = Number(amount || 0);
+        return val.toLocaleString('vi-VN') + ' ₫';
+    }
 
     function sync() {
         const q = (searchInput ? searchInput.value : '').trim().toLowerCase();
         let visibleCount = 0;
+        let addrTotal = 0;
+        let addrActive = 0;
+        let addrCompleted = 0;
+        let addrCod = 0;
 
         cards.forEach((el, i) => {
+            const itemAddr = el.dataset.address || 'none';
+            const matchAddr = activeAddress === 'all' || itemAddr === activeAddress;
+            if (matchAddr) {
+                addrTotal++;
+                if (el.dataset.active === 'active') {
+                    addrActive++;
+                    addrCod += Number(el.dataset.cod || 0);
+                } else {
+                    addrCompleted++;
+                }
+            }
             const matchTab = activeFilter === 'all' || el.dataset.active === activeFilter;
             const matchSearch = !q || (el.dataset.search || '').includes(q);
-            const show = matchTab && matchSearch;
+            const show = matchAddr && matchTab && matchSearch;
             el.hidden = !show;
             if (rows[i]) rows[i].hidden = !show;
             if (show) visibleCount++;
         });
+
+        if (tabCountAll) tabCountAll.textContent = String(addrTotal);
+        if (tabCountActive) tabCountActive.textContent = String(addrActive);
+        if (tabCountCompleted) tabCountCompleted.textContent = String(addrCompleted);
+
+        if (codSummary && codAmountEl) {
+            if (addrCod > 0) {
+                codAmountEl.textContent = formatVnd(addrCod);
+                codSummary.hidden = false;
+            } else {
+                codSummary.hidden = true;
+            }
+        }
+
+        if (addParcelBtn) {
+            if (activeAddress && activeAddress !== 'all' && activeAddress !== 'none') {
+                addParcelBtn.setAttribute('href', baseAddUrl + '?address=' + encodeURIComponent(activeAddress));
+            } else {
+                addParcelBtn.setAttribute('href', baseAddUrl);
+            }
+        }
 
         const noneFound = visibleCount === 0;
         if (emptyFilter) emptyFilter.hidden = !noneFound;
         gridWrap.hidden = noneFound || viewMode !== 'grid';
         if (tableWrap) tableWrap.hidden = noneFound || viewMode !== 'table';
 
+        addrBtns.forEach((b) => {
+            b.setAttribute('aria-pressed', String(b.dataset.addressFilter === activeAddress));
+        });
+
         viewBtns.forEach((b) => {
             b.setAttribute('aria-pressed', String(b.dataset.viewMode === viewMode));
         });
     }
+
+    addrBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+            activeAddress = btn.dataset.addressFilter;
+            sync();
+        });
+    });
 
     tabs.forEach((tab) => {
         tab.addEventListener('click', () => {
@@ -296,6 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (resetBtn) {
         resetBtn.addEventListener('click', () => {
             activeFilter = 'all';
+            activeAddress = 'all';
             if (searchInput) searchInput.value = '';
             tabs.forEach((t) => t.setAttribute('aria-selected', String(t.dataset.filter === 'all')));
             sync();

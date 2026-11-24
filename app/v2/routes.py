@@ -31,7 +31,7 @@ from app.payments.routes import _format_amount, _pending_donations, webhook as p
 from app.providers.registry import registry as provider_registry
 from app.repos.trackings_repo import TrackingsRepo
 from app.repos.users_repo import UsersRepo
-from app.settings.forms import SettingsForm
+from app.settings.forms import AddressForm, SettingsForm
 from app.tracking.stages import selected_stages
 from app.tracking.forms import AddTrackingForm, EditTrackingForm
 from app.tracking.services import TrackingService, parse_cod_amount, sanitize_alias_and_note
@@ -164,25 +164,75 @@ def index():
     )
 
 
+def _sorted_user_addresses(user) -> list[dict]:
+    if not user or not hasattr(user, 'get_addresses'):
+        return []
+    addrs = user.get_addresses()
+    return sorted(addrs, key=lambda a: (0 if a.get('isDefault') else 1))
+
+
+def _address_select_choices(user) -> list[tuple[str, str]]:
+    choices = [('', 'Không chọn địa chỉ')]
+    for addr in _sorted_user_addresses(user):
+        label = f"{addr['name']} (Mặc định)" if addr.get('isDefault') else addr['name']
+        choices.append((addr['id'], label))
+    return choices
+
+
+def _sanitize_address_input(name: str | None, detail: str | None, note: str | None) -> tuple[str, str, str]:
+    clean_name = re.sub(r'[\u200b-\u200d\ufeff]', '', (name or '')).strip()[:60]
+    clean_detail = re.sub(r'[\u200b-\u200d\ufeff]', '', (detail or '')).strip()[:240]
+    clean_note = re.sub(r'[\u200b-\u200d\ufeff]', '', (note or '')).strip()[:240]
+    return clean_name, clean_detail, clean_note
+
+
 @v2_bp.route('/dashboard')
 @v2_login_required
 def dashboard():
     trackings = TrackingsRepo.get_user_trackings(current_user.id)
     carrier_names = dict(provider_registry.list_providers())
+    addresses = _sorted_user_addresses(current_user)
+    address_map = {a['id']: a for a in addresses}
+    default_address = current_user.get_default_address() if hasattr(current_user, 'get_default_address') else None
+
+    requested_addr = (request.args.get('address') or '').strip()
+    if requested_addr in ('all', 'none') or requested_addr in address_map:
+        initial_address_filter = requested_addr
+    elif default_address:
+        initial_address_filter = default_address['id']
+    else:
+        initial_address_filter = 'all'
 
     enriched = []
     active_count = 0
     completed_count = 0
     total_active_cod = 0
+    address_counts = {a['id']: 0 for a in addresses}
+    unassigned_count = 0
     for item in trackings:
         meta = _classify_tracking_state(item)
         cod_val = int(item.get('codAmount') or 0)
-        if item.get('isActive'):
-            active_count += 1
-            if meta['tone'] != 'danger' and cod_val > 0:
-                total_active_cod += cod_val
+        raw_addr_id = (item.get('addressId') or '').strip()
+        addr = address_map.get(raw_addr_id)
+        resolved_addr_id = addr['id'] if addr else ''
+        if resolved_addr_id:
+            address_counts[resolved_addr_id] = address_counts.get(resolved_addr_id, 0) + 1
         else:
-            completed_count += 1
+            unassigned_count += 1
+
+        matches_initial = (
+            initial_address_filter == 'all'
+            or (initial_address_filter == 'none' and not resolved_addr_id)
+            or (resolved_addr_id == initial_address_filter)
+        )
+        if matches_initial:
+            if item.get('isActive'):
+                active_count += 1
+                if meta['tone'] != 'danger' and cod_val > 0:
+                    total_active_cod += cod_val
+            else:
+                completed_count += 1
+
         cid = item.get('carrierId', '')
         enriched.append({
             **item,
@@ -191,6 +241,10 @@ def dashboard():
             '_tone': meta['tone'],
             '_stage': meta['stage'],
             '_stateKey': meta['state_key'],
+            '_addressId': resolved_addr_id,
+            '_addressName': addr['name'] if addr else '',
+            '_addressDetail': addr['detail'] if addr else '',
+            '_addressNote': addr['note'] if addr else '',
         })
 
     user_settings = current_user.settings or {}
@@ -205,11 +259,17 @@ def dashboard():
         'v2/tracking/dashboard.html',
         title='Bảng điều khiển',
         trackings=enriched,
-        total_count=len(enriched),
+        total_count=active_count + completed_count,
+        all_trackings_count=len(enriched),
         active_count=active_count,
         completed_count=completed_count,
         total_active_cod=total_active_cod,
         has_channel=has_channel,
+        addresses=addresses,
+        default_address=default_address,
+        address_counts=address_counts,
+        unassigned_count=unassigned_count,
+        initial_address_filter=initial_address_filter,
     )
 
 
@@ -217,6 +277,8 @@ def dashboard():
 @v2_login_required
 def add_tracking():
     form = AddTrackingForm()
+    addresses = _sorted_user_addresses(current_user)
+    form.address_id.choices = _address_select_choices(current_user)
     placeholders = provider_registry.placeholder_map()
     carrier_list = [
         {'id': pid, 'name': _friendly_carrier_name(pid, pname), 'placeholder': placeholders.get(pid, '')}
@@ -231,6 +293,13 @@ def add_tracking():
             detected = provider_registry.find_provider_for(prefill)
             if detected:
                 form.carrier_id.data = detected.id
+        prefill_addr = (request.args.get('address') or '').strip()
+        if prefill_addr and current_user.get_address_by_id(prefill_addr):
+            form.address_id.data = prefill_addr
+        else:
+            default_addr = current_user.get_default_address() if hasattr(current_user, 'get_default_address') else None
+            if default_addr:
+                form.address_id.data = default_addr['id']
 
     if form.validate_on_submit():
         cod_val, cod_err = parse_cod_amount(form.cod_amount.data)
@@ -243,7 +312,12 @@ def add_tracking():
                 placeholders=placeholders,
                 carriers=carrier_list,
                 default_placeholder=default_placeholder,
+                addresses=addresses,
             )
+
+        selected_addr_id = (form.address_id.data or '').strip() or None
+        if selected_addr_id and not current_user.get_address_by_id(selected_addr_id):
+            selected_addr_id = None
 
         result = TrackingService.create_tracking_for_user(
             user=current_user,
@@ -253,6 +327,7 @@ def add_tracking():
             send_notification=True,
             cod_amount=cod_val,
             note=form.note.data,
+            address_id=selected_addr_id,
         )
 
         if not result.get('success'):
@@ -267,6 +342,7 @@ def add_tracking():
                 placeholders=placeholders,
                 carriers=carrier_list,
                 default_placeholder=default_placeholder,
+                addresses=addresses,
             )
 
         flash('Thêm vận đơn thành công!', 'success')
@@ -279,6 +355,7 @@ def add_tracking():
         placeholders=placeholders,
         carriers=carrier_list,
         default_placeholder=default_placeholder,
+        addresses=addresses,
     )
 
 
@@ -295,9 +372,17 @@ def detail(tracking_id):
         provider.displayName if provider else None,
     )
     meta = _classify_tracking_state(tracking)
+    addresses = _sorted_user_addresses(current_user)
+    tracking_address = (
+        current_user.get_address_by_id(tracking.get('addressId'))
+        if hasattr(current_user, 'get_address_by_id')
+        else None
+    )
 
     edit_form = EditTrackingForm()
+    edit_form.address_id.choices = _address_select_choices(current_user)
     edit_form.alias.data = tracking.get('alias') or ''
+    edit_form.address_id.data = tracking_address['id'] if tracking_address else ''
     cod_existing = int(tracking.get('codAmount') or 0)
     edit_form.cod_amount.data = str(cod_existing) if cod_existing > 0 else ''
     edit_form.note.data = tracking.get('note') or ''
@@ -319,6 +404,8 @@ def detail(tracking_id):
         edit_form=edit_form,
         share_form=share_form,
         share_url=share_url,
+        tracking_address=tracking_address,
+        addresses=addresses,
     )
 
 
@@ -330,6 +417,7 @@ def edit_tracking(tracking_id):
         abort(403)
 
     form = EditTrackingForm()
+    form.address_id.choices = _address_select_choices(current_user)
     if not form.validate_on_submit():
         flash('Dữ liệu cập nhật không hợp lệ. Vui lòng kiểm tra độ dài nội dung.', 'danger')
         return redirect(url_for('v2.detail', tracking_id=tracking_id))
@@ -340,11 +428,17 @@ def edit_tracking(tracking_id):
         return redirect(url_for('v2.detail', tracking_id=tracking_id))
 
     clean_alias, clean_note = sanitize_alias_and_note(form.alias.data, form.note.data)
-    TrackingsRepo.update(tracking_id, {
+    update_payload = {
         'alias': clean_alias,
         'codAmount': cod_val,
         'note': clean_note,
-    })
+    }
+    if 'address_id' in request.form:
+        selected_addr_id = (form.address_id.data or '').strip() or None
+        if selected_addr_id and not current_user.get_address_by_id(selected_addr_id):
+            selected_addr_id = None
+        update_payload['addressId'] = selected_addr_id
+    TrackingsRepo.update(tracking_id, update_payload)
     flash('Đã cập nhật thông tin vận đơn!', 'success')
     return redirect(url_for('v2.detail', tracking_id=tracking_id))
 
@@ -717,6 +811,166 @@ def test_zalo():
     else:
         flash('Vui lòng lưu Zalo Chat ID trước khi gửi thử.', 'warning')
     return redirect(url_for('v2.settings'))
+
+
+MAX_ADDRESSES_PER_USER = 30
+
+
+@v2_bp.route('/settings/addresses', methods=['GET', 'POST'])
+@v2_bp.route('/settings/addresses/', methods=['GET', 'POST'])
+@v2_login_required
+def addresses():
+    add_form = AddressForm()
+    action_form = FlaskForm()
+    existing = _sorted_user_addresses(current_user)
+
+    if request.method == 'GET' and not existing:
+        add_form.is_default.data = True
+
+    if add_form.validate_on_submit():
+        if len(existing) >= MAX_ADDRESSES_PER_USER:
+            flash(f'Bạn chỉ có thể lưu tối đa {MAX_ADDRESSES_PER_USER} địa chỉ.', 'warning')
+            return redirect(url_for('v2.addresses'))
+
+        clean_name, clean_detail, clean_note = _sanitize_address_input(
+            add_form.name.data,
+            add_form.detail.data,
+            add_form.note.data,
+        )
+        if not clean_name:
+            add_form.name.errors.append('Vui lòng nhập tên địa chỉ.')
+        else:
+            make_default = bool(add_form.is_default.data)
+            updated = []
+            for item in current_user.get_addresses():
+                updated.append({
+                    **item,
+                    'isDefault': False if make_default else bool(item.get('isDefault')),
+                })
+            updated.append({
+                'id': f'addr_{secrets.token_hex(6)}',
+                'name': clean_name,
+                'detail': clean_detail,
+                'note': clean_note,
+                'isDefault': make_default,
+            })
+            saved = UsersRepo.update_addresses(current_user.id, updated)
+            current_user.addresses = saved
+            flash('Đã thêm địa chỉ nhận hàng mới!', 'success')
+            return redirect(url_for('v2.addresses'))
+
+    trackings = TrackingsRepo.get_user_trackings(current_user.id)
+    address_counts = {a['id']: 0 for a in existing}
+    for t in trackings:
+        aid = (t.get('addressId') or '').strip()
+        if aid in address_counts:
+            address_counts[aid] += 1
+
+    return render_template(
+        'v2/settings/addresses.html',
+        title='Địa chỉ nhận hàng',
+        addresses=existing,
+        address_counts=address_counts,
+        add_form=add_form,
+        action_form=action_form,
+        max_addresses=MAX_ADDRESSES_PER_USER,
+    )
+
+
+@v2_bp.route('/settings/addresses/<address_id>/edit', methods=['POST'])
+@v2_login_required
+def edit_address(address_id):
+    form = AddressForm()
+    if not form.validate_on_submit():
+        flash('Thông tin địa chỉ không hợp lệ. Vui lòng kiểm tra lại.', 'danger')
+        return redirect(url_for('v2.addresses'))
+
+    clean_name, clean_detail, clean_note = _sanitize_address_input(
+        form.name.data,
+        form.detail.data,
+        form.note.data,
+    )
+    if not clean_name:
+        flash('Vui lòng nhập tên địa chỉ.', 'danger')
+        return redirect(url_for('v2.addresses'))
+
+    make_default = bool(form.is_default.data)
+    current_list = current_user.get_addresses()
+    found = False
+    updated = []
+    for item in current_list:
+        if item['id'] == address_id:
+            found = True
+            updated.append({
+                'id': item['id'],
+                'name': clean_name,
+                'detail': clean_detail,
+                'note': clean_note,
+                'isDefault': make_default,
+            })
+        else:
+            updated.append({
+                **item,
+                'isDefault': False if make_default else bool(item.get('isDefault')),
+            })
+
+    if not found:
+        abort(404)
+
+    saved = UsersRepo.update_addresses(current_user.id, updated)
+    current_user.addresses = saved
+    flash('Đã cập nhật địa chỉ nhận hàng!', 'success')
+    return redirect(url_for('v2.addresses'))
+
+
+@v2_bp.route('/settings/addresses/<address_id>/default', methods=['POST'])
+@v2_login_required
+def set_default_address(address_id):
+    form = FlaskForm()
+    if not form.validate_on_submit():
+        flash('Phiên làm việc đã hết hạn. Vui lòng thử lại.', 'warning')
+        return redirect(url_for('v2.addresses'))
+
+    unset = request.form.get('unset') == '1'
+    current_list = current_user.get_addresses()
+    found = False
+    updated = []
+    for item in current_list:
+        if item['id'] == address_id:
+            found = True
+            updated.append({**item, 'isDefault': not unset})
+        else:
+            updated.append({**item, 'isDefault': False if not unset else bool(item.get('isDefault'))})
+
+    if not found:
+        abort(404)
+
+    saved = UsersRepo.update_addresses(current_user.id, updated)
+    current_user.addresses = saved
+    if unset:
+        flash('Đã bỏ chọn địa chỉ mặc định.', 'info')
+    else:
+        flash('Đã đặt làm địa chỉ mặc định!', 'success')
+    return redirect(url_for('v2.addresses'))
+
+
+@v2_bp.route('/settings/addresses/<address_id>/delete', methods=['POST'])
+@v2_login_required
+def delete_address(address_id):
+    form = FlaskForm()
+    if not form.validate_on_submit():
+        flash('Phiên làm việc đã hết hạn. Vui lòng thử lại.', 'warning')
+        return redirect(url_for('v2.addresses'))
+
+    current_list = current_user.get_addresses()
+    updated = [item for item in current_list if item['id'] != address_id]
+    if len(updated) == len(current_list):
+        abort(404)
+
+    saved = UsersRepo.update_addresses(current_user.id, updated)
+    current_user.addresses = saved
+    flash('Đã xóa địa chỉ nhận hàng.', 'success')
+    return redirect(url_for('v2.addresses'))
 
 
 @v2_bp.route('/payments/support', methods=['GET', 'POST'])
