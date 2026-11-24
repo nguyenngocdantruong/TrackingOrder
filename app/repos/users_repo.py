@@ -36,7 +36,8 @@ def normalize_addresses(raw_addresses):
 
 
 class User(UserMixin):
-    def __init__(self, user_id, username, password_hash, settings=None, is_temporary=False, link_token=None, telegram_verified_id=None, partner_api=None, addresses=None):
+    def __init__(self, user_id, username, password_hash, settings=None, is_temporary=False, link_token=None, telegram_verified_id=None, partner_api=None, addresses=None, suspended=False):
+        self.suspended = suspended
         self.telegram_verified_id = telegram_verified_id
         self.partner_api = partner_api or {}
         self.addresses = normalize_addresses(addresses)
@@ -74,8 +75,12 @@ class User(UserMixin):
                 return addr
         return None
 
+    @property
+    def is_active(self):
+        return not self.suspended
+
     def verify_password(self, password):
-        return check_password_hash(self.password_hash, password)
+        return self.is_active and check_password_hash(self.password_hash, password)
 
 class UsersRepo:
     COLLECTION = 'users'
@@ -101,6 +106,7 @@ class UsersRepo:
             data.get('telegramVerifiedId'),
             data.get('partnerApi'),
             data.get('addresses'),
+            data.get('suspended', False),
         )
 
     @staticmethod
@@ -383,6 +389,9 @@ class UsersRepo:
                     data.get('isTemporary', False),
                     data.get('linkToken'),
                     data.get('telegramVerifiedId'),
+                    data.get('partnerApi'),
+                    data.get('addresses'),
+                    data.get('suspended', False),
                 )
             )
         return users

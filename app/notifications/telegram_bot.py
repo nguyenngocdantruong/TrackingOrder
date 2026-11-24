@@ -16,11 +16,55 @@ from app.notifications.telegram_webapp import build_private_webapp_button
 from app.providers.registry import registry
 from app.repos.trackings_repo import TrackingsRepo
 from app.repos.users_repo import UsersRepo
-from app.tracking.services import TrackingService
+from app.tracking.services import TrackingService, sanitize_alias_and_note
 
 
 _bot_thread = None
 _stop_event = threading.Event()
+
+
+DM_ADD = '➕ Thêm đơn'
+DM_ORDERS = '📦 Đơn của tôi'
+DM_STATS = '📊 Thống kê'
+DM_HELP = '❔ Trợ giúp'
+DM_CANCEL = 'Hủy nhập'
+_DM_INPUT_TIMEOUT = 600
+
+
+def _dm_keyboard(entering=False):
+    rows = [[DM_CANCEL]] if entering else [[DM_ADD, DM_ORDERS], [DM_STATS, DM_HELP]]
+    return {'keyboard': [[{'text': label} for label in row] for row in rows],
+            'resize_keyboard': True, 'is_persistent': True}
+
+
+def request_dm_input(app, chat_id, action, tracking_id=None):
+    pending = app.extensions.setdefault('telegram_dm_input', {})
+    now = time.monotonic()
+    for key, (expires, _, _) in list(pending.items()):
+        if expires <= now:
+            pending.pop(key, None)
+    pending[str(chat_id)] = (now + _DM_INPUT_TIMEOUT, action, tracking_id)
+    prompt = ('Gửi mã vận đơn, có thể kèm tên gợi nhớ sau dấu cách.'
+              if action == 'add' else 'Gửi tên gợi nhớ mới cho vận đơn.')
+    TelegramNotifier.send_message(chat_id, prompt, parse_mode=None, reply_markup=_dm_keyboard(True))
+
+
+def _finish_dm_input(app, chat_id, text, action, tracking_id):
+    if action == 'add':
+        _handle_add_command(app, chat_id, '/add ' + text, reply_markup=_dm_keyboard())
+        return
+    user = _get_chat_user(app, chat_id)
+    tracking = TrackingsRepo.get_by_id(tracking_id)
+    if not user.is_active or not tracking or tracking.get('userId') != user.id:
+        reply = 'Vận đơn không còn tồn tại hoặc bạn không có quyền sửa.'
+    else:
+        alias, _ = sanitize_alias_and_note(text, None)
+        if not alias:
+            request_dm_input(app, chat_id, action, tracking_id)
+            return
+        TrackingsRepo.update(tracking_id, {'alias': alias})
+        reply = f"Đã đổi tên đơn {tracking['trackingNumber']} thành {alias}."
+    TelegramNotifier.send_message(chat_id, reply, parse_mode=None, reply_markup=_dm_keyboard())
 
 
 def _normalize_command(text):
@@ -91,8 +135,9 @@ def _send_link_reminder_if_needed(app, user, chat_id):
     )
 
 
-def _handle_add_command(app, chat_id, text):
+def _handle_add_command(app, chat_id, text, reply_markup=None):
     user = _get_chat_user(app, chat_id)
+    markup = {"reply_markup": reply_markup} if reply_markup else {}
 
     parts = text.strip().split(maxsplit=2)
     if len(parts) < 2:
@@ -100,6 +145,7 @@ def _handle_add_command(app, chat_id, text):
             chat_id,
             "Cú pháp: /add <mã vận đơn> [tên gợi nhớ]",
             parse_mode=None,
+            **markup,
         )
         return
 
@@ -120,6 +166,7 @@ def _handle_add_command(app, chat_id, text):
                 chat_id,
                 f"ℹ️ {result.get('error', 'Mã vận đơn này đã có trong danh sách theo dõi của bạn.')}",
                 parse_mode=None,
+                **markup,
             )
             return
         TelegramNotifier.send_message(
@@ -129,6 +176,7 @@ def _handle_add_command(app, chat_id, text):
                 "Vui lòng kiểm tra lại mã vận đơn hoặc dùng /providers để xem danh sách hỗ trợ."
             ),
             parse_mode=None,
+            **markup,
         )
         return
 
@@ -145,6 +193,7 @@ def _handle_add_command(app, chat_id, text):
             f"Trạng thái hiện tại: {status}"
         ),
         parse_mode=None,
+        **markup,
     )
 
     _send_link_reminder_if_needed(app, user, chat_id)
@@ -292,15 +341,45 @@ def _handle_message(app, message):
         return
 
     with app.app_context():
+        pending = app.extensions.setdefault('telegram_dm_input', {})
+        key = str(chat_id)
+        if text == DM_CANCEL or text.split()[0].lower() == '/cancel':
+            pending.pop(key, None)
+            TelegramNotifier.send_message(chat_id, 'Đã hủy thao tác.', parse_mode=None,
+                                          reply_markup=_dm_keyboard())
+            return
+        entry = pending.pop(key, None)
+        if text == DM_ADD:
+            request_dm_input(app, chat_id, 'add')
+            return
+        if text == DM_ORDERS:
+            send_dm_management_menu(app, key)
+            if entry:
+                TelegramNotifier.send_message(chat_id, 'Menu chính', parse_mode=None,
+                                              reply_markup=_dm_keyboard())
+            return
+        if text in (DM_STATS, DM_HELP):
+            text = '/stats' if text == DM_STATS else '/help'
         if not text.startswith('/'):
-            user = _get_chat_user(app, chat_id, remind_link=True)
+            if entry:
+                expires, action, tracking_id = entry
+                if expires > time.monotonic():
+                    _finish_dm_input(app, chat_id, text, action, tracking_id)
+                else:
+                    TelegramNotifier.send_message(chat_id, 'Thao tác đã hết hạn. Hãy chọn lại từ menu.',
+                                                  parse_mode=None, reply_markup=_dm_keyboard())
+                return
+            _get_chat_user(app, chat_id, remind_link=True)
             TelegramNotifier.send_message(
                 chat_id,
-                "Mình đã nhận tin nhắn. Dùng /help để xem danh sách lệnh hỗ trợ.",
+                "Chọn một mục bên dưới hoặc dùng /help để xem danh sách lệnh.",
                 parse_mode=None,
-                reply_markup=_link_button_markup(app, user, chat_id),
+                reply_markup=_dm_keyboard(),
             )
             return
+
+        if entry and text not in ('/start', '/help'):
+            TelegramNotifier.send_message(chat_id, 'Menu chính', parse_mode=None, reply_markup=_dm_keyboard())
 
         if text.split()[0].lower() == '/admin':
             from app.admin import create_admin_link
@@ -347,8 +426,13 @@ def _handle_message(app, message):
                 chat_id,
                 _help_text(),
                 parse_mode=None,
-                reply_markup=_link_button_markup(app, user, chat_id),
+                reply_markup=_dm_keyboard(),
             )
+            if user.is_temporary:
+                _send_link_reminder_if_needed(app, user, chat_id)
+            elif markup := _link_button_markup(app, user, chat_id):
+                TelegramNotifier.send_message(chat_id, 'Mở bảng điều khiển trong Telegram.',
+                                              parse_mode=None, reply_markup=markup)
             return
 
         if command == '/author':
@@ -431,6 +515,13 @@ def _poll_updates_loop(app):
             updates = data.get('result', [])
             for update in updates:
                 offset = max(offset, update.get('update_id', 0) + 1)
+                actor = next((update[k].get('from', {}).get('id')
+                              for k in ('message', 'callback_query', 'inline_query') if update.get(k)), None)
+                if actor:
+                    with app.app_context():
+                        account = UsersRepo.get_by_telegram_chat_id(actor)
+                    if account and account.suspended:
+                        continue
                 if update.get('message'):
                     _handle_message(app, update['message'])
                 elif update.get('callback_query'):

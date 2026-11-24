@@ -1,0 +1,341 @@
+{% extends "v2/admin/_shell.html" %}
+{% from 'v2/admin/_actions.html' import action_link, submit_action %}
+{% set titles = {'overview':'Tổng quan hệ thống', 'users':'Người dùng', 'user':username,
+                 'trackings':'Vận đơn toàn hệ thống', 'tracking':'Chi tiết vận đơn',
+                 'logs':'Nhật ký', 'payments':'Lịch sử ủng hộ PayOS',
+                 'log':'Chi tiết nhật ký', 'payment':'Chi tiết giao dịch'} %}
+{% block admin_content %}
+<header class="v2-ops-heading">
+    {% set back = {'tracking': ('admin_ops.trackings', 'Vận đơn'), 'user': ('admin_ops.users', 'Người dùng'),
+                   'log': ('admin_ops.logs', 'Nhật ký'), 'payment': ('admin_ops.payments', 'PayOS')} %}
+    {% if section in back %}
+    <a class="v2-ops-back" href="{{ url_for(back[section][0]) }}">← {{ back[section][1] }}</a>
+    {% endif %}
+    <h1 class="v2-page-title">{{ titles[section] }}</h1>
+</header>
+
+{% macro input(name, label, type='text') %}
+<label class="v2-field-group">
+    <span class="v2-label">{{ label }}</span>
+    <input class="v2-input" type="{{ type }}" name="{{ name }}" value="{{ request.args.get(name, '') }}">
+</label>
+{% endmacro %}
+{% macro select(name, label, choices) %}
+<label class="v2-field-group">
+    <span class="v2-label">{{ label }}</span>
+    <select class="v2-input" name="{{ name }}">
+        <option value="">Tất cả</option>
+        {% for value, text in choices %}
+        <option value="{{ value }}" {% if request.args.get(name) == value %}selected{% endif %}>{{ text }}</option>
+        {% endfor %}
+    </select>
+</label>
+{% endmacro %}
+{% macro filter_actions() %}
+<div class="v2-admin-areas">
+    <button class="v2-btn v2-btn-primary" type="submit">Lọc</button>
+    <a class="v2-btn v2-btn-secondary" href="{{ request.path }}">Xóa bộ lọc</a>
+</div>
+{% endmacro %}
+{% macro user_link(id) %}
+{% if id %}<a href="{{ url_for('admin_ops.user_detail', user_id=id) }}">{{ id }}</a>{% else %}—{% endif %}
+{% endmacro %}
+{% macro date(value) %}{{ value.strftime('%d/%m/%Y %H:%M UTC') if value and value.strftime is defined else value or '—' }}{% endmacro %}
+
+{% macro badge(text, tone='neutral') %}<span class="v2-badge v2-badge-{{ tone }}">{{ text }}</span>{% endmacro %}
+{% macro filters(label) %}
+{% set active = request.args.items()|rejectattr('0', 'in', ['after', 'cutoff'])|rejectattr('1', 'equalto', '')|list|length %}
+<details class="v2-ops-filter">
+    <summary>{{ label }}{% if active %} {{ badge(active ~ ' đang áp dụng') }}{% endif %}</summary>
+    {{ caller() }}
+</details>
+{% endmacro %}
+
+{% if section == 'overview' %}
+<section class="v2-ops-panel v2-ops-overview" aria-label="Số liệu vận hành">
+    <div class="v2-admin-metrics">
+    <a href="{{ url_for('admin_ops.users') }}">Người dùng <strong>{{ users_count }}</strong></a>
+    <a href="{{ url_for('admin_ops.trackings', active='1') }}">Đơn đang theo dõi <strong>{{ active_count }}</strong></a>
+    <a href="{{ url_for('admin_ops.trackings', active='1', stale='1', cutoff=cutoff) }}">Đơn cần kiểm tra <strong>{{ stale_count }}</strong></a>
+    </div>
+</section>
+<section class="v2-ops-panel v2-ops-sync">
+    <div class="v2-ops-panel-head">
+        <h2 class="v2-section-title">Đồng bộ tự động</h2>
+        <a href="{{ url_for('admin_ops.logs', kind='scheduler') }}">Xem nhật ký</a>
+    </div>
+    <dl class="v2-ops-status-list">
+        <div><dt>Theo dõi vận đơn</dt><dd>{{ badge('Đang bật' if tracking_enabled else 'Đang tắt', 'success' if tracking_enabled else 'neutral') }}</dd></div>
+        <div><dt>Lịch đồng bộ</dt><dd>{{ badge('Đang bật' if scheduler_enabled else 'Đang tắt', 'success' if scheduler_enabled else 'neutral') }}</dd></div>
+        <div><dt>Lần chạy gần nhất</dt><dd>{{ date(latest_poll.createdAt) if latest_poll else 'Chưa ghi nhận' }}</dd></div>
+        {% if latest_poll %}
+        <div><dt>Kết quả</dt><dd>{{ latest_poll.processed }} đơn · {{ latest_poll.failed }} lỗi</dd></div>
+        {% endif %}
+    </dl>
+</section>
+<section class="v2-ops-panel v2-ops-detail" aria-labelledby="telegram-test-title">
+    <div class="v2-ops-panel-head">
+        <h2 class="v2-section-title" id="telegram-test-title">Thử tin nhắn Telegram</h2>
+    </div>
+    <p>Mỗi nút gửi một vận đơn mẫu tới Telegram admin. Tin thử không tạo hay sửa dữ liệu vận đơn.</p>
+    <div class="v2-ops-status-list">
+        {% for stage, label in test_stages %}
+        <div>
+            <dt>{{ label }}</dt>
+            <dd>
+                <form method="post" action="{{ url_for('admin_ops.test_telegram_notification', stage=stage) }}">
+                    {{ test_form.hidden_tag() }}
+                    <button class="v2-btn v2-btn-secondary" type="submit" aria-label="Gửi tin thử: {{ label }}">Gửi tin thử</button>
+                </form>
+            </dd>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% elif section == 'users' %}
+<details class="v2-ops-panel v2-ops-detail" {% if form.errors %}open{% endif %}>
+    <summary class="v2-section-title">Thêm người dùng</summary>
+    <form method="post" class="v2-admin-ops-form">
+        {{ form.hidden_tag() }}
+        {% for field in (form.username, form.password, form.confirm_password) %}
+        <div class="v2-field-group">
+            {{ field.label(class="v2-label") }}
+            {{ field(class="v2-input", autocomplete="off" if loop.first else "new-password") }}
+            {% for error in field.errors %}<p role="alert">{{ error }}</p>{% endfor %}
+        </div>
+        {% endfor %}
+        {% for error in form.errors.get('csrf_token', []) %}<p role="alert">{{ error }}</p>{% endfor %}
+        <button class="v2-btn v2-btn-primary" type="submit">Tạo tài khoản</button>
+    </form>
+</details>
+{% call filters('Bộ lọc người dùng') %}
+<form method="get" class="v2-admin-ops-form" aria-label="Lọc người dùng">
+    {{ input('username', 'Tên đăng nhập chính xác') }}
+    {{ select('type', 'Loại tài khoản', [('regular','Thường'), ('temporary','Tạm từ bot')]) }}
+    {{ filter_actions() }}
+</form>
+{% endcall %}
+{% elif section == 'user' %}
+<section class="v2-ops-panel v2-ops-detail">
+    <h2 class="v2-section-title">Thông báo vận đơn</h2>
+    <p>{{ 'Tài khoản tạm từ bot' if temporary else 'Tài khoản thường' }} · {{ 'Đang khóa' if suspended else 'Đang hoạt động' }}</p>
+    <p>Thông báo tự động {{ 'đang bật' if notifications else 'đang tắt' }} · Telegram {{ 'bật' if telegram_on else 'tắt' }} · Zalo {{ 'bật' if zalo_on else 'tắt' }}</p>
+    <p>{{ stages|join(' · ') or 'Chưa chọn giai đoạn nhận thông báo' }}</p>
+    {% if webhook_at %}<p>Webhook gần nhất {{ date(webhook_at) }} · {{ 'Thành công' if webhook_ok else 'Thất bại' }}{% if webhook_status %} · HTTP {{ webhook_status }}{% endif %}</p>{% endif %}
+    <div class="v2-admin-areas">
+        <a class="v2-btn v2-btn-secondary" href="{{ url_for('admin_ops.trackings', user=user_id) }}">Vận đơn của user</a>
+        <a class="v2-btn v2-btn-secondary" href="{{ url_for('admin_ops.logs', user=user_id) }}">Nhật ký của user</a>
+    </div>
+</section>
+{% if can_manage %}
+<section class="v2-ops-panel v2-ops-detail">
+    <h2 class="v2-section-title">Quản lý tài khoản</h2>
+    <form method="post" class="v2-admin-areas">
+        {{ action_form.hidden_tag() }}
+        <button type="submit" name="action" value="{{ 'unsuspend' if suspended else 'suspend' }}" class="v2-btn v2-btn-secondary">{{ 'Mở khóa tài khoản' if suspended else 'Khóa tài khoản' }}</button>
+    </form>
+    {% if not temporary %}
+    <details id="reset-password" {% if password_form.errors or request.args.get('edit') %}open{% endif %}>
+        <summary>Đặt lại mật khẩu</summary>
+        <form method="post" class="v2-admin-ops-form">
+            {{ password_form.hidden_tag() }}
+            {% for field in (password_form.password, password_form.confirmation) %}
+            <div class="v2-field-group">
+                {{ field.label(class="v2-label") }}
+                {{ field(class="v2-input", autocomplete="new-password") }}
+                {% for error in field.errors %}<p role="alert">{{ error }}</p>{% endfor %}
+            </div>
+            {% endfor %}
+            {% for error in password_form.errors.get('csrf_token', []) %}<p role="alert">{{ error }}</p>{% endfor %}
+            <div class="v2-admin-areas"><button class="v2-btn v2-btn-primary" type="submit" name="action" value="reset_password">Lưu mật khẩu mới</button></div>
+        </form>
+    </details>
+    {% endif %}
+</section>
+{% endif %}
+{% elif section == 'trackings' %}
+{% call filters('Bộ lọc vận đơn') %}
+<form method="get" class="v2-admin-ops-form" aria-label="Lọc vận đơn">
+    {% if request.args.get('stale') == '1' %}
+    <p class="v2-help">Đang xem đơn chưa kiểm tra gần đây.</p>
+    <input type="hidden" name="stale" value="1">
+    <input type="hidden" name="cutoff" value="{{ request.args.get('cutoff', '') }}">
+    {% endif %}
+    {{ input('number', 'Mã vận đơn chính xác') }}
+    {{ input('user', 'ID người dùng') }}
+    {{ select('carrier', 'Hãng vận chuyển', providers) }}
+    {{ input('status', 'Trạng thái gốc') }}
+    {{ select('active', 'Theo dõi', [('1','Đang theo dõi'), ('paused','Tạm dừng'), ('0','Đã kết thúc')]) }}
+    {{ input('from', 'Tạo từ ngày (UTC)', 'date') }}
+    {{ input('to', 'Tạo trước ngày (UTC)', 'date') }}
+    {{ filter_actions() }}
+</form>
+{% endcall %}
+{% elif section == 'tracking' %}
+<section class="v2-ops-panel v2-ops-detail">
+    <h2 class="v2-section-title">{{ tracking.alias or tracking.trackingNumber }}</h2>
+    <p>{{ tracking.trackingNumber }} · {{ tracking.carrierId }} · {{ tracking.currentStatus or 'Chưa có trạng thái' }}</p>
+    <p>Chủ đơn {{ user_link(tracking.userId) }} · Kiểm tra gần nhất {{ date(tracking.lastCheckedAt) }}</p>
+    <div class="v2-admin-areas">
+        <form method="post">{{ form.hidden_tag() }}<button type="submit" class="v2-btn v2-btn-primary">Đồng bộ lại</button></form>
+        <a class="v2-btn v2-btn-secondary" href="{{ url_for('admin_ops.logs', tracking=tracking_id) }}">Nhật ký vận đơn</a>
+    </div>
+</section>
+<details id="edit-tracking" class="v2-ops-panel v2-ops-detail" {% if edit_form.errors or request.args.get('edit') %}open{% endif %}>
+    <summary class="v2-section-title">Sửa thông tin vận đơn</summary>
+    <form method="post" class="v2-admin-ops-form">
+        {{ edit_form.hidden_tag() }}
+        {% for field in (edit_form.alias, edit_form.note) %}
+        <div class="v2-field-group">
+            {{ field.label(class="v2-label") }}
+            {{ field(class="v2-input") }}
+            {% for error in field.errors %}<p role="alert">{{ error }}</p>{% endfor %}
+        </div>
+        {% endfor %}
+        {% for error in edit_form.errors.get('csrf_token', []) %}<p role="alert">{{ error }}</p>{% endfor %}
+        <div class="v2-admin-areas"><button class="v2-btn v2-btn-primary" name="action" value="edit_tracking" type="submit">Lưu thay đổi</button></div>
+    </form>
+</details>
+<h2 class="v2-section-title">Lịch sử sự kiện</h2>
+<div class="v2-admin-table" tabindex="0" role="region" aria-label="Lịch sử sự kiện">
+    <table class="v2-spec-table" role="table">
+        <thead role="rowgroup"><tr role="row"><th role="columnheader" scope="col">Thời gian</th><th role="columnheader" scope="col">Giai đoạn</th><th role="columnheader" scope="col">Sự kiện</th></tr></thead>
+        <tbody role="rowgroup">{% for event, stage in events %}
+        <tr role="row"><td role="cell" data-label="Thời gian"><div>{{ date(event.actualTime) }}</div></td><td role="cell" data-label="Giai đoạn"><div>{{ stage or 'Chưa phân loại' }}</div></td><td role="cell" data-label="Sự kiện"><div>{{ event.name }}<br>{{ event.descBuyer }}</div></td></tr>
+        {% else %}<tr role="row"><td role="cell" colspan="3">Chưa có sự kiện.</td></tr>{% endfor %}</tbody>
+    </table>
+</div>
+{% elif section in ('log', 'payment') %}
+<section class="v2-ops-panel v2-ops-detail">
+    <dl class="v2-ops-status-list">
+        {% if section == 'payment' %}
+        <div><dt>Mã giao dịch</dt><dd>{{ order_code }}</dd></div>
+        <div><dt>Số tiền</dt><dd>{{ '{:,}'.format(item.amount or 0)|replace(',', '.') }} ₫</dd></div>
+        <div><dt>Trạng thái đã ghi nhận</dt><dd>{{ 'Đã thanh toán' if item.status == 'paid' else 'Chờ thanh toán' }}</dd></div>
+        <div><dt>Cập nhật</dt><dd>{{ date(item.updatedAt) }}</dd></div>
+        {% else %}
+        <div><dt>Thời gian</dt><dd>{{ date(item.createdAt) }}</dd></div>
+        <div><dt>Sự kiện</dt><dd>{{ item.kind }} / {{ item.action }}</dd></div>
+        <div><dt>Kết quả</dt><dd>{{ {'ok':'Thành công','error':'Lỗi','skipped':'Đã bỏ qua'}.get(item.outcome, item.outcome) }}</dd></div>
+        {% for key, label in [('channel','Kênh'), ('carrierId','Hãng vận chuyển'), ('deliveryId','Mã gửi webhook'), ('statusCode','Mã HTTP'), ('stage','Giai đoạn'), ('processed','Số đơn đã kiểm tra'), ('failed','Số lỗi')] %}
+        {% if item.get(key) is not none %}<div><dt>{{ label }}</dt><dd>{{ stage_labels.get(item[key], item[key]) if key == 'stage' else item[key] }}</dd></div>{% endif %}
+        {% endfor %}
+        {% if item.actorId %}<div><dt>Người thao tác</dt><dd>{{ user_link(item.actorId) }}</dd></div>{% endif %}
+        {% if item.userId %}<div><dt>Người dùng</dt><dd>{{ user_link(item.userId) }}</dd></div>{% endif %}
+        {% if item.trackingId %}<div><dt>Vận đơn</dt><dd><a href="{{ url_for('admin_ops.tracking_detail', tracking_id=item.trackingId) }}">{{ item.trackingId }}</a></dd></div>{% endif %}
+        {% endif %}
+    </dl>
+    {% if section == 'payment' %}
+    <form method="post" class="v2-admin-areas">
+        {{ form.hidden_tag() }}
+        <button class="v2-btn v2-btn-secondary" type="submit">Kiểm tra trên PayOS</button>
+    </form>
+    {% endif %}
+</section>
+{% elif section == 'logs' %}
+{% call filters('Bộ lọc nhật ký') %}
+<form method="get" class="v2-admin-ops-form" aria-label="Lọc nhật ký">
+    {{ select('kind', 'Loại nhật ký', [('audit','Quản trị'), ('scheduler','Tác vụ tự động'), ('tracking','Đồng bộ đơn'), ('notification','Thông báo'), ('webhook','Webhook')]) }}
+    {{ select('outcome', 'Kết quả', [('ok','Thành công'), ('error','Lỗi'), ('skipped','Đã bỏ qua')]) }}
+    {{ input('tracking', 'ID vận đơn') }}
+    {{ input('user', 'ID người dùng') }}
+    {{ select('carrier', 'Hãng vận chuyển', providers) }}
+    {{ input('from', 'Từ ngày (UTC)', 'date') }}
+    {{ input('to', 'Trước ngày (UTC)', 'date') }}
+    {{ filter_actions() }}
+</form>
+{% endcall %}
+{% elif section == 'payments' %}
+{% call filters('Bộ lọc giao dịch') %}
+<form method="get" class="v2-admin-ops-form" aria-label="Lọc giao dịch">
+    {{ input('code', 'Mã giao dịch') }}
+    {{ select('status', 'Trạng thái', [('pending','Chờ thanh toán'), ('paid','Đã thanh toán')]) }}
+    {{ input('from', 'Cập nhật từ ngày (UTC)', 'date') }}
+    {{ input('to', 'Cập nhật trước ngày (UTC)', 'date') }}
+    {{ filter_actions() }}
+</form>
+{% endcall %}
+{% endif %}
+
+{% if rows is defined %}
+{% set headers = {
+    'users':['Tên đăng nhập','Tài khoản','Trạng thái','Ngày tạo'],
+    'trackings':['Vận đơn','Người dùng','Hãng','Trạng thái','Kiểm tra gần nhất'],
+    'logs':['Thời gian','Sự kiện','Kết quả','Liên quan'],
+    'payments':['Mã giao dịch','Số tiền','Trạng thái','Cập nhật']
+}[section] %}
+<div class="v2-admin-table" tabindex="0" role="region" aria-label="{{ titles[section] }}">
+    <table class="v2-spec-table" role="table">
+        <thead role="rowgroup"><tr role="row">{% for heading in headers %}<th role="columnheader" scope="col">{{ heading }}</th>{% endfor %}<th role="columnheader" scope="col">Thao tác</th></tr></thead>
+        <tbody role="rowgroup">
+        {% for row in rows %}
+        <tr role="row">
+        {% if section == 'users' %}
+            <td role="cell" data-label="{{ headers[0] }}"><div><a href="{{ url_for('admin_ops.user_detail', user_id=row.id) }}">{{ row.username or row.id }}</a></div></td>
+            <td role="cell" data-label="{{ headers[1] }}"><div>{{ 'Tạm từ bot' if row.isTemporary else 'Thường' }}</div></td><td role="cell" data-label="{{ headers[2] }}"><div>{{ badge('Đang khóa' if row.suspended else 'Hoạt động', 'danger' if row.suspended else 'success') }}</div></td><td role="cell" data-label="{{ headers[3] }}"><div>{{ date(row.createdAt) }}</div></td>
+        {% elif section == 'trackings' %}
+            <td role="cell" data-label="{{ headers[0] }}"><div><a href="{{ url_for('admin_ops.tracking_detail', tracking_id=row.id) }}">{{ row.trackingNumber }}</a>{% if row.alias %}<span class="v2-ops-secondary">{{ row.alias }}</span>{% endif %}</div></td>
+            <td role="cell" data-label="{{ headers[1] }}"><div>{{ user_link(row.get('userId')) }}</div></td><td role="cell" data-label="{{ headers[2] }}"><div>{{ row.carrierId }}</div></td><td role="cell" data-label="{{ headers[3] }}"><div>{{ row.currentStatus or '—' }}{% if row.adminPaused and row.isActive %}<span class="v2-ops-secondary">Tạm dừng đồng bộ</span>{% endif %}</div></td><td role="cell" data-label="{{ headers[4] }}"><div>{{ date(row.lastCheckedAt) }}</div></td>
+        {% elif section == 'logs' %}
+            <td role="cell" data-label="{{ headers[0] }}"><div>{{ date(row.createdAt) }}</div></td>
+            <td role="cell" data-label="{{ headers[1] }}"><div>{{ {'audit':'Quản trị','scheduler':'Tác vụ tự động','notification':'Thông báo','webhook':'Webhook','tracking':'Đồng bộ vận đơn'}.get(row.kind, row.kind) }}<br>
+            {{ {'poll':'Kiểm tra vận đơn','sync':'Đồng bộ vận đơn','send':'Gửi thông báo','stage_filtered':'Giai đoạn đã bỏ chọn','disabled':'Thông báo tự động đang tắt','no_channel':'Không có kênh gửi','create_user':'Tạo tài khoản','refresh_tracking':'Đồng bộ thủ công','edit_tracking':'Sửa vận đơn','pause_tracking':'Tạm dừng đồng bộ','resume_tracking':'Bật lại đồng bộ','save_config':'Lưu cấu hình','suspend':'Khóa tài khoản','unsuspend':'Mở khóa tài khoản','reset_password':'Đặt lại mật khẩu'}.get(row.action, row.action) }} {{ row.channel or '' }} {% if row.stage %} · {{ stage_labels.get(row.stage, row.stage) }}{% endif %}</div></td>
+            <td role="cell" data-label="{{ headers[2] }}"><div>{{ badge({'ok':'Thành công','error':'Lỗi','skipped':'Đã bỏ qua'}.get(row.outcome, row.outcome), {'ok':'success','error':'danger'}.get(row.outcome, 'neutral')) }}
+                {% if row.statusCode %} · HTTP {{ row.statusCode }}{% endif %}
+                {% if row.processed is defined %}<br>{{ row.processed }} đơn, {{ row.failed }} lỗi{% endif %}</div></td>
+            <td role="cell" data-label="{{ headers[3] }}"><div>{% if row.trackingId %}<a href="{{ url_for('admin_ops.tracking_detail', tracking_id=row.trackingId) }}">Vận đơn {{ row.trackingId }}</a><br>{% endif %}
+                {% if row.actorId %}Admin {{ user_link(row.actorId) }}<br>{% endif %}
+                {% if row.userId %}User {{ user_link(row.userId) }}{% endif %} {{ row.carrierId or '' }}</div></td>
+        {% else %}
+            <td role="cell" data-label="{{ headers[0] }}"><div>{{ row.orderCode }}</div></td><td role="cell" data-label="{{ headers[1] }}"><div>{{ '{:,}'.format(row.amount or 0)|replace(',', '.') }} ₫</div></td>
+            <td role="cell" data-label="{{ headers[2] }}"><div>{{ badge('Đã thanh toán' if row.status == 'paid' else 'Chờ thanh toán', 'success' if row.status == 'paid' else 'neutral') }}</div></td><td role="cell" data-label="{{ headers[3] }}"><div>{{ date(row.updatedAt) }}</div></td>
+        {% endif %}
+            <td role="cell" data-label="Thao tác">
+                <div class="v2-ops-actions">
+                    {% if section == 'users' %}
+                    {% set href = url_for('admin_ops.user_detail', user_id=row.id) %}
+                    {{ action_link('view', 'Xem hồ sơ', href) }}
+                    {% if row.canManage %}
+                    {% if not row.isTemporary %}
+                    {{ action_link('edit', 'Đặt lại mật khẩu', url_for('admin_ops.user_detail', user_id=row.id, edit=1, _anchor='reset-password')) }}
+                    {% endif %}
+                    {{ submit_action('unlock' if row.suspended else 'lock', 'Mở khóa tài khoản' if row.suspended else 'Khóa tài khoản',
+                                     href, 'unsuspend' if row.suspended else 'suspend', row_form) }}
+                    {% endif %}
+                    {% elif section == 'trackings' %}
+                    {% set href = url_for('admin_ops.tracking_detail', tracking_id=row.id) %}
+                    {{ action_link('view', 'Xem vận đơn', href) }}
+                    {{ action_link('edit', 'Sửa vận đơn', url_for('admin_ops.tracking_detail', tracking_id=row.id, edit=1, _anchor='edit-tracking')) }}
+                    {{ submit_action('refresh', 'Đồng bộ ngay', href, 'refresh_tracking', row_form) }}
+                    {% if row.isActive %}
+                    {{ submit_action('play' if row.adminPaused else 'pause', 'Tiếp tục đồng bộ tự động' if row.adminPaused else 'Tạm dừng đồng bộ tự động',
+                                     href, 'resume_tracking' if row.adminPaused else 'pause_tracking', row_form) }}
+                    {% endif %}
+                    {% elif section == 'logs' %}
+                    {{ action_link('view', 'Xem bản ghi', url_for('admin_ops.log_detail', event_id=row.id)) }}
+                    {% if row.trackingId %}
+                    {{ action_link('link', 'Mở vận đơn liên quan', url_for('admin_ops.tracking_detail', tracking_id=row.trackingId)) }}
+                    {% endif %}
+                    {% if row.userId %}
+                    {{ action_link('link', 'Mở hồ sơ liên quan', url_for('admin_ops.user_detail', user_id=row.userId)) }}
+                    {% endif %}
+                    {% else %}
+                    {% set href = url_for('admin_ops.payment_detail', order_code=row.orderCode or row.id) %}
+                    {{ action_link('view', 'Xem giao dịch', href) }}
+                    {{ submit_action('refresh', 'Kiểm tra trên PayOS', href, 'check_payment', row_form) }}
+                    {% endif %}
+                </div>
+            </td>
+        </tr>
+        {% else %}<tr role="row"><td role="cell" colspan="{{ headers|length + 1 }}">{{ 'Chưa có kết quả trong trang này. Dùng Trang tiếp để tìm tiếp.' if cursor else 'Chưa có dữ liệu phù hợp.' }}</td></tr>{% endfor %}
+        </tbody>
+    </table>
+</div>
+{% if cursor %}
+<div class="v2-admin-areas">
+    {% set query = dict(request.args.items()|rejectattr('0', 'equalto', 'after'), after=cursor) %}
+    <a class="v2-btn v2-btn-secondary" href="{{ request.path }}?{{ query|urlencode }}">Trang tiếp</a>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

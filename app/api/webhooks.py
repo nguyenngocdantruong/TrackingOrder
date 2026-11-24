@@ -12,6 +12,8 @@ from urllib.parse import urlsplit
 import requests
 from flask import current_app
 
+from app.operations import record
+
 from app.providers.registry import registry as provider_registry
 from app.repos.trackings_repo import TrackingsRepo
 from app.repos.users_repo import UsersRepo
@@ -184,6 +186,9 @@ class PartnerWebhookService:
 
         try:
             with app.app_context():
+                record('webhook', event_type, 'ok' if delivered else 'error',
+                       userId=user_id, deliveryId=delivery_id, statusCode=status_code,
+                       trackingId=(payload_data.get('tracking') or {}).get('id'))
                 fresh_user = UsersRepo.get_by_id(user_id)
                 merged = dict((fresh_user.partner_api if fresh_user else partner_cfg) or {})
                 merged.update({
@@ -208,7 +213,7 @@ class PartnerWebhookService:
 
     @staticmethod
     def dispatch(user, event_type: str, payload_data: dict, async_send: bool = True) -> dict | None:
-        if not user:
+        if not user or getattr(user, 'suspended', False):
             return None
         partner_cfg = dict(getattr(user, 'partner_api', None) or {})
         webhook_url = (partner_cfg.get('webhookUrl') or '').strip()

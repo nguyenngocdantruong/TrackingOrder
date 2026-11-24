@@ -6,7 +6,7 @@ from unittest.mock import patch
 from werkzeug.security import generate_password_hash
 
 from app import create_app
-from app.notifications.telegram_bot import _handle_message
+from app.notifications.telegram_bot import DM_ADD, DM_CANCEL, DM_ORDERS, _handle_message
 from app.notifications.telegram_group import (
     build_popup_summary_for_user,
     handle_callback_query,
@@ -282,6 +282,58 @@ class TelegramGroupBotTests(unittest.TestCase):
         self.assertIn('841092837465-**29', grp_call['text'])
         self.assertNotIn('4829', grp_call['text'])
         self.assertNotIn('secret-link-token-alice', repr(grp_call))
+
+    def test_reply_keyboard_add_and_cancel_in_private_chat(self):
+        def message(text):
+            _handle_message(self.app, {'chat': {'id': 222, 'type': 'private'},
+                                       'from': {'id': 222}, 'text': text})
+
+        with patch('app.notifications.telegram_bot.TelegramNotifier.send_message') as send, patch(
+            'app.tracking.services.TrackingService.create_tracking_for_user',
+            return_value={'success': True, 'tracking_id': 'trk-b1', 'carrier_id': 'lex'},
+        ) as create, patch('app.notifications.telegram_bot.send_dm_management_menu') as menu:
+            message('/start')
+            keyboards = [call.kwargs.get('reply_markup', {}).get('keyboard') for call in send.call_args_list]
+            self.assertTrue(any(keyboard and {'text': DM_ADD} in keyboard[0] for keyboard in keyboards))
+            message(DM_ADD)
+            self.assertEqual(send.call_args.kwargs['reply_markup']['keyboard'], [[{'text': DM_CANCEL}]])
+            message(DM_CANCEL)
+            message('LEXPU123456')
+            create.assert_not_called()
+            message(DM_ADD)
+            message('LEXPU123456 Tai nghe')
+            self.assertEqual(create.call_args.kwargs['tracking_number'], 'LEXPU123456')
+            self.assertEqual(create.call_args.kwargs['alias'], 'Tai nghe')
+            message(DM_ORDERS)
+            menu.assert_called_once_with(self.app, '222')
+
+    def test_inline_detail_rename_and_confirm_delete(self):
+        def callback(action, chat_type='private'):
+            handle_callback_query(self.app, {
+                'id': 'callback', 'from': {'id': 222}, 'data': f'dm:{action}:trk-b1',
+                'message': {'message_id': 4, 'chat': {'id': 222, 'type': chat_type}},
+            })
+
+        with patch('app.notifications.telegram_group.tg_api_call') as api, patch(
+            'app.notifications.telegram_bot.TelegramNotifier.send_message',
+        ), patch('app.repos.trackings_repo.TrackingsRepo.update') as update, patch(
+            'app.repos.trackings_repo.TrackingsRepo.delete',
+        ) as delete:
+            callback('v')
+            detail = api.call_args.args[2]
+            self.assertIn('LEXPU222222', detail['text'])
+            self.assertIn('dm:n:trk-b1', str(detail['reply_markup']))
+            callback('n')
+            _handle_message(self.app, {'chat': {'id': 222, 'type': 'private'},
+                                       'from': {'id': 222}, 'text': 'Tên mới'})
+            update.assert_called_once_with('trk-b1', {'alias': 'Tên mới'})
+            callback('d')
+            delete.assert_not_called()
+            self.assertIn('dm:x:trk-b1', str(api.call_args.args[2]['reply_markup']))
+            callback('x', chat_type='supergroup')
+            delete.assert_not_called()
+            callback('x')
+            delete.assert_called_once_with('trk-b1')
 
     def test_cross_user_remove_and_forged_callbacks_are_blocked(self):
         api_calls = []

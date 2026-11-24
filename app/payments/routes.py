@@ -1,8 +1,7 @@
-import json
-
 from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
+from app.operations import record_payment
 from app.payments.base import DonationRequest
 from app.payments.forms import SupportForm
 from app.payments.registry import get_default_gateway, registry
@@ -46,6 +45,7 @@ def support():
         try:
             order_code = getattr(payment_link, 'order_code', None)
             if order_code:
+                record_payment(order_code, donation.amount)
                 _pending_donations[order_code] = {
                     'name': donation.name,
                     'email': donation.email,
@@ -88,42 +88,27 @@ def webhook():
         return {'error': 'Gateway not configured'}, 503
 
     raw_payload = request.get_data()
-    raw_json = None
-    try:
-        raw_decoded = raw_payload.decode('utf-8', errors='replace')
-        current_app.logger.info('[Payment] Webhook raw payload: %s', raw_decoded)
-        raw_json = json.loads(raw_decoded)
-    except Exception as exc:
-        current_app.logger.warning('[Payment] Unable to decode raw payload: %s', exc)
     try:
         result = gateway.verify_webhook(raw_payload)
     except Exception as exc:
         current_app.logger.warning('Webhook signature validation failed: %s', exc)
         return {'error': 'Invalid signature'}, 400
 
-    code = _get_attr(result, 'code')
-    success = _get_attr(result, 'success', None)
-    if success is None:
-        success = (code == '00')
-    data = _get_attr(result, 'data', {}) or {}
-
-    if (not data) and isinstance(raw_json, dict):
-        data = raw_json.get('data', {}) or data
-        current_app.logger.info('[Payment] Fallback to raw_json data keys=%s', list(data.keys()) if isinstance(data, dict) else type(data))
-
-    current_app.logger.info('[Payment] Webhook parsed code=%s success=%s data_keys=%s', code, success, list(data.keys()) if isinstance(data, dict) else type(data))
-    try:
-        current_app.logger.info('[Payment] Webhook data preview=%s', data)
-    except Exception:
-        pass
-
-    if code != '00' or not success:
-        current_app.logger.info('Webhook not successful: code=%s success=%s payload=%s', code, success, data)
+    # PayOS returns the signature-verified inner WebhookData. Read success
+    # and order information from that signed object.
+    data = _get_attr(result, 'data') or result
+    if _get_attr(data, 'code') != '00':
         return {'error': 'Webhook not successful'}, 400
-
-    order_code = _get_attr(data, 'orderCode')
-    current_app.logger.info('[Payment] Webhook verified: orderCode=%s amount=%s', order_code, _format_amount(_get_attr(data, 'amount', 0)))
-    _notify_donation_payload(data, order_code)
+    order_code = _get_attr(data, 'order_code') or _get_attr(data, 'orderCode')
+    if not order_code or not str(order_code).isdigit():
+        return {'error': 'Missing order code'}, 400
+    try:
+        first_payment = record_payment(order_code, _coerce_amount(_get_attr(data, 'amount', 0)), paid=True)
+    except Exception:
+        current_app.logger.error('[Payment] Could not persist verified payment')
+        return {'error': 'Payment history unavailable'}, 503
+    if first_payment:
+        _notify_donation_payload(data, order_code)
     return {'status': 'ok'}
 
 

@@ -4,6 +4,7 @@ Notification service for sending notifications through various providers.
 from typing import List, Optional
 from flask import current_app
 
+from app.operations import record
 from app.notifications.registry import registry
 from app.notifications.base import NotificationResult
 
@@ -12,7 +13,7 @@ class NotificationService:
     """Service for sending notifications to users through configured providers."""
     
     @staticmethod
-    def send_to_user(user, message: str, parse_mode: Optional[str] = 'Markdown', **kwargs) -> List[NotificationResult]:
+    def send_to_user(user, message: str, parse_mode: Optional[str] = 'Markdown', *, tracking_id=None, stage=None, **kwargs) -> List[NotificationResult]:
         """
         Send notification to a user through all their configured channels.
         
@@ -25,7 +26,7 @@ class NotificationService:
         Returns:
             List of NotificationResult for each provider used
         """
-        if not user or not user.settings:
+        if not user or not user.settings or getattr(user, 'suspended', False):
             return []
         
         # Check if notifications are enabled globally
@@ -52,6 +53,9 @@ class NotificationService:
                     **kwargs
                 )
                 results.append(result)
+                if tracking_id:
+                    record('notification', 'send', 'ok' if result.success else 'error',
+                           userId=user.id, trackingId=tracking_id, channel='telegram', stage=stage)
         
         # Send via Zalo if configured
         zalo_settings = user.settings.get('zalo') or {}
@@ -69,7 +73,13 @@ class NotificationService:
                     **kwargs
                 )
                 results.append(result)
+                if tracking_id:
+                    record('notification', 'send', 'ok' if result.success else 'error',
+                           userId=user.id, trackingId=tracking_id, channel='zalo', stage=stage)
         
+        if tracking_id and not results:
+            record('notification', 'no_channel', 'skipped',
+                   userId=user.id, trackingId=tracking_id, stage=stage)
         return results
     
     @staticmethod

@@ -59,7 +59,7 @@ class PayOSGateway(PaymentGateway):
 
     def get_payment_status(self, order_code: int):
         try:
-            return self.client.payment_requests.get(order_code=order_code)
+            return self.client.payment_requests.get(order_code)
         except APIError as exc:  # pragma: no cover - bubbled up to caller
             raise RuntimeError(f"Unable to fetch PayOS payment status: {exc}") from exc
 

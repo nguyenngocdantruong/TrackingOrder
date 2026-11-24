@@ -1,0 +1,24 @@
+{% macro icon(name) %}
+<svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true">
+    {% if name == 'view' %}<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/>
+    {% elif name == 'edit' %}<path d="m15 5 4 4M4 20l4.5-1 11-11a2.8 2.8 0 0 0-4-4l-11 11L4 20Z"/>
+    {% elif name in ('lock', 'unlock') %}<rect x="5" y="11" width="14" height="10" rx="2"/><path d="{{ 'M8 11V7a4 4 0 0 1 8 0v4' if name == 'lock' else 'M8 11V7a4 4 0 0 1 7.5-2' }}"/>
+    {% elif name == 'refresh' %}<path d="M20 8a8 8 0 0 0-13-3L4 8m0-5v5h5m-5 8a8 8 0 0 0 13 3l3-3m0 5v-5h-5"/>
+    {% elif name == 'pause' %}<path d="M9 5v14m6-14v14"/>
+    {% elif name == 'play' %}<path d="m8 5 12 7-12 7V5Z"/>
+    {% elif name == 'link' %}<path d="M13 5h6v6m0-6-8 8m-2-8H5v14h14v-4"/>
+    {% endif %}
+</svg>
+{% endmacro %}
+
+{% macro action_link(name, label, href) %}
+<a class="v2-ops-action" href="{{ href }}" aria-label="{{ label }}" title="{{ label }}">{{ icon(name) }}</a>
+{% endmacro %}
+
+{% macro submit_action(name, label, href, action, form) %}
+<form method="post" action="{{ href }}">
+    {% if form.csrf_token is defined %}<input type="hidden" name="csrf_token" value="{{ form.csrf_token.current_token }}">{% endif %}
+    <input type="hidden" name="from_list" value="1">
+    <button class="v2-ops-action" type="submit" name="action" value="{{ action }}" aria-label="{{ label }}" title="{{ label }}">{{ icon(name) }}</button>
+</form>
+{% endmacro %}

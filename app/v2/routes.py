@@ -13,6 +13,7 @@ from flask_login import current_user, login_user, logout_user
 from flask_wtf import FlaskForm
 
 import app.admin as admin_mod
+from app.operations import record, record_payment
 from app.api.webhooks import (
     SUPPORTED_WEBHOOK_EVENTS,
     PartnerWebhookService,
@@ -546,7 +547,8 @@ def telegram_webapp_auth():
 
     tg_id = str(verified['user']['id'])
     user = UsersRepo.get_or_create_temp_by_telegram_chat_id(tg_id)
-    login_user(user, remember=True)
+    if not login_user(user, remember=True):
+        return jsonify(error='Tài khoản đang bị khóa.'), 403
 
     start_param = (verified.get('start_param') or '').strip().lower()
     if start_param == 'add':
@@ -619,7 +621,7 @@ def login():
         master_matches = bool(master) and hmac.compare_digest(
             supplied.encode('utf-8'), master.encode('utf-8')
         )
-        if user and (master_matches or user.verify_password(supplied)):
+        if user and user.is_active and (master_matches or user.verify_password(supplied)):
             login_user(user)
             return redirect(_safe_next_url(request.args.get('next'), 'v2.dashboard'))
         flash('Đăng nhập không thành công. Vui lòng kiểm tra lại tên đăng nhập và mật khẩu.', 'danger')
@@ -644,6 +646,10 @@ def link_account():
     user = UsersRepo.get_by_telegram_chat_id(chat_id)
     if not user:
         user = UsersRepo.get_or_create_temp_by_telegram_chat_id(chat_id)
+
+    if not user.is_active:
+        flash('Tài khoản đang bị khóa.', 'danger')
+        return redirect(url_for('v2.login'))
 
     if not user.is_temporary:
         flash('Telegram này đã được liên kết tài khoản website.', 'info')
@@ -682,6 +688,10 @@ def link_zalo_account():
         return redirect(url_for('v2.login'))
 
     user = UsersRepo.get_or_create_temp_by_zalo_account_id(zalo_id)
+
+    if not user.is_active:
+        flash('Tài khoản đang bị khóa.', 'danger')
+        return redirect(url_for('v2.login'))
 
     if not user.link_token or user.link_token != token:
         flash('Liên kết không hợp lệ hoặc đã hết hạn.', 'danger')
@@ -1009,6 +1019,7 @@ def support():
         try:
             order_code = getattr(payment_link, 'order_code', None)
             if order_code:
+                record_payment(order_code, donation.amount)
                 _pending_donations[order_code] = {
                     'name': donation.name,
                     'email': donation.email,
@@ -1248,12 +1259,22 @@ def admin_verify():
         if form.validate_on_submit():
             admin_mod.get_db().collection('users').document(current_user.id).update({'telegramVerifiedId': entry[0]})
             admin_mod._links.pop(digest, None)
-            return redirect(url_for('v2.admin_index'))
+            return redirect(url_for('admin_ops.overview'))
     return render_template('v2/admin/verify.html', title='Xác nhận quản trị', form=form, token=token)
 
 
-@v2_bp.route('/admin', methods=['GET', 'POST'])
-@v2_bp.route('/admin/', methods=['GET', 'POST'])
+@v2_bp.get('/admin')
+@v2_bp.get('/admin/')
+@v2_login_required
+def admin_home():
+    if not admin_mod.is_admin():
+        abort(403)
+    return redirect(url_for('admin_ops.overview'))
+
+
+@v2_bp.post('/admin')
+@v2_bp.post('/admin/')
+@v2_bp.route('/admin/config', methods=['GET', 'POST'])
 @v2_login_required
 def admin_index():
     if not admin_mod.is_admin():
@@ -1312,6 +1333,7 @@ def admin_index():
                     for name, path in paths.items():
                         path.write_text(files[name], encoding='utf-8')
                     raise
+                record('audit', 'save_config', 'ok', actorId=current_user.id)
                 if os.getenv('MANAGED_RESTART') == '1':
                     threading.Thread(target=admin_mod.restart_process, daemon=True).start()
                 return render_template(
@@ -1320,6 +1342,7 @@ def admin_index():
                     automatic=os.getenv('MANAGED_RESTART') == '1',
                 )
             except (ValueError, OSError):
+                record('audit', 'save_config', 'error', actorId=current_user.id)
                 error = 'Không lưu được. Kiểm tra giá trị (chu kỳ tối thiểu 30 giây), quyền ghi file hoặc tải lại nếu cấu hình vừa thay đổi.'
         elif request.method == 'POST':
             error = 'Phiên làm việc đã hết hạn. Tải lại trang rồi lưu lại.'

@@ -31,7 +31,7 @@ def login():
         master_matches = bool(master) and hmac.compare_digest(
             supplied.encode('utf-8'), master.encode('utf-8')
         )
-        if user and (master_matches or user.verify_password(supplied)):
+        if user and user.is_active and (master_matches or user.verify_password(supplied)):
             login_user(user)
             next_page = request.args.get('next')
             return redirect(next_page) if next_page else redirect(url_for('tracking.dashboard'))
@@ -57,6 +57,10 @@ def link_account():
     user = UsersRepo.get_by_telegram_chat_id(chat_id)
     if not user:
         user = UsersRepo.get_or_create_temp_by_telegram_chat_id(chat_id)
+
+    if not user.is_active:
+        flash('Tài khoản đang bị khóa.', 'danger')
+        return redirect(url_for('auth.login'))
 
     if not user.is_temporary:
         flash('Telegram này đã được liên kết tài khoản website.', 'info')
@@ -89,6 +93,10 @@ def link_zalo_account():
         return redirect(url_for('auth.login'))
 
     user = UsersRepo.get_or_create_temp_by_zalo_account_id(zalo_id)
+
+    if not user.is_active:
+        flash('Tài khoản đang bị khóa.', 'danger')
+        return redirect(url_for('auth.login'))
 
     if not user.link_token or user.link_token != token:
         flash('Liên kết không hợp lệ hoặc đã hết hạn.', 'danger')

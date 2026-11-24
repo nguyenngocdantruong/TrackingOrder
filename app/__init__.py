@@ -50,11 +50,13 @@ def create_app(config_class=Config):
     from app.v2 import v2_bp
 
     from app.admin import admin_bp, is_admin
+    from app.admin_operations import admin_ops
     app.context_processor(lambda: {'is_system_admin': is_admin()})
 
     # Primary Frontend (/) + Partner REST API (/api/v1)
     app.register_blueprint(api_bp, url_prefix='/api/v1')
     app.register_blueprint(v2_bp)
+    app.register_blueprint(admin_ops)
 
     # Legacy Frontend (/v1/*)
     app.register_blueprint(admin_bp, url_prefix='/v1/admin')
@@ -156,4 +158,5 @@ from app.repos.users_repo import User
 @login_manager.user_loader
 def load_user(user_id):
     from app.repos.users_repo import UsersRepo
-    return UsersRepo.get_by_id(user_id)
+    user = UsersRepo.get_by_id(user_id)
+    return user if user and user.is_active else None

@@ -335,18 +335,31 @@ async def _handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def _build_application(flask_app, token: str):
-    application = ApplicationBuilder().token(token).build()
-    application.add_handler(CommandHandler('test', _handle_test))
+    def require_active(handler):
+        async def guarded(update, context):
+            chat_id = _extract_chat_id(update)
+            if chat_id:
+                with flask_app.app_context():
+                    account = UsersRepo.get_by_zalo_account_id(chat_id)
+                if account and account.suspended:
+                    if update.message:
+                        await update.message.reply_text('Tài khoản đang bị khóa.')
+                    return
+            await handler(update, context)
+        return guarded
 
-    application.add_handler(CommandHandler('start', _handle_start))
-    application.add_handler(CommandHandler('help', _handle_help))
-    application.add_handler(CommandHandler('author', _handle_author))
-    application.add_handler(CommandHandler('providers', _handle_providers))
-    application.add_handler(CommandHandler('list', _handle_list))
-    application.add_handler(CommandHandler('stats', _handle_stats))
-    application.add_handler(CommandHandler('add', _handle_add))
-    application.add_handler(CommandHandler('remove', _handle_remove))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, _handle_text))
+    application = ApplicationBuilder().token(token).build()
+    application.add_handler(CommandHandler('test', require_active(_handle_test)))
+
+    application.add_handler(CommandHandler('start', require_active(_handle_start)))
+    application.add_handler(CommandHandler('help', require_active(_handle_help)))
+    application.add_handler(CommandHandler('author', require_active(_handle_author)))
+    application.add_handler(CommandHandler('providers', require_active(_handle_providers)))
+    application.add_handler(CommandHandler('list', require_active(_handle_list)))
+    application.add_handler(CommandHandler('stats', require_active(_handle_stats)))
+    application.add_handler(CommandHandler('add', require_active(_handle_add)))
+    application.add_handler(CommandHandler('remove', require_active(_handle_remove)))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, require_active(_handle_text)))
     try:
         application.add_handler(MessageHandler(filters.ALL, _log_update))
     except Exception:

@@ -249,7 +249,7 @@ def _build_dm_management_view(user, page: int = 0) -> tuple[str, Optional[dict]]
     """Build an interactive personal parcel menu (sent inside private DM)."""
     trackings = TrackingsRepo.get_user_trackings(user.id)
     if not trackings:
-        return ("📭 Bạn chưa có vận đơn nào đang theo dõi.\nDùng /add <mã vận đơn> [tên gợi nhớ] để thêm mới.", None)
+        return ("📭 Bạn chưa có vận đơn nào đang theo dõi.\nChọn Thêm đơn trong menu hoặc dùng /add để bắt đầu.", None)
 
     total = len(trackings)
     total_pages = max(1, (total + _DM_PAGE_SIZE - 1) // _DM_PAGE_SIZE)
@@ -272,8 +272,6 @@ def _build_dm_management_view(user, page: int = 0) -> tuple[str, Optional[dict]]
         if tid and len(f"dm:v:{tid}".encode('utf-8')) <= 64:
             rows.append([
                 {'text': f"{icon} {btn_title}", 'callback_data': f"dm:v:{tid}"},
-                {'text': '🔄', 'callback_data': f"dm:r:{tid}"},
-                {'text': '🗑', 'callback_data': f"dm:d:{tid}"},
             ])
 
     if total_pages > 1:
@@ -286,6 +284,20 @@ def _build_dm_management_view(user, page: int = 0) -> tuple[str, Optional[dict]]
         rows.append(nav_row)
 
     return ("\n".join(lines), {'inline_keyboard': rows} if rows else None)
+
+
+def _build_dm_tracking_detail(tracking):
+    code = tracking.get('trackingNumber') or 'Vận đơn'
+    lines = [str(tracking.get('alias') or code)[:100], f"Mã: {code}",
+             f"Trạng thái: {tracking.get('currentStatus') or 'Đang chờ'}"]
+    events = tracking.get('events') or []
+    if events:
+        lines.append('Cập nhật gần đây')
+        for event in events[:4]:
+            description = event.get('descBuyer') or event.get('name') or event.get('code')
+            if description:
+                lines.append(f"• {str(description)[:200]}")
+    return "\n".join(lines)
 
 
 def send_dm_management_menu(app, actor_id: str) -> bool:
@@ -332,22 +344,6 @@ def build_popup_summary_for_user(actor_id: str) -> str:
         acc = (acc.rstrip() + "\n" + tail)[:_POPUP_MAX_LEN]
 
     return acc.strip()[:_POPUP_MAX_LEN]
-
-
-def _build_single_tracking_popup(tracking: dict) -> str:
-    code = tracking.get('trackingNumber', 'N/A')
-    alias = tracking.get('alias') or code
-    status = tracking.get('currentStatus') or 'Chưa có cập nhật'
-    carrier = (tracking.get('carrierId') or '').upper()
-    events = tracking.get('events') or []
-    loc = ''
-    if events and isinstance(events[0], dict):
-        loc_obj = events[0].get('currentLocation') or {}
-        if isinstance(loc_obj, dict) and loc_obj.get('address'):
-            loc = f"\n🏢 {loc_obj['address']}"
-
-    text = f"📦 {alias[:32]}\nMã: {code} ({carrier})\n📍 {status[:70]}{loc}"
-    return text[:_POPUP_MAX_LEN]
 
 
 def _group_help_text() -> str:
@@ -804,62 +800,63 @@ def handle_callback_query(app, callback_query: dict) -> None:
             tg_api_call(app, 'answerCallbackQuery', {'callback_query_id': cb_id})
             return
 
-        if data.startswith(('dm:v:', 'dm:r:', 'dm:d:')):
+        if data.startswith(('dm:v:', 'dm:r:', 'dm:n:', 'dm:d:', 'dm:x:')):
             action = data[3]
             tracking_id = data[5:]
             tracking, owner = _verify_tracking_ownership(actor_id, tracking_id)
-            if not tracking or not owner:
+            msg = callback_query.get('message') or {}
+            chat = msg.get('chat') or {}
+            if (not tracking or not owner or getattr(owner, 'suspended', False)
+                    or chat.get('type') != 'private' or str(chat.get('id')) != actor_id
+                    or not msg.get('message_id')):
                 tg_api_call(app, 'answerCallbackQuery', {
                     'callback_query_id': cb_id,
-                    'text': '⛔ Vận đơn không tồn tại hoặc bạn không có quyền thao tác!',
+                    'text': 'Vận đơn không tồn tại hoặc bạn không có quyền thao tác.',
                     'show_alert': True,
                 })
                 return
 
-            if action == 'v':
-                tg_api_call(app, 'answerCallbackQuery', {
-                    'callback_query_id': cb_id,
-                    'text': _build_single_tracking_popup(tracking),
-                    'show_alert': True,
-                })
+            tg_api_call(app, 'answerCallbackQuery', {'callback_query_id': cb_id})
+            if action == 'n':
+                from app.notifications.telegram_bot import request_dm_input
+                request_dm_input(app, actor_id, 'rename', tracking_id)
                 return
 
-            if action == 'r':
-                try:
-                    TrackingService.refresh_tracking(tracking_id)
-                    refreshed = TrackingsRepo.get_by_id(tracking_id) or tracking
-                    tg_api_call(app, 'answerCallbackQuery', {
-                        'callback_query_id': cb_id,
-                        'text': _build_single_tracking_popup(refreshed),
-                        'show_alert': True,
-                    })
-                except Exception as exc:
-                    tg_api_call(app, 'answerCallbackQuery', {
-                        'callback_query_id': cb_id,
-                        'text': f"⚠️ Không thể làm mới lúc này: {str(exc)[:120]}",
-                        'show_alert': True,
-                    })
-                return
-
+            code = tracking.get('trackingNumber') or 'Vận đơn'
             if action == 'd':
-                code = tracking.get('trackingNumber', '')
+                text = f'Xóa theo dõi vận đơn {code}?'
+                markup = {'inline_keyboard': [[
+                    {'text': 'Xác nhận xóa', 'callback_data': f'dm:x:{tracking_id}'},
+                    {'text': 'Giữ vận đơn', 'callback_data': f'dm:v:{tracking_id}'},
+                ]]}
+            elif action == 'x':
                 TrackingsRepo.delete(tracking_id)
-                msg = callback_query.get('message') or {}
-                msg_chat = msg.get('chat') or {}
-                if msg_chat.get('type') == 'private' and msg.get('message_id'):
-                    new_text, new_markup = _build_dm_management_view(owner, page=0)
-                    tg_api_call(app, 'editMessageText', {
-                        'chat_id': msg_chat['id'],
-                        'message_id': msg['message_id'],
-                        'text': new_text,
-                        'reply_markup': new_markup or {'inline_keyboard': []},
-                    })
-                tg_api_call(app, 'answerCallbackQuery', {
-                    'callback_query_id': cb_id,
-                    'text': f"✅ Đã xóa theo dõi vận đơn {code}"[:_POPUP_MAX_LEN],
-                    'show_alert': False,
-                })
-                return
+                text, markup = _build_dm_management_view(owner)
+                text = f'Đã xóa theo dõi vận đơn {code}.\n\n{text}'
+            else:
+                result = ''
+                if action == 'r':
+                    try:
+                        if TrackingService.refresh_tracking(tracking_id):
+                            tracking = TrackingsRepo.get_by_id(tracking_id) or tracking
+                            result = 'Đã đồng bộ.\n\n'
+                        else:
+                            result = 'Hiện không thể đồng bộ vận đơn.\n\n'
+                    except Exception:
+                        result = 'Đồng bộ thất bại. Hãy thử lại sau.\n\n'
+                text = result + _build_dm_tracking_detail(tracking)
+                markup = {'inline_keyboard': [
+                    [{'text': 'Đồng bộ', 'callback_data': f'dm:r:{tracking_id}'},
+                     {'text': 'Đổi tên', 'callback_data': f'dm:n:{tracking_id}'}],
+                    [{'text': 'Xóa', 'callback_data': f'dm:d:{tracking_id}'},
+                     {'text': 'Danh sách', 'callback_data': 'dm:p:0'}],
+                ]}
+
+            tg_api_call(app, 'editMessageText', {
+                'chat_id': chat['id'], 'message_id': msg['message_id'], 'text': text,
+                'reply_markup': markup or {'inline_keyboard': []},
+            })
+            return
 
         tg_api_call(app, 'answerCallbackQuery', {'callback_query_id': cb_id})
 

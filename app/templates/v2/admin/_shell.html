@@ -1,0 +1,12 @@
+{% extends 'v2/layout.html' %}
+{% block content %}
+<div class="v2-ops-shell">
+    <aside class="v2-ops-sidebar">
+        <a class="v2-ops-brand" href="{{ url_for('admin_ops.overview') }}">Quản trị</a>
+        {% include 'v2/admin/_nav.html' %}
+    </aside>
+    <div class="v2-ops-content">
+        {% block admin_content %}{% endblock %}
+    </div>
+</div>
+{% endblock %}

@@ -32,7 +32,7 @@
         } catch (_) {}
     })();
     </script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='v2.css', v='7') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='v2.css', v='12') }}">
     {% block head_extra %}{% endblock %}
 </head>
 <body class="{{ body_class | default('') }}">
@@ -84,7 +84,7 @@
                                     class="v2-nav-link v2-nav-dropdown-btn"
                                     aria-expanded="false"
                                     aria-controls="v2-config-menu"
-                                    {% if ep in ('v2.settings', 'v2.addresses', 'v2.developers', 'v2.admin_index', 'v2.admin_verify') %}data-active="true"{% endif %}
+                                    {% if ep in ('v2.settings', 'v2.addresses', 'v2.developers', 'v2.admin_index', 'v2.admin_home', 'v2.admin_verify') or ep.startswith('admin_ops.') %}data-active="true"{% endif %}
                                 >
                                     <span data-v2-i18n="nav.config">Cấu hình</span>
                                     <svg class="v2-icon v2-dropdown-caret" viewBox="0 0 24 24" aria-hidden="true">

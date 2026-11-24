@@ -46,7 +46,7 @@ def require_partner_api_key(view):
                 401,
             )
         user = UsersRepo.get_by_partner_api_key_hash(hash_api_key(raw_key))
-        if not user or user.is_temporary:
+        if not user or user.is_temporary or getattr(user, 'suspended', False):
             return _api_error(
                 'invalid_api_key',
                 'Invalid or revoked API key.',

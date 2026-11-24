@@ -1,0 +1,13 @@
+<nav class="v2-ops-nav" aria-label="Quản trị">
+    {% for key, label, endpoint in [
+        ('overview', 'Tổng quan', 'admin_ops.overview'),
+        ('users', 'Người dùng', 'admin_ops.users'),
+        ('trackings', 'Vận đơn', 'admin_ops.trackings'),
+        ('logs', 'Nhật ký', 'admin_ops.logs'),
+        ('payments', 'PayOS', 'admin_ops.payments'),
+        ('config', 'Cấu hình', 'v2.admin_index')
+    ] %}
+    <a class="v2-ops-nav-link" href="{{ url_for(endpoint) }}"
+       {% if key == section or key == 'users' and section == 'user' or key == 'trackings' and section == 'tracking' or key == 'logs' and section == 'log' or key == 'payments' and section == 'payment' %}aria-current="page"{% endif %}>{{ label }}</a>
+    {% endfor %}
+</nav>
