@@ -1,0 +1,25 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Default capabilities for Order Tracker hybrid main window and quick-add dialog",
+  "windows": ["main", "quick-add"],
+  "remote": {
+    "urls": [
+      "https://app.dev8084.io.vn/*",
+      "http://127.0.0.1:8084/*",
+      "http://localhost:8084/*",
+      "http://127.0.0.1:5000/*",
+      "http://localhost:5000/*"
+    ]
+  },
+  "permissions": [
+    "core:default",
+    "notification:default",
+    "autostart:default",
+    "global-shortcut:allow-register",
+    "global-shortcut:allow-unregister",
+    "clipboard-manager:default",
+    "clipboard-manager:allow-read-text",
+    "opener:default"
+  ]
+}

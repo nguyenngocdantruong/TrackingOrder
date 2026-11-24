@@ -31,6 +31,7 @@
       'nav.developers': 'API Đối tác',
       'nav.developers_desc': 'API Key & Webhook',
       'nav.docs': 'Tài liệu API',
+      'nav.download': 'Tải ứng dụng',
       'nav.support': 'Ủng hộ',
       'nav.admin': 'Quản trị',
       'nav.admin_desc': 'Tham số hệ thống',
@@ -49,6 +50,10 @@
       'landing.cta.dashboard': 'Mở bảng điều khiển',
       'landing.cta.register': 'Tạo tài khoản miễn phí',
       'landing.partner_badge': 'REST API & Webhook',
+      'landing.windows_badge': 'Windows App',
+      'landing.desktop.heading': 'Đã có ứng dụng Order Tracker cho Windows 10/11',
+      'landing.desktop.sub': 'Chạy ngầm gọn nhẹ ở System Tray, tự khởi động cùng máy tính, bắn thông báo Windows Toast kèm tiền COD và dán nhanh mã đơn bằng tổ hợp Ctrl+Shift+T.',
+      'landing.desktop.cta': 'Tải ứng dụng Windows',
       'landing.demo.item': 'Bàn phím cơ Keychron Q1',
       'landing.demo.badge': 'Dữ liệu minh họa',
       'landing.demo.ev1_title': 'Tài xế đang giao hàng đến bạn',
@@ -224,6 +229,73 @@
       'settings.test_zalo.title': 'Kiểm tra kết nối Zalo',
       'settings.test_zalo.desc': 'Gửi một tin nhắn mẫu tới Zalo Chat ID đã lưu để xác nhận hoạt động.',
       'settings.test_zalo.btn': 'Gửi tin thử Zalo',
+      'settings.desktop.title': 'Ứng dụng Windows (System Tray)',
+      'settings.desktop.desc': 'Nhận thông báo gốc trên Windows, chạy ngầm ở khay hệ thống và khởi động cùng máy tính.',
+      'settings.desktop.connected': 'Đang chạy trên Windows',
+      'settings.desktop.web_hint': 'Cài đặt ứng dụng nhẹ cho Windows 10/11 để nhận thông báo giao hàng trực tiếp trên màn hình mà không cần giữ tab trình duyệt.',
+      'settings.desktop.notify_label': 'Thông báo đẩy trên màn hình Windows',
+      'settings.desktop.notify_help': 'Hiển thị hộp thông báo Windows Toast khi đơn hàng chuyển sang giai đoạn đã chọn ở trên.',
+      'settings.desktop.autostart_label': 'Khởi động cùng hệ thống Windows',
+      'settings.desktop.autostart_help': 'Tự động chạy ngầm ở System Tray ngay khi bạn đăng nhập vào máy tính.',
+      'settings.desktop.minimized_label': 'Khởi động thu gọn xuống khay hệ thống',
+      'settings.desktop.minimized_help': 'Không bật cửa sổ chính khi máy tính vừa khởi động, chỉ hiện biểu tượng ở góc phải Taskbar.',
+      'settings.desktop.clipboard_label': 'Gợi ý khi sao chép mã vận đơn (Clipboard)',
+      'settings.desktop.clipboard_help': 'Tự điền sẵn mã SPXVN / LEX vừa copy khi bạn mở hộp Thêm nhanh (Ctrl+Shift+T).',
+      'settings.desktop.test_btn': 'Bắn thử thông báo Windows',
+      'settings.desktop.sync_btn': 'Đồng bộ khay hệ thống ngay',
+
+      'dl.hero.title': 'Theo dõi đơn hàng ngay từ khay hệ thống Windows',
+      'dl.hero.lead': 'Nhận thông báo giao hàng chuẩn Windows 10/11 kèm số tiền COD cần chuẩn bị, tự khởi động ngầm cùng máy và bấm Ctrl+Shift+T để dán mã vận đơn tức thì mà không cần mở trình duyệt.',
+      'dl.running.title': 'Bạn đang chạy Order Tracker bản Windows Desktop.',
+      'dl.running.cta': 'Mở cài đặt System Tray & Khởi động cùng máy',
+      'dl.cta.exe': 'Tải bản cài Windows (.exe)',
+      'dl.cta.exe_releases': 'Tải bản Windows (.exe)',
+      'dl.cta.msi': 'Gói cài .MSI',
+      'dl.spec.noadmin': 'Không cần quyền Admin',
+      'dl.spec.releases': 'GitHub Releases',
+      'dl.sim.tab_delivering': 'Đang giao',
+      'dl.sim.tab_quickadd': 'Ctrl+Shift+T',
+      'dl.sim.tab_delivered': 'Đã giao',
+      'dl.sim.now': 'Vừa xong',
+      'dl.sim.t1_title': 'Bàn phím cơ Keychron Q1 · Đang giao hàng',
+      'dl.sim.t1_body': 'Bưu tá Quận 7 đang phát kiện SPXVN048291049281 · Chuẩn bị COD 250.000 ₫ (Nhà riêng).',
+      'dl.sim.qa_title': 'Thêm vận đơn nhanh',
+      'dl.sim.qa_clip': 'Tự điền từ Clipboard',
+      'dl.sim.qa_addr': 'Địa chỉ nhận: Nhà riêng (Mặc định)',
+      'dl.sim.tray_status_1': 'Nhà riêng · 3 đơn đang giao · COD 420.000 ₫',
+      'dl.sim.menu_open': 'Mở bảng điều khiển',
+      'dl.sim.menu_quick': 'Thêm vận đơn nhanh',
+      'dl.sim.menu_notify': 'Nhận thông báo trên Windows',
+      'dl.sim.menu_autostart': 'Khởi động cùng Windows',
+      'dl.sim.taskbar_hint': 'Nhấn biểu tượng khay hệ thống để ẩn / hiện menu',
+      'dl.cap.heading': 'Thiết kế gọn nhẹ cho máy tính làm việc hàng ngày',
+      'dl.cap.sub': 'Xây dựng trên nhân Rust của Tauri v2 kết hợp WebView2 có sẵn trên Windows — gọn nhẹ, không ngốn RAM như trình duyệt mở nhiều tab.',
+      'dl.cap.r1_title': 'Thông báo đẩy Windows chuẩn xác',
+      'dl.cap.r1_desc': 'Tự động kế thừa 6 giai đoạn thông báo của tài khoản. Chỉ bật thông báo khi có sự kiện mới từ bưu cục, kèm số tiền COD và địa chỉ nhận.',
+      'dl.cap.r2_title': 'Thu nhỏ xuống System Tray & tự chạy khi bật máy',
+      'dl.cap.r2_desc': 'Bấm nút đóng cửa sổ sẽ thu gọn ứng dụng xuống góc phải thanh Taskbar. Hỗ trợ khởi động ẩn cùng Windows (--minimized) để không che màn hình.',
+      'dl.cap.r3_title': 'Phím tắt Ctrl+Shift+T & tự nhận mã Clipboard',
+      'dl.cap.r3_desc': 'Đang xem đơn trên sàn thương mại điện tử chỉ cần sao chép mã vận đơn rồi nhấn Ctrl+Shift+T: hộp nhập nổi tự nhận diện hãng và gắn sẵn địa chỉ mặc định.',
+      'dl.cap.r4_title': 'Đồng bộ tức thì với Web, Telegram & Zalo',
+      'dl.cap.r4_desc': 'Đăng nhập một lần duy nhất trên cửa sổ ứng dụng — phiên làm việc tự động cấp khóa riêng cho tiến trình chạy ngầm và tự thu hồi ngay khi đăng xuất.',
+      'dl.install.heading': 'Cài đặt trong 3 bước ngắn',
+      'dl.install.s1_title': 'Tải và mở bộ cài .exe',
+      'dl.install.s1_desc': 'Bộ cài NSIS cài trực tiếp vào thư mục người dùng hiện tại, không yêu cầu quyền quản trị viên (Admin). Nếu Windows SmartScreen hỏi xác nhận, chọn More info → Run anyway.',
+      'dl.install.s2_title': 'Đăng nhập tài khoản Order Tracker',
+      'dl.install.s2_desc': 'Dùng đúng tài khoản web hiện có của bạn. Danh sách đơn hàng, sổ địa chỉ mặc định và tuỳ chọn thông báo sẽ tự đồng bộ ngay lập tức.',
+      'dl.install.s3_title': 'Ghim biểu tượng vào khay hệ thống',
+      'dl.install.s3_desc': 'Bật Khởi động cùng Windows ngay ở menu chuột phải dưới System Tray để máy tự theo dõi đơn hàng mỗi ngày.',
+      'dl.pkg.heading': 'Gói cài đặt phát hành',
+      'dl.pkg.col_format': 'Định dạng',
+      'dl.pkg.col_arch': 'Hệ điều hành',
+      'dl.pkg.col_action': 'Tải về',
+      'dl.pkg.nsis_name': 'Bộ cài chuẩn NSIS (.exe)',
+      'dl.pkg.msi_name': 'Gói triển khai MSI (.msi)',
+      'dl.pkg.gh_desc': 'Nhật ký thay đổi, mã nguồn Tauri v2 và các phiên bản trước',
+      'dl.pkg.via_gh': 'Phát hành qua GitHub Actions',
+      'dl.pkg.download_btn': 'Tải .EXE',
+      'dl.pkg.download_msi': 'Tải .MSI',
+      'dl.pkg.open_gh': 'Mở GitHub',
 
       'addr.title': 'Địa chỉ nhận hàng',
       'addr.subtitle': 'Quản lý các điểm nhận hàng của bạn. Khi đặt một địa chỉ mặc định, danh sách vận đơn sẽ tự động lọc theo địa chỉ đó.',
@@ -436,6 +508,7 @@
       'nav.developers': 'Partner API',
       'nav.developers_desc': 'API Keys & Webhooks',
       'nav.docs': 'API Docs',
+      'nav.download': 'Download App',
       'nav.support': 'Support',
       'nav.admin': 'Admin',
       'nav.admin_desc': 'System parameters',
@@ -454,6 +527,10 @@
       'landing.cta.dashboard': 'Open dashboard',
       'landing.cta.register': 'Create free account',
       'landing.partner_badge': 'REST API & Webhooks',
+      'landing.windows_badge': 'Windows App',
+      'landing.desktop.heading': 'Order Tracker for Windows 10/11 is here',
+      'landing.desktop.sub': 'Runs quietly in the System Tray, launches automatically with Windows, pushes COD-aware Windows Toast alerts, and adds parcels instantly via Ctrl+Shift+T.',
+      'landing.desktop.cta': 'Download for Windows',
       'landing.demo.item': 'Keychron Q1 Mechanical Keyboard',
       'landing.demo.badge': 'Sample preview',
       'landing.demo.ev1_title': 'Courier is out for delivery',
@@ -629,6 +706,73 @@
       'settings.test_zalo.title': 'Test Zalo bot',
       'settings.test_zalo.desc': 'Send a sample message to your saved Zalo Chat ID to verify delivery.',
       'settings.test_zalo.btn': 'Send Zalo test',
+      'settings.desktop.title': 'Windows App (System Tray)',
+      'settings.desktop.desc': 'Receive native Windows Toast notifications, run in the System Tray, and launch on startup.',
+      'settings.desktop.connected': 'Running on Windows',
+      'settings.desktop.web_hint': 'Install the lightweight Windows 10/11 app to get native desktop delivery notifications without keeping a browser tab open.',
+      'settings.desktop.notify_label': 'Native Windows Toast alerts',
+      'settings.desktop.notify_help': 'Display Windows Toast notifications whenever a parcel reaches one of your selected stages above.',
+      'settings.desktop.autostart_label': 'Launch at Windows startup',
+      'settings.desktop.autostart_help': 'Start quietly in the System Tray automatically when you sign in to Windows.',
+      'settings.desktop.minimized_label': 'Start minimized to System Tray',
+      'settings.desktop.minimized_help': 'Keep the main window hidden on system boot and show only the tray icon.',
+      'settings.desktop.clipboard_label': 'Auto-detect copied tracking codes (Clipboard)',
+      'settings.desktop.clipboard_help': 'Pre-fill copied SPXVN / LEX codes automatically when opening Quick Add (Ctrl+Shift+T).',
+      'settings.desktop.test_btn': 'Send Windows test alert',
+      'settings.desktop.sync_btn': 'Sync System Tray now',
+
+      'dl.hero.title': 'Track every shipment right from the Windows System Tray',
+      'dl.hero.lead': 'Get native Windows 10/11 delivery notifications with COD reminders, launch quietly at system startup, and press Ctrl+Shift+T to paste tracking numbers from anywhere.',
+      'dl.running.title': 'You are running the Order Tracker Windows Desktop app.',
+      'dl.running.cta': 'Open System Tray & startup settings',
+      'dl.cta.exe': 'Download for Windows (.exe)',
+      'dl.cta.exe_releases': 'Windows (.exe)',
+      'dl.cta.msi': 'MSI Installer',
+      'dl.spec.noadmin': 'No Admin rights required',
+      'dl.spec.releases': 'GitHub Releases',
+      'dl.sim.tab_delivering': 'Delivering',
+      'dl.sim.tab_quickadd': 'Ctrl+Shift+T',
+      'dl.sim.tab_delivered': 'Delivered',
+      'dl.sim.now': 'Just now',
+      'dl.sim.t1_title': 'Keychron Q1 Keyboard · Out for delivery',
+      'dl.sim.t1_body': 'District 7 courier is delivering SPXVN048291049281 · COD due 250.000 ₫ (Home).',
+      'dl.sim.qa_title': 'Quick Add Parcel',
+      'dl.sim.qa_clip': 'From Clipboard',
+      'dl.sim.qa_addr': 'Address: Home (Default)',
+      'dl.sim.tray_status_1': 'Home · 3 active parcels · COD 420.000 ₫',
+      'dl.sim.menu_open': 'Open dashboard',
+      'dl.sim.menu_quick': 'Quick add parcel',
+      'dl.sim.menu_notify': 'Windows notifications',
+      'dl.sim.menu_autostart': 'Launch with Windows',
+      'dl.sim.taskbar_hint': 'Click the System Tray icon to toggle menu',
+      'dl.cap.heading': 'Engineered to stay light on your daily workstation',
+      'dl.cap.sub': 'Powered by Tauri v2 in Rust and native Windows WebView2 — compact without multi-tab browser memory overhead.',
+      'dl.cap.r1_title': 'Stage-aware Windows Toast notifications',
+      'dl.cap.r1_desc': 'Inherits your 6 stage notification preferences automatically and surfaces COD amounts and delivery addresses on every alert.',
+      'dl.cap.r2_title': 'Minimize to System Tray & silent startup',
+      'dl.cap.r2_desc': 'Closing the window tucks the app neatly into the Windows Taskbar tray. Supports --minimized startup so boot stays distraction-free.',
+      'dl.cap.r3_title': 'Global Ctrl+Shift+T & Clipboard detection',
+      'dl.cap.r3_desc': 'Copy a tracking code on Shopee or Lazada and press Ctrl+Shift+T: the floating quick-add box auto-detects the carrier and selects your default address.',
+      'dl.cap.r4_title': 'Seamless two-way sync with Web, Telegram & Zalo',
+      'dl.cap.r4_desc': 'Sign in once inside the app window — the background tray worker pairs automatically and revokes its device token cleanly on sign-out.',
+      'dl.install.heading': 'Set up in 3 quick steps',
+      'dl.install.s1_title': 'Download and run the .exe installer',
+      'dl.install.s1_desc': 'The per-user NSIS installer sets up without Administrator prompts. If Windows SmartScreen prompts, choose More info → Run anyway.',
+      'dl.install.s2_title': 'Sign in with your Order Tracker account',
+      'dl.install.s2_desc': 'Use your existing web credentials. Tracked parcels, default delivery address, and stage preferences sync immediately.',
+      'dl.install.s3_title': 'Pin to the Windows System Tray',
+      'dl.install.s3_desc': 'Enable Launch with Windows from the tray right-click menu for hands-free daily parcel tracking.',
+      'dl.pkg.heading': 'Release packages',
+      'dl.pkg.col_format': 'Package',
+      'dl.pkg.col_arch': 'Platform',
+      'dl.pkg.col_action': 'Download',
+      'dl.pkg.nsis_name': 'Standard NSIS Installer (.exe)',
+      'dl.pkg.msi_name': 'MSI Deployment Package (.msi)',
+      'dl.pkg.gh_desc': 'Release notes, Tauri v2 source code, and prior builds',
+      'dl.pkg.via_gh': 'Built via GitHub Actions',
+      'dl.pkg.download_btn': 'Download .EXE',
+      'dl.pkg.download_msi': 'Download .MSI',
+      'dl.pkg.open_gh': 'Open GitHub',
 
       'addr.title': 'Delivery Addresses',
       'addr.subtitle': 'Manage your delivery locations. When a default address is set, your shipment list automatically filters by it.',
@@ -873,8 +1017,7 @@
     const attr = document.documentElement.getAttribute('data-theme');
     if (attr === 'dark' || attr === 'light') return attr;
     const saved = localStorage.getItem('v2_theme');
-    if (saved === 'dark' || saved === 'light') return saved;
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    return saved === 'dark' ? 'dark' : 'light';
   }
 
   function syncThemeButton() {
@@ -1112,6 +1255,118 @@
         }
       });
     });
+
+    /* ==========================================================================
+       Tauri v2 Windows Desktop Companion Bridge
+       ========================================================================== */
+    const getTauriInvoke = () => {
+      if (window.__TAURI__ && window.__TAURI__.core && typeof window.__TAURI__.core.invoke === 'function') {
+        return window.__TAURI__.core.invoke;
+      }
+      if (window.__TAURI_INTERNALS__ && typeof window.__TAURI_INTERNALS__.invoke === 'function') {
+        return window.__TAURI_INTERNALS__.invoke;
+      }
+      return null;
+    };
+
+    const tauriInvoke = getTauriInvoke();
+    if (tauriInvoke) {
+      document.documentElement.classList.add('is-tauri-desktop');
+
+      const logoutLinks = document.querySelectorAll('a[href$="/auth/logout"]');
+      const isAuthenticated = logoutLinks.length > 0;
+
+      // Auto-pair authenticated WebView session with the Rust System Tray worker
+      if (isAuthenticated) {
+        tauriInvoke('get_desktop_prefs')
+          .then(async (prefs) => {
+            const alreadySynced = sessionStorage.getItem('v2_tauri_synced') === '1';
+            if (prefs && prefs.hasToken && alreadySynced) return;
+            const res = await fetch('/api/v1/desktop/session-token', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-OrderTracker-Client': 'tauri-desktop'
+              },
+              body: JSON.stringify({ device_label: 'Windows Desktop App' })
+            });
+            if (!res.ok) return;
+            const payload = await res.json();
+            if (payload && payload.success && payload.data && payload.data.token) {
+              await tauriInvoke('sync_desktop_auth', {
+                serverUrl: window.location.origin,
+                token: payload.data.token,
+                username: payload.data.user ? payload.data.user.username : ''
+              });
+              sessionStorage.setItem('v2_tauri_synced', '1');
+            }
+          })
+          .catch(() => {});
+      }
+
+      logoutLinks.forEach((link) => {
+        link.addEventListener('click', async (e) => {
+          e.preventDefault();
+          const href = link.getAttribute('href');
+          sessionStorage.removeItem('v2_tauri_synced');
+          try {
+            await tauriInvoke('clear_desktop_auth');
+          } catch (_) {}
+          window.location.href = href;
+        });
+      });
+
+      // Activate native Windows controls on /settings
+      const webPrompt = document.getElementById('v2-desktop-web-prompt');
+      const nativeControls = document.getElementById('v2-desktop-native-controls');
+      const connectedBadge = document.getElementById('v2-desktop-connected-badge');
+      if (nativeControls) {
+        if (webPrompt) webPrompt.hidden = true;
+        nativeControls.hidden = false;
+        if (connectedBadge) connectedBadge.hidden = false;
+
+        const elNotify = document.getElementById('v2-desk-notify');
+        const elAutostart = document.getElementById('v2-desk-autostart');
+        const elMinimized = document.getElementById('v2-desk-minimized');
+        const elClipboard = document.getElementById('v2-desk-clipboard');
+        const btnTest = document.getElementById('v2-desk-test-btn');
+        const btnSync = document.getElementById('v2-desk-sync-btn');
+
+        tauriInvoke('get_desktop_prefs')
+          .then((prefs) => {
+            if (!prefs) return;
+            if (elNotify) elNotify.checked = Boolean(prefs.desktopNotify);
+            if (elAutostart) elAutostart.checked = Boolean(prefs.autostart);
+            if (elMinimized) elMinimized.checked = Boolean(prefs.startMinimized);
+            if (elClipboard) elClipboard.checked = Boolean(prefs.clipboardWatch);
+          })
+          .catch(() => {});
+
+        const pushPrefs = () => {
+          tauriInvoke('set_desktop_prefs', {
+            desktopNotify: elNotify ? elNotify.checked : true,
+            autostart: elAutostart ? elAutostart.checked : false,
+            startMinimized: elMinimized ? elMinimized.checked : true,
+            clipboardWatch: elClipboard ? elClipboard.checked : true
+          }).catch(() => {});
+        };
+
+        [elNotify, elAutostart, elMinimized, elClipboard].forEach((input) => {
+          if (input) input.addEventListener('change', pushPrefs);
+        });
+
+        if (btnTest) {
+          btnTest.addEventListener('click', () => {
+            tauriInvoke('send_test_desktop_notification').catch(() => {});
+          });
+        }
+        if (btnSync) {
+          btnSync.addEventListener('click', () => {
+            tauriInvoke('trigger_sync_now').catch(() => {});
+          });
+        }
+      }
+    }
   });
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {

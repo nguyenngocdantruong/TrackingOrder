@@ -36,10 +36,11 @@ def normalize_addresses(raw_addresses):
 
 
 class User(UserMixin):
-    def __init__(self, user_id, username, password_hash, settings=None, is_temporary=False, link_token=None, telegram_verified_id=None, partner_api=None, addresses=None, suspended=False):
+    def __init__(self, user_id, username, password_hash, settings=None, is_temporary=False, link_token=None, telegram_verified_id=None, partner_api=None, addresses=None, suspended=False, desktop_auth=None):
         self.suspended = suspended
         self.telegram_verified_id = telegram_verified_id
         self.partner_api = partner_api or {}
+        self.desktop_auth = desktop_auth or {}
         self.addresses = normalize_addresses(addresses)
         self.id = user_id
         self.username = username
@@ -107,6 +108,7 @@ class UsersRepo:
             data.get('partnerApi'),
             data.get('addresses'),
             data.get('suspended', False),
+            data.get('desktopAuth'),
         )
 
     @staticmethod
@@ -448,3 +450,83 @@ class UsersRepo:
             'addresses': normalized
         })
         return normalized
+
+    @staticmethod
+    def set_suspended(user_id: str, suspended: bool):
+        """Suspend or unsuspend a user account."""
+        db = get_db()
+        db.collection(UsersRepo.COLLECTION).document(user_id).update({
+            'suspended': bool(suspended)
+        })
+
+    @staticmethod
+    def reset_password(user_id: str, password: str):
+        """Reset a user's password hash."""
+        db = get_db()
+        db.collection(UsersRepo.COLLECTION).document(user_id).update({
+            'password_hash': generate_password_hash(password)
+        })
+
+    @staticmethod
+    def get_by_desktop_token_hash(token_hash: str):
+        """Lookup user by SHA-256 hash of a Desktop Companion token."""
+        if not token_hash:
+            return None
+        db = get_db()
+        docs = (
+            db.collection(UsersRepo.COLLECTION)
+            .where(filter=FieldFilter('desktopTokenHashes', 'array_contains', token_hash))
+            .limit(1)
+            .stream()
+        )
+        for doc in docs:
+            return UsersRepo._build_user(doc.id, doc.to_dict())
+        return None
+
+    @staticmethod
+    def issue_desktop_token(user_id: str, device_label: str = 'Windows Desktop') -> str:
+        """Create and persist a new desktop companion token (keeping up to 5 active devices)."""
+        import hashlib
+        from datetime import datetime, timezone
+
+        raw_token = f"oth_desk_{secrets.token_urlsafe(32)}"
+        token_hash = hashlib.sha256(raw_token.encode('utf-8')).hexdigest()
+        clean_label = str(device_label or 'Windows Desktop').strip()[:64] or 'Windows Desktop'
+
+        user = UsersRepo.get_by_id(user_id)
+        existing_auth = dict(getattr(user, 'desktop_auth', None) or {}) if user else {}
+        devices = [d for d in (existing_auth.get('devices') or []) if isinstance(d, dict) and d.get('tokenHash')]
+        devices.append({
+            'id': f"dev_{secrets.token_hex(4)}",
+            'tokenHash': token_hash,
+            'label': clean_label,
+            'createdAt': datetime.now(timezone.utc).isoformat(),
+        })
+        devices = devices[-5:]
+        hashes = [d['tokenHash'] for d in devices]
+        new_auth = {'devices': devices}
+
+        db = get_db()
+        db.collection(UsersRepo.COLLECTION).document(user_id).update({
+            'desktopAuth': new_auth,
+            'desktopTokenHashes': hashes,
+        })
+        return raw_token
+
+    @staticmethod
+    def revoke_desktop_token(user_id: str, token_hash: str):
+        """Remove a single desktop device token from a user."""
+        if not user_id or not token_hash:
+            return
+        user = UsersRepo.get_by_id(user_id)
+        existing_auth = dict(getattr(user, 'desktop_auth', None) or {}) if user else {}
+        devices = [
+            d for d in (existing_auth.get('devices') or [])
+            if isinstance(d, dict) and d.get('tokenHash') and d.get('tokenHash') != token_hash
+        ]
+        hashes = [d['tokenHash'] for d in devices]
+        db = get_db()
+        db.collection(UsersRepo.COLLECTION).document(user_id).update({
+            'desktopAuth': {'devices': devices},
+            'desktopTokenHashes': hashes,
+        })

@@ -1,6 +1,8 @@
 from functools import wraps
+import hmac
 
 from flask import Blueprint, current_app, g, jsonify, request
+from flask_login import current_user
 
 from app.api.webhooks import (
     SUPPORTED_WEBHOOK_EVENTS,
@@ -14,6 +16,7 @@ from app.providers.registry import registry as provider_registry
 from app.repos.trackings_repo import TrackingsRepo
 from app.repos.users_repo import UsersRepo
 from app.tracking.services import TrackingService, parse_cod_amount, sanitize_alias_and_note
+from app.tracking.stages import STAGE_LABELS, classify_event, selected_stages, wants_stage
 
 api_bp = Blueprint('api_v1', __name__)
 
@@ -366,3 +369,263 @@ def test_webhook_delivery():
     }
     outcome = PartnerWebhookService.dispatch(g.api_user, 'webhook.test', sample_payload, async_send=False)
     return jsonify({'success': True, 'data': outcome})
+
+
+# ==========================================================================
+# Windows Desktop Companion API (/api/v1/desktop/*)
+# ==========================================================================
+_DESKTOP_CARRIER_NAMES = {
+    'shopee_express_vn': 'Shopee Express VN',
+    'spx_vn': 'Shopee Express VN',
+    'lex': 'Lazada Express',
+    'jt_express': 'J&T Express',
+}
+
+
+def _extract_desktop_token() -> str:
+    auth_header = (request.headers.get('Authorization') or '').strip()
+    if auth_header.lower().startswith('bearer '):
+        return auth_header[7:].strip()
+    return (request.headers.get('X-Desktop-Token') or '').strip()
+
+
+def require_desktop_token(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        raw_token = _extract_desktop_token()
+        if not raw_token:
+            return _api_error(
+                'missing_desktop_token',
+                'Missing desktop token. Sign in again from the Windows app.',
+                401,
+            )
+        token_hash = hash_api_key(raw_token)
+        user = UsersRepo.get_by_desktop_token_hash(token_hash)
+        if not user:
+            user = UsersRepo.get_by_partner_api_key_hash(token_hash)
+        if not user or user.is_temporary or not getattr(user, 'is_active', True):
+            return _api_error(
+                'invalid_desktop_token',
+                'Invalid or expired desktop session.',
+                401,
+            )
+        g.desktop_user = user
+        g.desktop_token_hash = token_hash
+        return view(*args, **kwargs)
+    return wrapped
+
+
+@api_bp.route('/desktop/login', methods=['POST'])
+def desktop_login():
+    payload = request.get_json(silent=True) or {}
+    username = (payload.get('username') or '').strip()
+    password = payload.get('password') or ''
+    device_label = (payload.get('device_label') or 'Windows Desktop').strip()[:64]
+
+    if not username or not password:
+        return _api_error('validation_error', 'Vui lòng nhập tên đăng nhập và mật khẩu.', 422)
+
+    user = UsersRepo.get_by_username(username)
+    master = current_app.config.get('MASTER_PASSWORD') or ''
+    master_matches = bool(master) and hmac.compare_digest(
+        password.encode('utf-8'), master.encode('utf-8')
+    )
+    if not user or user.is_temporary or not getattr(user, 'is_active', True) or not (master_matches or user.verify_password(password)):
+        return _api_error('invalid_credentials', 'Sai tên đăng nhập hoặc mật khẩu.', 401)
+
+    raw_token = UsersRepo.issue_desktop_token(user.id, device_label)
+    default_addr = user.get_default_address() if hasattr(user, 'get_default_address') else None
+    return jsonify({
+        'success': True,
+        'data': {
+            'token': raw_token,
+            'user': {
+                'id': user.id,
+                'username': user.username,
+            },
+            'defaultAddress': default_addr,
+        },
+    })
+
+
+@api_bp.route('/desktop/session-token', methods=['POST'])
+def desktop_session_token():
+    """Mint a Desktop Companion token from an authenticated WebView session."""
+    if request.headers.get('X-OrderTracker-Client') != 'tauri-desktop':
+        return _api_error('forbidden_client', 'Desktop client header required.', 403)
+    if not current_user.is_authenticated or getattr(current_user, 'is_temporary', False):
+        return _api_error('unauthenticated', 'Not signed in.', 401)
+
+    payload = request.get_json(silent=True) or {}
+    device_label = (payload.get('device_label') or 'Windows Desktop').strip()[:64]
+    raw_token = UsersRepo.issue_desktop_token(current_user.id, device_label)
+    default_addr = current_user.get_default_address() if hasattr(current_user, 'get_default_address') else None
+    return jsonify({
+        'success': True,
+        'data': {
+            'token': raw_token,
+            'user': {
+                'id': current_user.id,
+                'username': current_user.username,
+            },
+            'defaultAddress': default_addr,
+        },
+    })
+
+
+@api_bp.route('/desktop/logout', methods=['POST'])
+@require_desktop_token
+def desktop_logout():
+    UsersRepo.revoke_desktop_token(g.desktop_user.id, g.desktop_token_hash)
+    return jsonify({'success': True, 'data': {'revoked': True}})
+
+
+@api_bp.route('/desktop/state', methods=['GET'])
+@require_desktop_token
+def desktop_state():
+    user = g.desktop_user
+    raw_items = TrackingsRepo.get_user_trackings(user.id)
+    addresses = sorted(
+        user.get_addresses() if hasattr(user, 'get_addresses') else [],
+        key=lambda a: (0 if a.get('isDefault') else 1),
+    )
+    addr_map = {a['id']: a for a in addresses}
+    default_addr = user.get_default_address() if hasattr(user, 'get_default_address') else None
+    scope_addr_id = default_addr['id'] if default_addr else None
+
+    active_count = 0
+    completed_count = 0
+    total_active_cod = 0
+    scoped_active_count = 0
+    scoped_active_cod = 0
+    checkpoints = []
+
+    notify_master = bool((user.settings or {}).get('notifyEnabled', True))
+
+    for item in raw_items:
+        is_active = bool(item.get('isActive', True))
+        cod_val = int(item.get('codAmount') or 0)
+        status_lower = (item.get('currentStatus') or '').strip().lower()
+        is_cancelled = any(k in status_lower for k in ('cancel', 'hủy', 'huỷ', 'hoàn trả', 'return'))
+
+        raw_addr_id = (item.get('addressId') or '').strip()
+        addr = addr_map.get(raw_addr_id)
+        resolved_addr_id = addr['id'] if addr else ''
+
+        if is_active:
+            active_count += 1
+            if not is_cancelled and cod_val > 0:
+                total_active_cod += cod_val
+            if not scope_addr_id or resolved_addr_id == scope_addr_id:
+                scoped_active_count += 1
+                if not is_cancelled and cod_val > 0:
+                    scoped_active_cod += cod_val
+        else:
+            completed_count += 1
+
+        events = item.get('events') or []
+        if events:
+            latest = events[0]
+            cid = item.get('carrierId') or ''
+            stage = classify_event(cid, latest)
+            stage_label = STAGE_LABELS.get(stage, 'Cập nhật mới')
+            ev_hash = latest.get('eventHash') or f"{item.get('id')}:{latest.get('code')}:{latest.get('name')}"
+            loc_obj = latest.get('currentLocation') or {}
+            loc_text = loc_obj.get('address') if isinstance(loc_obj, dict) else ''
+            checkpoints.append({
+                'trackingId': item.get('id'),
+                'trackingNumber': item.get('trackingNumber') or '',
+                'alias': item.get('alias') or '',
+                'carrierId': cid,
+                'carrierName': _DESKTOP_CARRIER_NAMES.get(cid.lower(), cid.upper()),
+                'addressId': resolved_addr_id,
+                'addressName': addr['name'] if addr else '',
+                'codAmount': cod_val,
+                'isActive': is_active,
+                'currentStatus': item.get('currentStatus') or 'Pending',
+                'eventHash': ev_hash,
+                'eventName': latest.get('name') or item.get('currentStatus') or 'Cập nhật trạng thái',
+                'eventDesc': latest.get('descBuyer') or '',
+                'location': loc_text or '',
+                'stage': stage,
+                'stageLabel': stage_label,
+                'notifyAllowed': bool(notify_master and wants_stage(user.settings, stage)),
+            })
+
+    return jsonify({
+        'success': True,
+        'data': {
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'notifyEnabled': notify_master,
+                'notifyStages': selected_stages(user.settings),
+            },
+            'addresses': addresses,
+            'defaultAddress': default_addr,
+            'summary': {
+                'totalCount': len(raw_items),
+                'activeCount': active_count,
+                'completedCount': completed_count,
+                'totalActiveCod': total_active_cod,
+                'scopedActiveCount': scoped_active_count,
+                'scopedActiveCod': scoped_active_cod,
+                'scopeLabel': default_addr['name'] if default_addr else 'Tất cả địa chỉ',
+            },
+            'checkpoints': checkpoints[:60],
+        },
+    })
+
+
+@api_bp.route('/desktop/quick-add', methods=['POST'])
+@require_desktop_token
+def desktop_quick_add():
+    user = g.desktop_user
+    payload = request.get_json(silent=True) or {}
+    tracking_number = (payload.get('tracking_number') or payload.get('trackingNumber') or '').strip()
+    carrier_id = (payload.get('carrier_id') or payload.get('carrierId') or 'auto').strip()
+    alias = (payload.get('alias') or '').strip() or None
+    raw_cod = payload.get('cod_amount') if 'cod_amount' in payload else payload.get('codAmount', 0)
+    note = payload.get('note')
+
+    if not tracking_number:
+        return _api_error('validation_error', 'Vui lòng nhập mã vận đơn.', 422)
+
+    if 'address_id' in payload or 'addressId' in payload:
+        raw_addr = payload.get('address_id') if 'address_id' in payload else payload.get('addressId')
+        selected_addr_id = str(raw_addr or '').strip() or None
+        if selected_addr_id and not user.get_address_by_id(selected_addr_id):
+            selected_addr_id = None
+    else:
+        default_addr = user.get_default_address() if hasattr(user, 'get_default_address') else None
+        selected_addr_id = default_addr['id'] if default_addr else None
+
+    result = TrackingService.create_tracking_for_user(
+        user=user,
+        tracking_number=tracking_number,
+        alias=alias,
+        carrier_id=carrier_id,
+        send_notification=True,
+        cod_amount=raw_cod,
+        note=note,
+        address_id=selected_addr_id,
+    )
+    if not result.get('success'):
+        if result.get('duplicate') and result.get('tracking_id'):
+            existing = TrackingsRepo.get_by_id(result['tracking_id']) or {}
+            return jsonify({
+                'success': False,
+                'error': {
+                    'code': 'duplicate_tracking',
+                    'message': result.get('error', 'Mã vận đơn này đã có trong danh sách theo dõi.'),
+                },
+                'data': serialize_tracking(result['tracking_id'], existing),
+            }), 409
+        return _api_error('tracking_rejected', result.get('error', 'Không thể thêm vận đơn mới.'), 422)
+
+    tracking_id = result['tracking_id']
+    created = TrackingsRepo.get_by_id(tracking_id) or {}
+    return jsonify({
+        'success': True,
+        'data': serialize_tracking(tracking_id, created),
+    }), 201

@@ -1060,6 +1060,124 @@ def payment_webhook():
     return payos_webhook_handler()
 
 
+_desktop_release_cache = {
+    'expires_at': 0.0,
+    'repo': '',
+    'data': None,
+}
+_desktop_release_lock = threading.Lock()
+
+
+def _get_desktop_release_info() -> dict:
+    repo = (current_app.config.get('GITHUB_REPO') or 'nguyenngocdantruong/TrackingOrder').strip().strip('/')
+    fallback_version = (current_app.config.get('DESKTOP_APP_VERSION') or '1.0.0').strip()
+    configured_exe = (current_app.config.get('DESKTOP_EXE_URL') or '').strip()
+    configured_msi = (current_app.config.get('DESKTOP_MSI_URL') or '').strip()
+
+    releases_url = f'https://github.com/{repo}/releases'
+    latest_release_url = f'https://github.com/{repo}/releases/latest'
+
+    base_info = {
+        'version': fallback_version,
+        'repo': repo,
+        'releases_url': releases_url,
+        'latest_release_url': releases_url,
+        'exe_url': configured_exe or None,
+        'msi_url': configured_msi or None,
+        'exe_filename': f'OrderTracker_{fallback_version}_x64-setup.exe',
+        'msi_filename': f'OrderTracker_{fallback_version}_x64_en-US.msi',
+        'exe_size_mb': None,
+        'msi_size_mb': None,
+        'published_at': None,
+        'has_direct_installer': bool(configured_exe or configured_msi),
+    }
+
+    if configured_exe and configured_msi:
+        return base_info
+
+    if current_app.config.get('TESTING'):
+        return base_info
+
+    now = time.time()
+    with _desktop_release_lock:
+        if _desktop_release_cache['data'] and _desktop_release_cache['repo'] == repo and now < _desktop_release_cache['expires_at']:
+            cached = dict(_desktop_release_cache['data'])
+            if configured_exe:
+                cached['exe_url'] = configured_exe
+            if configured_msi:
+                cached['msi_url'] = configured_msi
+            cached['has_direct_installer'] = bool(cached.get('exe_url') or cached.get('msi_url'))
+            return cached
+
+    try:
+        import requests
+        resp = requests.get(
+            f'https://api.github.com/repos/{repo}/releases/latest',
+            headers={'Accept': 'application/vnd.github+json', 'User-Agent': 'OrderTracker-Web'},
+            timeout=2.5,
+        )
+        if resp.status_code == 200:
+            rel = resp.json() or {}
+            tag = (rel.get('tag_name') or '').lstrip('v').replace('desktop-', '') or fallback_version
+            html_url = rel.get('html_url') or latest_release_url
+            pub = (rel.get('published_at') or '')[:10] or None
+            exe_asset = None
+            msi_asset = None
+            for asset in rel.get('assets') or []:
+                name = (asset.get('name') or '').lower()
+                if name.endswith('.exe') and not exe_asset:
+                    exe_asset = asset
+                elif name.endswith('.msi') and not msi_asset:
+                    msi_asset = asset
+
+            if exe_asset and not configured_exe:
+                base_info['exe_url'] = exe_asset.get('browser_download_url')
+                base_info['exe_filename'] = exe_asset.get('name') or base_info['exe_filename']
+                if exe_asset.get('size'):
+                    base_info['exe_size_mb'] = f"{exe_asset['size'] / (1024 * 1024):.1f} MB"
+            if msi_asset and not configured_msi:
+                base_info['msi_url'] = msi_asset.get('browser_download_url')
+                base_info['msi_filename'] = msi_asset.get('name') or base_info['msi_filename']
+                if msi_asset.get('size'):
+                    base_info['msi_size_mb'] = f"{msi_asset['size'] / (1024 * 1024):.1f} MB"
+
+            base_info['version'] = tag
+            base_info['latest_release_url'] = html_url
+            base_info['published_at'] = pub
+            base_info['has_direct_installer'] = bool(base_info['exe_url'] or base_info['msi_url'])
+    except Exception:
+        pass
+
+    with _desktop_release_lock:
+        _desktop_release_cache['repo'] = repo
+        _desktop_release_cache['data'] = dict(base_info)
+        _desktop_release_cache['expires_at'] = now + 600
+
+    return base_info
+
+
+@v2_bp.route('/download')
+@v2_bp.route('/download/')
+def download():
+    release = _get_desktop_release_info()
+    return render_template(
+        'v2/download.html',
+        title='Tải ứng dụng Windows',
+        release=release,
+    )
+
+
+@v2_bp.route('/download/windows')
+def download_windows():
+    fmt = (request.args.get('format') or 'exe').strip().lower()
+    release = _get_desktop_release_info()
+    if fmt == 'msi':
+        target = release.get('msi_url') or release.get('exe_url') or release.get('releases_url')
+    else:
+        target = release.get('exe_url') or release.get('msi_url') or release.get('releases_url')
+    return redirect(target)
+
+
 @v2_bp.route('/docs')
 @v2_bp.route('/docs/')
 @v2_bp.route('/docs/api')

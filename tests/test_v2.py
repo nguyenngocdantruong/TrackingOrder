@@ -702,6 +702,100 @@ class PrimaryUIAndPartnerAPITests(unittest.TestCase):
             self.assertEqual(r_del.status_code, 302)
             self.assertEqual(len(stored_addresses), 1)
 
+    def test_windows_download_surface_and_desktop_companion_api(self):
+        # 1. Public /download page and /download/windows redirects
+        dl_page = self.client.get('/download')
+        self.assertEqual(dl_page.status_code, 200)
+        dl_html = dl_page.get_data(as_text=True)
+        self.assertIn('id="v2-dl-stage"', dl_html)
+        self.assertIn('id="v2-dl-primary"', dl_html)
+        self.assertIn('Ctrl+Shift+T', dl_html)
+
+        # Fallback to GitHub Releases when direct URL is not set
+        r_exe = self.client.get('/download/windows?format=exe')
+        self.assertEqual(r_exe.status_code, 302)
+        self.assertEqual(r_exe.headers['Location'], 'https://github.com/nguyenngocdantruong/TrackingOrder/releases')
+
+        # Direct installer override
+        self.app.config['DESKTOP_EXE_URL'] = 'https://cdn.example.com/OrderTracker_1.0.0_x64-setup.exe'
+        self.app.config['DESKTOP_MSI_URL'] = 'https://cdn.example.com/OrderTracker_1.0.0_x64.msi'
+        try:
+            self.assertEqual(
+                self.client.get('/download/windows').headers['Location'],
+                'https://cdn.example.com/OrderTracker_1.0.0_x64-setup.exe',
+            )
+            self.assertEqual(
+                self.client.get('/download/windows?format=msi').headers['Location'],
+                'https://cdn.example.com/OrderTracker_1.0.0_x64.msi',
+            )
+        finally:
+            self.app.config['DESKTOP_EXE_URL'] = ''
+            self.app.config['DESKTOP_MSI_URL'] = ''
+
+        # 2. Desktop Companion auth & state sync & quick-add
+        desk_token = 'oth_desk_unit_test_token_123456'
+        desk_hash = hashlib.sha256(desk_token.encode('utf-8')).hexdigest()
+        self.user.addresses = [
+            {'id': 'addr_home', 'name': 'Nhà riêng', 'detail': '123 Q1', 'note': '', 'isDefault': True},
+            {'id': 'addr_work', 'name': 'Công ty', 'detail': '456 Q3', 'note': '', 'isDefault': False},
+        ]
+
+        # Session token requires custom client header
+        self.login_session()
+        self.assertEqual(self.client.post('/api/v1/desktop/session-token').status_code, 403)
+        with patch('app.api.routes.UsersRepo.issue_desktop_token', return_value=desk_token):
+            st_res = self.client.post(
+                '/api/v1/desktop/session-token',
+                headers={'X-OrderTracker-Client': 'tauri-desktop'},
+                json={'device_label': 'Alice PC'},
+            )
+            self.assertEqual(st_res.status_code, 200)
+            self.assertEqual(st_res.get_json()['data']['token'], desk_token)
+            self.assertEqual(st_res.get_json()['data']['defaultAddress']['id'], 'addr_home')
+
+        # Direct username/password desktop login
+        with patch('app.api.routes.UsersRepo.get_by_username', return_value=self.user), \
+             patch('app.api.routes.UsersRepo.issue_desktop_token', return_value=desk_token):
+            bad_login = self.client.post('/api/v1/desktop/login', json={'username': 'alice', 'password': 'wrong'})
+            self.assertEqual(bad_login.status_code, 401)
+            ok_login = self.client.post('/api/v1/desktop/login', json={'username': 'alice', 'password': 'secret123'})
+            self.assertEqual(ok_login.status_code, 200)
+            self.assertEqual(ok_login.get_json()['data']['token'], desk_token)
+
+        # Desktop state polling + quick-add (auto-assigns default address) + logout
+        trk_with_cod = {**self.sample_tracking, 'addressId': 'addr_home', 'codAmount': 250000}
+        with patch('app.api.routes.UsersRepo.get_by_desktop_token_hash', side_effect=lambda h: self.user if h == desk_hash else None), \
+             patch('app.api.routes.TrackingsRepo.get_user_trackings', return_value=[trk_with_cod]):
+            state_res = self.client.get(
+                '/api/v1/desktop/state',
+                headers={'Authorization': f'Bearer {desk_token}'},
+            )
+            self.assertEqual(state_res.status_code, 200)
+            sdata = state_res.get_json()['data']
+            self.assertEqual(sdata['summary']['scopedActiveCount'], 1)
+            self.assertEqual(sdata['summary']['scopedActiveCod'], 250000)
+            self.assertEqual(sdata['summary']['scopeLabel'], 'Nhà riêng')
+            self.assertEqual(len(sdata['checkpoints']), 1)
+            self.assertEqual(sdata['checkpoints'][0]['eventHash'], 'ev1')
+
+            with patch('app.api.routes.TrackingService.create_tracking_for_user', return_value={'success': True, 'tracking_id': 'trk-desk'}) as mock_create, \
+                 patch('app.api.routes.TrackingsRepo.get_by_id', return_value=trk_with_cod):
+                qa_res = self.client.post(
+                    '/api/v1/desktop/quick-add',
+                    headers={'Authorization': f'Bearer {desk_token}'},
+                    json={'tracking_number': 'SPXVN77777777', 'alias': 'Chuột mới'},
+                )
+                self.assertEqual(qa_res.status_code, 201)
+                self.assertEqual(mock_create.call_args.kwargs.get('address_id'), 'addr_home')
+
+            with patch('app.api.routes.UsersRepo.revoke_desktop_token') as mock_rev:
+                lo_res = self.client.post(
+                    '/api/v1/desktop/logout',
+                    headers={'Authorization': f'Bearer {desk_token}'},
+                )
+                self.assertEqual(lo_res.status_code, 200)
+                mock_rev.assert_called_once_with('u-v2', desk_hash)
+
 
 if __name__ == '__main__':
     unittest.main()

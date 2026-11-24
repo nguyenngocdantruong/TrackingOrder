@@ -145,6 +145,85 @@
                 </div>
             </div>
         </section>
+
+        <!-- Windows Desktop App Integration (Live inside Tauri / Download CTA on Web) -->
+        <section class="v2-surface v2-settings-section" aria-labelledby="v2-desktop-cfg-title">
+            <div class="v2-channel-head">
+                <div class="v2-channel-title-group">
+                    <span class="v2-addr-pin" aria-hidden="true">
+                        <svg class="v2-icon" viewBox="0 0 24 24">
+                            <rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/>
+                            <rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/>
+                        </svg>
+                    </span>
+                    <div>
+                        <h2 id="v2-desktop-cfg-title" class="v2-section-title" data-v2-i18n="settings.desktop.title">Ứng dụng Windows (System Tray)</h2>
+                        <p class="v2-help" style="margin-top:2px;font-size:14px;" data-v2-i18n="settings.desktop.desc">Nhận thông báo gốc trên Windows, chạy ngầm ở khay hệ thống và khởi động cùng máy tính.</p>
+                    </div>
+                </div>
+                <span id="v2-desktop-connected-badge" class="v2-badge v2-badge-success" hidden data-v2-i18n="settings.desktop.connected">Đang chạy trên Windows</span>
+            </div>
+
+            <!-- Web Browser Prompt -->
+            <div id="v2-desktop-web-prompt" class="v2-settings-row">
+                <p style="font-size:14px;color:var(--v2-muted);max-width:54ch;" data-v2-i18n="settings.desktop.web_hint">
+                    Cài đặt ứng dụng nhẹ cho Windows 10/11 để nhận thông báo giao hàng trực tiếp trên màn hình mà không cần giữ tab trình duyệt.
+                </p>
+                <a href="{{ url_for('v2.download') }}" class="v2-btn v2-btn-tinted" data-v2-i18n="landing.desktop.cta">Tải ứng dụng Windows</a>
+            </div>
+
+            <!-- Native Tauri Controls (automatically activated inside Windows App) -->
+            <div id="v2-desktop-native-controls" class="v2-desktop-controls" hidden>
+                <div class="v2-desktop-toggle-row">
+                    <div>
+                        <strong style="font-size:14px;color:var(--v2-ink);" data-v2-i18n="settings.desktop.notify_label">Thông báo đẩy trên màn hình Windows</strong>
+                        <p class="v2-help" style="font-size:12px;" data-v2-i18n="settings.desktop.notify_help">Hiển thị hộp thông báo Windows Toast khi đơn hàng chuyển sang giai đoạn đã chọn ở trên.</p>
+                    </div>
+                    <label class="v2-switch-label" for="v2-desk-notify">
+                        <input id="v2-desk-notify" type="checkbox" class="v2-switch" role="switch" checked>
+                    </label>
+                </div>
+
+                <div class="v2-desktop-toggle-row">
+                    <div>
+                        <strong style="font-size:14px;color:var(--v2-ink);" data-v2-i18n="settings.desktop.autostart_label">Khởi động cùng hệ thống Windows</strong>
+                        <p class="v2-help" style="font-size:12px;" data-v2-i18n="settings.desktop.autostart_help">Tự động chạy ngầm ở System Tray ngay khi bạn đăng nhập vào máy tính.</p>
+                    </div>
+                    <label class="v2-switch-label" for="v2-desk-autostart">
+                        <input id="v2-desk-autostart" type="checkbox" class="v2-switch" role="switch">
+                    </label>
+                </div>
+
+                <div class="v2-desktop-toggle-row">
+                    <div>
+                        <strong style="font-size:14px;color:var(--v2-ink);" data-v2-i18n="settings.desktop.minimized_label">Khởi động thu gọn xuống khay hệ thống</strong>
+                        <p class="v2-help" style="font-size:12px;" data-v2-i18n="settings.desktop.minimized_help">Không bật cửa sổ chính khi máy tính vừa khởi động, chỉ hiện biểu tượng ở góc phải Taskbar.</p>
+                    </div>
+                    <label class="v2-switch-label" for="v2-desk-minimized">
+                        <input id="v2-desk-minimized" type="checkbox" class="v2-switch" role="switch" checked>
+                    </label>
+                </div>
+
+                <div class="v2-desktop-toggle-row">
+                    <div>
+                        <strong style="font-size:14px;color:var(--v2-ink);" data-v2-i18n="settings.desktop.clipboard_label">Gợi ý khi sao chép mã vận đơn (Clipboard)</strong>
+                        <p class="v2-help" style="font-size:12px;" data-v2-i18n="settings.desktop.clipboard_help">Tự điền sẵn mã SPXVN / LEX vừa copy khi bạn mở hộp Thêm nhanh (Ctrl+Shift+T).</p>
+                    </div>
+                    <label class="v2-switch-label" for="v2-desk-clipboard">
+                        <input id="v2-desk-clipboard" type="checkbox" class="v2-switch" role="switch" checked>
+                    </label>
+                </div>
+
+                <div class="v2-desktop-actions-bar">
+                    <button type="button" id="v2-desk-test-btn" class="v2-btn v2-btn-secondary">
+                        <span data-v2-i18n="settings.desktop.test_btn">Bắn thử thông báo Windows</span>
+                    </button>
+                    <button type="button" id="v2-desk-sync-btn" class="v2-btn v2-btn-tinted">
+                        <span data-v2-i18n="settings.desktop.sync_btn">Đồng bộ khay hệ thống ngay</span>
+                    </button>
+                </div>
+            </div>
+        </section>
     </div>
 </div>
 {% endblock %}

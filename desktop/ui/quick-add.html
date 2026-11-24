@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thêm vận đơn nhanh · Order Tracker</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --primary-tint: #efedff;
+            --primary-active: #3730a3;
+            --canvas: #f6f7fa;
+            --surface: #ffffff;
+            --ink: #202838;
+            --muted: #586174;
+            --line: #dce0e8;
+            --danger-bg: #fef2f2;
+            --danger-ink: #991b1b;
+            --success-bg: #ecfdf5;
+            --success-ink: #065f46;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --primary: #5b54f0;
+                --primary-hover: #6c65f7;
+                --primary-tint: #1e2348;
+                --primary-active: #c3cbff;
+                --canvas: #0b0f17;
+                --surface: #131926;
+                --ink: #edf2f9;
+                --muted: #98a6be;
+                --line: #253047;
+                --danger-bg: #2e1216;
+                --danger-ink: #fca5a5;
+                --success-bg: #0b2920;
+                --success-ink: #6ee7b7;
+            }
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 18px 20px;
+            background: var(--surface);
+            color: var(--ink);
+            font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+            font-size: 14px;
+            user-select: none;
+        }
+        .head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+        h1 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 700;
+        }
+        .badge {
+            padding: 3px 8px;
+            border-radius: 8px;
+            background: var(--primary-tint);
+            color: var(--primary-active);
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .field { margin-bottom: 12px; }
+        label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted);
+            margin-bottom: 5px;
+        }
+        input, select {
+            width: 100%;
+            min-height: 42px;
+            padding: 8px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--line);
+            background: var(--canvas);
+            color: var(--ink);
+            font-family: inherit;
+            font-size: 14px;
+        }
+        input.code {
+            font-family: ui-monospace, Consolas, monospace;
+            font-weight: 600;
+        }
+        input:focus, select:focus {
+            outline: 2px solid var(--primary);
+            outline-offset: 1px;
+        }
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .msg {
+            padding: 9px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .msg.err { background: var(--danger-bg); color: var(--danger-ink); }
+        .msg.ok { background: var(--success-bg); color: var(--success-ink); }
+        .actions {
+            margin-top: 14px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        button {
+            min-height: 40px;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--line);
+            background: var(--canvas);
+            color: var(--ink);
+        }
+        button.primary {
+            border-color: transparent;
+            background: var(--primary);
+            color: #fff;
+        }
+        button.primary:hover { background: var(--primary-hover); }
+        button:disabled { opacity: 0.6; cursor: wait; }
+        [hidden] { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="head">
+        <h1>Thêm vận đơn nhanh</h1>
+        <span id="clip-badge" class="badge" hidden>Tự điền từ Clipboard</span>
+    </div>
+
+    <div id="status-msg" class="msg" hidden></div>
+
+    <form id="qa-form">
+        <div class="field">
+            <label for="qa-code">Mã vận đơn (SPXVN…, LEX…, J&amp;T…)</label>
+            <input id="qa-code" class="code" type="text" placeholder="Dán mã vận đơn…" required autocomplete="off">
+        </div>
+
+        <div class="row">
+            <div class="field">
+                <label for="qa-alias">Tên gợi nhớ (tuỳ chọn)</label>
+                <input id="qa-alias" type="text" maxlength="80" placeholder="VD: Tai nghe, Sách…">
+            </div>
+            <div class="field">
+                <label for="qa-addr">Địa chỉ nhận hàng</label>
+                <select id="qa-addr">
+                    <option value="">Mặc định của tài khoản</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button type="button" id="qa-cancel">Đóng (Esc)</button>
+            <button type="submit" id="qa-submit" class="primary">Theo dõi ngay</button>
+        </div>
+    </form>
+
+    <script>
+    (async () => {
+        const invoke = window.__TAURI__?.core?.invoke || window.__TAURI_INTERNALS__?.invoke;
+        const codeInput = document.getElementById('qa-code');
+        const aliasInput = document.getElementById('qa-alias');
+        const addrSelect = document.getElementById('qa-addr');
+        const clipBadge = document.getElementById('clip-badge');
+        const statusMsg = document.getElementById('status-msg');
+        const submitBtn = document.getElementById('qa-submit');
+        const cancelBtn = document.getElementById('qa-cancel');
+
+        const showMsg = (text, ok = false) => {
+            statusMsg.textContent = text;
+            statusMsg.className = 'msg ' + (ok ? 'ok' : 'err');
+            statusMsg.hidden = false;
+        };
+
+        const closeWin = () => {
+            if (invoke) invoke('close_quick_add').catch(() => window.close());
+            else window.close();
+        };
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeWin();
+        });
+        cancelBtn.addEventListener('click', closeWin);
+
+        if (invoke) {
+            try {
+                const ctx = await invoke('get_quick_add_context');
+                if (ctx && !ctx.hasToken) {
+                    showMsg('Vui lòng đăng nhập trên cửa sổ chính trước khi thêm nhanh.');
+                    submitBtn.disabled = true;
+                }
+                if (ctx && Array.isArray(ctx.addresses) && ctx.addresses.length > 0) {
+                    addrSelect.innerHTML = '<option value="">Không gắn địa chỉ</option>';
+                    ctx.addresses.forEach((a) => {
+                        const opt = document.createElement('option');
+                        opt.value = a.id;
+                        opt.textContent = a.isDefault ? (a.name + ' (Mặc định)') : a.name;
+                        if (a.isDefault) opt.selected = true;
+                        addrSelect.appendChild(opt);
+                    });
+                }
+                if (ctx && ctx.clipboardCandidate) {
+                    codeInput.value = ctx.clipboardCandidate;
+                    clipBadge.hidden = false;
+                    aliasInput.focus();
+                } else {
+                    codeInput.focus();
+                }
+            } catch (_) {
+                codeInput.focus();
+            }
+        }
+
+        document.getElementById('qa-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!invoke) return;
+            const code = codeInput.value.trim();
+            if (!code) return;
+            submitBtn.disabled = true;
+            statusMsg.hidden = true;
+            try {
+                await invoke('submit_quick_add', {
+                    trackingNumber: code,
+                    alias: aliasInput.value.trim() || null,
+                    addressId: addrSelect.value || null
+                });
+                showMsg('Đã thêm vận đơn thành công!', true);
+                setTimeout(closeWin, 650);
+            } catch (err) {
+                showMsg(String(err || 'Không thể thêm vận đơn.'));
+                submitBtn.disabled = false;
+            }
+        });
+    })();
+    </script>
+</body>
+</html>

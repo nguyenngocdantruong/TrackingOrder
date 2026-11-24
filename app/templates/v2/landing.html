@@ -52,6 +52,13 @@
                 <img src="{{ url_for('static', filename='zalo.webp') }}" width="18" height="18" alt="Zalo">
                 <span>Zalo Bot</span>
             </span>
+            <a href="{{ url_for('v2.download') }}" class="v2-channel-pill" style="text-decoration:none;color:var(--v2-ink);">
+                <svg class="v2-icon" style="width:15px;height:15px;color:var(--v2-primary-active);" viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/>
+                    <rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/>
+                </svg>
+                <span data-v2-i18n="landing.windows_badge">Windows App</span>
+            </a>
             <a href="{{ url_for('v2.docs') }}" class="v2-channel-pill" style="text-decoration:none;color:var(--v2-primary-active);">
                 <span data-v2-i18n="landing.partner_badge">REST API &amp; Webhook</span>
             </a>
@@ -348,6 +355,23 @@
   }
 }</code></pre>
         </div>
+    </div>
+</section>
+
+<!-- Windows Desktop Companion Band -->
+<section class="v2-desktop-band" aria-labelledby="v2-desktop-band-heading">
+    <div class="v2-desktop-band-copy">
+        <h2 id="v2-desktop-band-heading" class="v2-section-title" data-v2-i18n="landing.desktop.heading">Đã có ứng dụng Order Tracker cho Windows 10/11</h2>
+        <p class="v2-subtitle" data-v2-i18n="landing.desktop.sub">Chạy ngầm gọn nhẹ ở System Tray, tự khởi động cùng máy tính, bắn thông báo Windows Toast kèm tiền COD và dán nhanh mã đơn bằng tổ hợp Ctrl+Shift+T.</p>
+    </div>
+    <div class="v2-closing-actions">
+        <a href="{{ url_for('v2.download') }}" class="v2-btn v2-btn-tinted v2-btn-lg">
+            <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/>
+                <rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/>
+            </svg>
+            <span data-v2-i18n="landing.desktop.cta">Tải ứng dụng Windows</span>
+        </a>
     </div>
 </section>
 

@@ -24,15 +24,14 @@
     (() => {
         try {
             const saved = localStorage.getItem('v2_theme');
-            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const theme = (saved === 'dark' || saved === 'light') ? saved : (prefersDark ? 'dark' : 'light');
+            const theme = saved === 'dark' ? 'dark' : 'light';
             document.documentElement.setAttribute('data-theme', theme);
             const metaTc = document.getElementById('v2-meta-theme-color');
             if (metaTc) metaTc.setAttribute('content', theme === 'dark' ? '#0b0f17' : '#4f46e5');
         } catch (_) {}
     })();
     </script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='v2.css', v='12') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='v2.css', v='13') }}">
     {% block head_extra %}{% endblock %}
 </head>
 <body class="{{ body_class | default('') }}">
@@ -149,11 +148,17 @@
                                 <a class="v2-nav-link" href="{{ url_for('v2.docs') }}" {% if ep == 'v2.docs' %}aria-current="page"{% endif %} data-v2-i18n="nav.docs">Tài liệu API</a>
                             </li>
                             <li>
+                                <a class="v2-nav-link" href="{{ url_for('v2.download') }}" {% if ep == 'v2.download' %}aria-current="page"{% endif %} data-v2-i18n="nav.download">Tải ứng dụng</a>
+                            </li>
+                            <li>
                                 <a class="v2-nav-link" href="{{ url_for('v2.support') }}" {% if ep == 'v2.support' %}aria-current="page"{% endif %} data-v2-i18n="nav.support">Ủng hộ</a>
                             </li>
                         {% else %}
                             <li>
                                 <a class="v2-nav-link" href="{{ url_for('v2.docs') }}" {% if ep == 'v2.docs' %}aria-current="page"{% endif %} data-v2-i18n="nav.docs">Tài liệu API</a>
+                            </li>
+                            <li>
+                                <a class="v2-nav-link" href="{{ url_for('v2.download') }}" {% if ep == 'v2.download' %}aria-current="page"{% endif %} data-v2-i18n="nav.download">Tải ứng dụng</a>
                             </li>
                             <li>
                                 <a class="v2-nav-link" href="{{ url_for('v2.support') }}" {% if ep == 'v2.support' %}aria-current="page"{% endif %} data-v2-i18n="nav.support">Ủng hộ</a>
@@ -216,6 +221,7 @@
         <div class="v2-container v2-footer-inner">
             <span data-v2-i18n="footer.tagline">Order Tracking Hub · Theo dõi vận đơn tập trung qua Telegram, Zalo &amp; Partner API.</span>
             <div class="v2-footer-links">
+                <a class="v2-footer-link" href="{{ url_for('v2.download') }}" data-v2-i18n="nav.download">Tải ứng dụng</a>
                 <a class="v2-footer-link" href="{{ url_for('v2.docs') }}" data-v2-i18n="nav.docs">Tài liệu API</a>
                 {% if current_user.is_authenticated %}
                 <a class="v2-footer-link" href="{{ url_for('v2.developers') }}" data-v2-i18n="nav.developers">API Đối tác</a>
@@ -252,7 +258,7 @@
         {% endif %}
     {% endwith %}
 
-    <script src="{{ url_for('static', filename='v2.js', v='7') }}" defer></script>
+    <script src="{{ url_for('static', filename='v2.js', v='13') }}" defer></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

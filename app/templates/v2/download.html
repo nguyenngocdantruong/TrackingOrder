@@ -1,0 +1,461 @@
+{% extends "v2/layout.html" %}
+{% block content %}
+<section id="v2-dl-stage" class="v2-dl-hero" aria-labelledby="v2-dl-heading">
+    <div class="v2-dl-copy">
+        <h1 id="v2-dl-heading" class="v2-hero-title" data-v2-i18n="dl.hero.title">Theo dõi đơn hàng ngay từ khay hệ thống Windows</h1>
+        <p class="v2-hero-lead" data-v2-i18n="dl.hero.lead">
+            Nhận thông báo giao hàng chuẩn Windows 10/11 kèm số tiền COD cần chuẩn bị, tự khởi động ngầm cùng máy và bấm Ctrl+Shift+T để dán mã vận đơn tức thì mà không cần mở trình duyệt.
+        </p>
+
+        <div id="v2-dl-running-banner" class="v2-callout v2-callout-info" style="margin-top:20px;" hidden>
+            <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true" style="color:var(--v2-primary-active);">
+                <path d="M20 6 9 17l-5-5"/>
+            </svg>
+            <div>
+                <strong data-v2-i18n="dl.running.title">Bạn đang chạy Order Tracker bản Windows Desktop.</strong>
+                <a href="{{ url_for('v2.settings') }}" style="margin-left:6px;font-weight:600;" data-v2-i18n="dl.running.cta">Mở cài đặt System Tray &amp; Khởi động cùng máy</a>
+            </div>
+        </div>
+
+        <div class="v2-dl-cta-row">
+            <a id="v2-dl-primary" href="{{ url_for('v2.download_windows', format='exe') }}" class="v2-btn v2-btn-primary v2-btn-lg">
+                <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/>
+                    <rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/>
+                </svg>
+                {% if release.has_direct_installer %}
+                <span data-v2-i18n="dl.cta.exe">Tải bản cài Windows (.exe)</span>
+                {% if release.exe_size_mb %}
+                <span class="v2-dl-size-tag v2-tabular">{{ release.exe_size_mb }}</span>
+                {% endif %}
+                {% else %}
+                <span data-v2-i18n="dl.cta.exe_releases">Tải bản Windows (.exe)</span>
+                <span class="v2-dl-size-tag v2-tabular">v{{ release.version }} · Releases</span>
+                {% endif %}
+            </a>
+            <a href="{{ url_for('v2.download_windows', format='msi') }}" class="v2-btn v2-btn-secondary v2-btn-lg">
+                <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <span data-v2-i18n="dl.cta.msi">Gói cài .MSI</span>
+            </a>
+        </div>
+
+        <ul class="v2-dl-specs v2-tabular" aria-label="Thông số bản cài đặt">
+            <li>Windows 10 / 11 (x64)</li>
+            <li>Tauri v2 · WebView2 · Autostart</li>
+            <li data-v2-i18n="dl.spec.noadmin">Không cần quyền Admin</li>
+            <li><a href="{{ release.releases_url }}" target="_blank" rel="noopener noreferrer" data-v2-i18n="dl.spec.releases">v{{ release.version }} · GitHub Releases</a></li>
+        </ul>
+    </div>
+
+    <!-- Interactive Windows 11 System Tray & Native Toast Stage -->
+    <aside class="v2-win-stage" aria-label="Mô phỏng khay hệ thống và thông báo Windows">
+        <div class="v2-win-stage-top">
+            <div class="v2-win-triggers" role="tablist" aria-label="Kịch bản mô phỏng">
+                <button
+                    type="button"
+                    id="v2-win-tab-delivering"
+                    role="tab"
+                    class="v2-win-trigger"
+                    aria-selected="true"
+                    aria-controls="v2-win-scene-panel"
+                    tabindex="0"
+                    data-win-scene="delivering"
+                >
+                    <span data-v2-i18n="dl.sim.tab_delivering">Đang giao</span>
+                </button>
+                <button
+                    type="button"
+                    id="v2-win-tab-quickadd"
+                    role="tab"
+                    class="v2-win-trigger"
+                    aria-selected="false"
+                    aria-controls="v2-win-scene-panel"
+                    tabindex="-1"
+                    data-win-scene="quickadd"
+                >
+                    <span data-v2-i18n="dl.sim.tab_quickadd">Ctrl+Shift+T</span>
+                </button>
+                <button
+                    type="button"
+                    id="v2-win-tab-delivered"
+                    role="tab"
+                    class="v2-win-trigger"
+                    aria-selected="false"
+                    aria-controls="v2-win-scene-panel"
+                    tabindex="-1"
+                    data-win-scene="delivered"
+                >
+                    <span data-v2-i18n="dl.sim.tab_delivered">Đã giao</span>
+                </button>
+            </div>
+            <span class="v2-win-sample-badge" data-v2-i18n="landing.demo.badge">Dữ liệu minh họa</span>
+        </div>
+
+        <div class="v2-win-desktop-canvas">
+            <div id="v2-win-scene-panel" role="tabpanel" aria-labelledby="v2-win-tab-delivering">
+                <!-- Scene: Native Windows Toast Notification -->
+                <div id="v2-win-toast-card" class="v2-win-toast" aria-live="polite">
+                    <div class="v2-win-toast-app">
+                        <span class="v2-win-toast-mark" aria-hidden="true">
+                            <svg class="v2-icon" style="width:14px;height:14px;" viewBox="0 0 24 24">
+                                <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+                            </svg>
+                        </span>
+                        <span>Order Tracker</span>
+                        <span id="v2-win-toast-time" class="v2-win-toast-time v2-tabular" data-v2-i18n="dl.sim.now">Vừa xong</span>
+                    </div>
+                    <div id="v2-win-toast-title" class="v2-win-toast-title" data-v2-i18n="dl.sim.t1_title">Bàn phím cơ Keychron Q1 · Đang giao hàng</div>
+                    <p id="v2-win-toast-body" class="v2-win-toast-body" data-v2-i18n="dl.sim.t1_body">Bưu tá Quận 7 đang phát kiện SPXVN048291049281 · Chuẩn bị COD 250.000 ₫ (Nhà riêng).</p>
+                </div>
+
+                <!-- Scene: Floating Quick-Add Window (Ctrl+Shift+T) -->
+                <div id="v2-win-quickadd-card" class="v2-win-quickadd" hidden>
+                    <div class="v2-win-quickadd-head">
+                        <strong data-v2-i18n="dl.sim.qa_title">Thêm vận đơn nhanh</strong>
+                        <span class="v2-code v2-win-kbd">Ctrl + Shift + T</span>
+                    </div>
+                    <div class="v2-win-quickadd-field">
+                        <span class="v2-code">LEXPU0391827364</span>
+                        <span class="v2-badge v2-badge-primary" data-v2-i18n="dl.sim.qa_clip">Tự điền từ Clipboard</span>
+                    </div>
+                    <div class="v2-win-quickadd-meta">
+                        <span data-v2-i18n="dl.sim.qa_addr">Địa chỉ nhận: Nhà riêng (Mặc định)</span>
+                        <span class="v2-win-qa-enter">Enter</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Native System Tray Popup Menu -->
+            <div id="v2-win-tray-menu" class="v2-win-tray-menu" role="menu" aria-label="Menu khay hệ thống">
+                <div id="v2-win-tray-summary" class="v2-win-tray-status v2-tabular" data-v2-i18n="dl.sim.tray_status_1">
+                    Nhà riêng · 3 đơn đang giao · COD 420.000 ₫
+                </div>
+                <button type="button" role="menuitem" class="v2-win-menu-item" data-win-open-dash>
+                    <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                    <span data-v2-i18n="dl.sim.menu_open">Mở bảng điều khiển</span>
+                </button>
+                <button type="button" role="menuitem" class="v2-win-menu-item" data-win-scene-pick="quickadd">
+                    <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                    <span data-v2-i18n="dl.sim.menu_quick">Thêm vận đơn nhanh</span>
+                    <span class="v2-win-shortcut v2-code">Ctrl+Shift+T</span>
+                </button>
+                <div class="v2-win-menu-sep" role="separator"></div>
+                <button type="button" id="v2-win-toggle-notify" role="menuitemcheckbox" aria-checked="true" class="v2-win-menu-item" data-win-toggle="notify">
+                    <span class="v2-win-check" aria-hidden="true">
+                        <svg class="v2-icon v2-win-check-svg" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+                    </span>
+                    <span data-v2-i18n="dl.sim.menu_notify">Nhận thông báo trên Windows</span>
+                </button>
+                <button type="button" id="v2-win-toggle-autostart" role="menuitemcheckbox" aria-checked="true" class="v2-win-menu-item" data-win-toggle="autostart">
+                    <span class="v2-win-check" aria-hidden="true">
+                        <svg class="v2-icon v2-win-check-svg" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+                    </span>
+                    <span data-v2-i18n="dl.sim.menu_autostart">Khởi động cùng Windows</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Windows 11 Taskbar Strip -->
+        <div class="v2-win-taskbar">
+            <span id="v2-win-taskbar-hint" class="v2-win-taskbar-hint" data-v2-i18n="dl.sim.taskbar_hint">Nhấn biểu tượng khay hệ thống để ẩn / hiện menu</span>
+            <span class="v2-win-sample-badge v2-win-sample-mobile" data-v2-i18n="landing.demo.badge">Dữ liệu minh họa</span>
+            <div class="v2-win-systray">
+                <span class="v2-win-chevron" aria-hidden="true">
+                    <svg class="v2-icon" style="width:14px;height:14px;" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></svg>
+                </span>
+                <button
+                    type="button"
+                    id="v2-win-tray-btn"
+                    class="v2-win-tray-icon"
+                    aria-expanded="true"
+                    aria-controls="v2-win-tray-menu"
+                    aria-label="Ẩn hoặc hiện menu Order Tracker trên khay hệ thống"
+                    title="Order Tracker · System Tray"
+                >
+                    <svg class="v2-icon" style="width:14px;height:14px;" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+                    </svg>
+                </button>
+                <span class="v2-win-clock v2-tabular" aria-hidden="true">21:45</span>
+            </div>
+        </div>
+    </aside>
+</section>
+
+<!-- Operational Capability Ledger -->
+<section class="v2-spec-band" style="margin-top:56px;" aria-labelledby="v2-dl-cap-heading">
+    <div class="v2-spec-band-head">
+        <div>
+            <h2 id="v2-dl-cap-heading" class="v2-page-title" data-v2-i18n="dl.cap.heading">Thiết kế gọn nhẹ cho máy tính làm việc hàng ngày</h2>
+            <p class="v2-subtitle" data-v2-i18n="dl.cap.sub">Xây dựng trên nhân Rust của Tauri v2 kết hợp WebView2 có sẵn trên Windows — gọn nhẹ, không ngốn RAM như trình duyệt mở nhiều tab.</p>
+        </div>
+    </div>
+
+    <div class="v2-dl-cap-rows">
+        <div class="v2-dl-cap-row">
+            <div class="v2-dl-cap-name">
+                <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                <strong data-v2-i18n="dl.cap.r1_title">Thông báo đẩy Windows chuẩn xác</strong>
+            </div>
+            <p class="v2-dl-cap-desc" data-v2-i18n="dl.cap.r1_desc">Tự động kế thừa 6 giai đoạn thông báo của tài khoản. Chỉ bật thông báo khi có sự kiện mới từ bưu cục, kèm số tiền COD và địa chỉ nhận.</p>
+        </div>
+
+        <div class="v2-dl-cap-row">
+            <div class="v2-dl-cap-name">
+                <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01"/></svg>
+                <strong data-v2-i18n="dl.cap.r2_title">Thu nhỏ xuống System Tray &amp; tự chạy khi bật máy</strong>
+            </div>
+            <p class="v2-dl-cap-desc" data-v2-i18n="dl.cap.r2_desc">Bấm nút đóng cửa sổ sẽ thu gọn ứng dụng xuống góc phải thanh Taskbar. Hỗ trợ khởi động ẩn cùng Windows (--minimized) để không che màn hình.</p>
+        </div>
+
+        <div class="v2-dl-cap-row">
+            <div class="v2-dl-cap-name">
+                <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+                <strong data-v2-i18n="dl.cap.r3_title">Phím tắt Ctrl+Shift+T &amp; tự nhận mã Clipboard</strong>
+            </div>
+            <p class="v2-dl-cap-desc" data-v2-i18n="dl.cap.r3_desc">Đang xem đơn trên sàn thương mại điện tử chỉ cần sao chép mã vận đơn rồi nhấn Ctrl+Shift+T: hộp nhập nổi tự nhận diện hãng và gắn sẵn địa chỉ mặc định.</p>
+        </div>
+
+        <div class="v2-dl-cap-row">
+            <div class="v2-dl-cap-name">
+                <svg class="v2-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>
+                <strong data-v2-i18n="dl.cap.r4_title">Đồng bộ tức thì với Web, Telegram &amp; Zalo</strong>
+            </div>
+            <p class="v2-dl-cap-desc" data-v2-i18n="dl.cap.r4_desc">Đăng nhập một lần duy nhất trên cửa sổ ứng dụng — phiên làm việc tự động cấp khóa riêng cho tiến trình chạy ngầm và tự thu hồi ngay khi đăng xuất.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Installation Walkthrough & Release Packages -->
+<section class="v2-dl-bottom-grid" aria-labelledby="v2-dl-install-heading">
+    <div class="v2-surface v2-settings-section">
+        <h2 id="v2-dl-install-heading" class="v2-section-title" style="margin-bottom:16px;" data-v2-i18n="dl.install.heading">Cài đặt trong 3 bước ngắn</h2>
+        <ol class="v2-dl-steps">
+            <li>
+                <strong data-v2-i18n="dl.install.s1_title">Tải và mở bộ cài .exe</strong>
+                <p data-v2-i18n="dl.install.s1_desc">Bộ cài NSIS cài trực tiếp vào thư mục người dùng hiện tại, không yêu cầu quyền quản trị viên (Admin). Nếu Windows SmartScreen hỏi xác nhận, chọn More info rồi bấm Run anyway.</p>
+            </li>
+            <li>
+                <strong data-v2-i18n="dl.install.s2_title">Đăng nhập tài khoản Order Tracker</strong>
+                <p data-v2-i18n="dl.install.s2_desc">Dùng đúng tài khoản web hiện có của bạn. Danh sách đơn hàng, sổ địa chỉ mặc định và tuỳ chọn thông báo sẽ tự đồng bộ ngay lập tức.</p>
+            </li>
+            <li>
+                <strong data-v2-i18n="dl.install.s3_title">Ghim biểu tượng vào khay hệ thống</strong>
+                <p data-v2-i18n="dl.install.s3_desc">Bật Khởi động cùng Windows ngay ở menu chuột phải dưới System Tray để máy tự theo dõi đơn hàng mỗi ngày.</p>
+            </li>
+        </ol>
+    </div>
+
+    <div class="v2-table-wrap v2-dl-pkg-card">
+        <div class="v2-panel-head">
+            <h2 class="v2-section-title" data-v2-i18n="dl.pkg.heading">Gói cài đặt phát hành</h2>
+            <span class="v2-badge v2-badge-primary v2-tabular">v{{ release.version }}</span>
+        </div>
+        <table class="v2-table v2-dl-pkg-table">
+            <thead>
+                <tr>
+                    <th scope="col" data-v2-i18n="dl.pkg.col_format">Định dạng</th>
+                    <th scope="col" class="v2-dl-col-os" data-v2-i18n="dl.pkg.col_arch">Hệ điều hành</th>
+                    <th scope="col" style="text-align:right;" data-v2-i18n="dl.pkg.col_action">Tải về</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <strong style="color:var(--v2-ink);" data-v2-i18n="dl.pkg.nsis_name">Bộ cài chuẩn NSIS (.exe)</strong>
+                        <div class="v2-code" style="font-size:12px;color:var(--v2-muted);">
+                            {{ release.exe_filename }}{% if release.exe_size_mb %} · {{ release.exe_size_mb }}{% else %} · <span data-v2-i18n="dl.pkg.via_gh">Phát hành qua GitHub Actions</span>{% endif %}
+                        </div>
+                    </td>
+                    <td class="v2-dl-col-os">Windows 10 / 11 (x64)</td>
+                    <td class="v2-dl-col-cta">
+                        <a href="{{ url_for('v2.download_windows', format='exe') }}" class="v2-btn v2-btn-primary" data-v2-i18n="dl.pkg.download_btn">Tải .EXE</a>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <strong style="color:var(--v2-ink);" data-v2-i18n="dl.pkg.msi_name">Gói triển khai MSI (.msi)</strong>
+                        <div class="v2-code" style="font-size:12px;color:var(--v2-muted);">
+                            {{ release.msi_filename }}{% if release.msi_size_mb %} · {{ release.msi_size_mb }}{% else %} · <span data-v2-i18n="dl.pkg.via_gh">Phát hành qua GitHub Actions</span>{% endif %}
+                        </div>
+                    </td>
+                    <td class="v2-dl-col-os">Windows 10 / 11 (x64)</td>
+                    <td class="v2-dl-col-cta">
+                        <a href="{{ url_for('v2.download_windows', format='msi') }}" class="v2-btn v2-btn-secondary" data-v2-i18n="dl.pkg.download_msi">Tải .MSI</a>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <strong style="color:var(--v2-ink);">GitHub Releases</strong>
+                        <div style="font-size:12px;color:var(--v2-muted);" data-v2-i18n="dl.pkg.gh_desc">Nhật ký thay đổi, mã nguồn Tauri v2 và các phiên bản trước</div>
+                    </td>
+                    <td class="v2-dl-col-os">All releases</td>
+                    <td class="v2-dl-col-cta">
+                        <a href="{{ release.releases_url }}" target="_blank" rel="noopener noreferrer" class="v2-btn v2-btn-tinted" data-v2-i18n="dl.pkg.open_gh">Mở GitHub</a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const runningBanner = document.getElementById('v2-dl-running-banner');
+    if (runningBanner && (window.__TAURI_INTERNALS__ || window.__ORDER_TRACKER_DESKTOP__)) {
+        runningBanner.hidden = false;
+    }
+
+    const panel = document.getElementById('v2-win-scene-panel');
+    const toastCard = document.getElementById('v2-win-toast-card');
+    const quickCard = document.getElementById('v2-win-quickadd-card');
+    const toastTitle = document.getElementById('v2-win-toast-title');
+    const toastBody = document.getElementById('v2-win-toast-body');
+    const traySummary = document.getElementById('v2-win-tray-summary');
+    const trayMenu = document.getElementById('v2-win-tray-menu');
+    const trayBtn = document.getElementById('v2-win-tray-btn');
+    const notifyToggle = document.getElementById('v2-win-toggle-notify');
+    const sceneTabs = Array.from(document.querySelectorAll('[data-win-scene]'));
+
+    const scenes = {
+        delivering: {
+            vi: {
+                title: 'Bàn phím cơ Keychron Q1 · Đang giao hàng',
+                body: 'Bưu tá Quận 7 đang phát kiện SPXVN048291049281 · Chuẩn bị COD 250.000 ₫ (Nhà riêng).',
+                tray: 'Nhà riêng · 3 đơn đang giao · COD 420.000 ₫'
+            },
+            en: {
+                title: 'Keychron Q1 Keyboard · Out for delivery',
+                body: 'District 7 courier is delivering SPXVN048291049281 · COD due 250.000 ₫ (Home).',
+                tray: 'Home · 3 active parcels · COD 420.000 ₫'
+            }
+        },
+        delivered: {
+            vi: {
+                title: 'Màn hình 27 inch · Giao hàng thành công',
+                body: 'Kiện hàng LEXPU0391827364 đã phát thành công tại Công ty. Đã tự động hoàn tất theo dõi.',
+                tray: 'Nhà riêng · 2 đơn đang giao · COD 170.000 ₫'
+            },
+            en: {
+                title: '27-inch Monitor · Delivered',
+                body: 'Parcel LEXPU0391827364 was delivered at Office. Tracking closed automatically.',
+                tray: 'Home · 2 active parcels · COD 170.000 ₫'
+            }
+        },
+        dashboard: {
+            vi: {
+                title: 'Đã mở cửa sổ Bảng điều khiển chính',
+                body: 'Đang hiển thị tự động theo địa chỉ mặc định: Nhà riêng (3 đơn · Tổng COD 420.000 ₫).',
+                tray: 'Nhà riêng · 3 đơn đang giao · COD 420.000 ₫'
+            },
+            en: {
+                title: 'Main Dashboard window focused',
+                body: 'Filtered automatically by default address: Home (3 active parcels · COD 420.000 ₫).',
+                tray: 'Home · 3 active parcels · COD 420.000 ₫'
+            }
+        },
+        muted: {
+            vi: {
+                title: 'Đã tạm tắt thông báo màn hình Windows',
+                body: 'Ứng dụng vẫn chạy ngầm ở khay hệ thống và cập nhật số đơn · tổng COD theo thời gian thực.',
+                tray: 'Thông báo tắt · 3 đơn đang giao · COD 420.000 ₫'
+            },
+            en: {
+                title: 'Windows desktop alerts paused',
+                body: 'Order Tracker continues syncing active parcels and COD totals quietly in the System Tray.',
+                tray: 'Alerts paused · 3 active parcels · COD 420.000 ₫'
+            }
+        }
+    };
+
+    let currentScene = 'delivering';
+
+    const animateCard = (el) => {
+        if (!el) return;
+        el.classList.remove('is-entering');
+        void el.offsetWidth;
+        el.classList.add('is-entering');
+    };
+
+    const renderScene = (scene) => {
+        currentScene = scene;
+        sceneTabs.forEach((t) => {
+            const selected = t.getAttribute('data-win-scene') === scene;
+            t.setAttribute('aria-selected', String(selected));
+            t.setAttribute('tabindex', selected ? '0' : '-1');
+            if (selected && panel) {
+                panel.setAttribute('aria-labelledby', t.id);
+            }
+        });
+        const lang = document.documentElement.lang === 'en' ? 'en' : 'vi';
+        const notifyOn = !notifyToggle || notifyToggle.getAttribute('aria-checked') === 'true';
+
+        if (scene === 'quickadd') {
+            if (toastCard) toastCard.hidden = true;
+            if (quickCard) {
+                quickCard.hidden = false;
+                animateCard(quickCard);
+            }
+        } else {
+            const effectiveKey = (!notifyOn && scene !== 'dashboard') ? 'muted' : scene;
+            const copy = (scenes[effectiveKey] || scenes.delivering)[lang];
+            if (quickCard) quickCard.hidden = true;
+            if (toastCard) {
+                toastCard.hidden = false;
+                toastCard.classList.toggle('is-muted', effectiveKey === 'muted');
+                if (toastTitle) toastTitle.textContent = copy.title;
+                if (toastBody) toastBody.textContent = copy.body;
+                animateCard(toastCard);
+            }
+            if (traySummary) traySummary.textContent = copy.tray;
+        }
+    };
+
+    sceneTabs.forEach((tab, idx) => {
+        tab.addEventListener('click', () => renderScene(tab.getAttribute('data-win-scene')));
+        tab.addEventListener('keydown', (e) => {
+            if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+            e.preventDefault();
+            const nextIdx = e.key === 'ArrowRight'
+                ? (idx + 1) % sceneTabs.length
+                : (idx - 1 + sceneTabs.length) % sceneTabs.length;
+            const nextTab = sceneTabs[nextIdx];
+            nextTab.focus();
+            renderScene(nextTab.getAttribute('data-win-scene'));
+        });
+    });
+
+    document.querySelectorAll('[data-win-scene-pick]').forEach((btn) => {
+        btn.addEventListener('click', () => renderScene(btn.getAttribute('data-win-scene-pick')));
+    });
+
+    document.querySelectorAll('[data-win-open-dash]').forEach((btn) => {
+        btn.addEventListener('click', () => renderScene('dashboard'));
+    });
+
+    document.querySelectorAll('[data-win-toggle]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const checked = btn.getAttribute('aria-checked') === 'true';
+            btn.setAttribute('aria-checked', String(!checked));
+            if (btn.getAttribute('data-win-toggle') === 'notify') {
+                renderScene(currentScene === 'quickadd' ? 'delivering' : currentScene);
+            }
+        });
+    });
+
+    if (trayBtn && trayMenu) {
+        trayBtn.addEventListener('click', () => {
+            const willShow = trayMenu.hidden;
+            trayMenu.hidden = !willShow;
+            trayBtn.setAttribute('aria-expanded', String(willShow));
+        });
+    }
+
+    window.addEventListener('v2:langchange', () => renderScene(currentScene));
+});
+</script>
+{% endblock %}

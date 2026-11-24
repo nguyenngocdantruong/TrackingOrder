@@ -3433,6 +3433,7 @@ html[data-theme="dark"] .v2-dialog::backdrop {
     flex: 1;
   }
 }
+
 .v2-admin-areas {
   display: flex;
   flex-wrap: wrap;
@@ -3699,4 +3700,560 @@ html[data-theme="dark"] .v2-ops-content .v2-spec-table td a:hover {
 @media (max-width: 520px) {
   .v2-ops-content .v2-spec-table td[data-label="Thao tác"] { grid-template-columns: 1fr; }
   .v2-ops-action { width: 44px; height: 44px; }
+}
+
+/* ==========================================================================
+   Windows Desktop Download Surface (/download) & Tauri Settings Integration
+   ========================================================================== */
+.v2-desktop-band {
+  margin-top: 64px;
+  padding: 28px 36px;
+  border-radius: var(--v2-r-lg);
+  border: 1px solid var(--v2-line);
+  background-color: var(--v2-surface-subtle);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.v2-dl-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.04fr) minmax(0, 0.96fr);
+  gap: 44px;
+  align-items: center;
+  padding-block: 12px 24px;
+}
+
+.v2-dl-cta-row {
+  margin-top: 28px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.v2-dl-size-tag {
+  padding: 2px 8px;
+  border-radius: var(--v2-r-sm);
+  background-color: rgba(0, 0, 0, 0.28);
+  color: var(--v2-on-primary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.v2-dl-specs {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  font-size: 14px;
+  color: var(--v2-muted);
+}
+
+.v2-dl-specs li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.v2-dl-specs li + li::before {
+  content: "·";
+  color: var(--v2-muted);
+  margin-right: 10px;
+}
+
+/* Interactive Windows 11 System Tray & Toast Simulator */
+.v2-win-stage {
+  background-color: var(--v2-partner-bg);
+  color: var(--v2-partner-fg);
+  border-radius: var(--v2-r-lg);
+  box-shadow: var(--v2-shadow-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.v2-win-stage-top {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  background-color: var(--v2-partner-code-bg);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  overflow-x: auto;
+}
+
+.v2-win-triggers {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.v2-win-trigger {
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--v2-r-sm);
+  background-color: transparent;
+  color: var(--v2-partner-muted);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 150ms var(--v2-ease), color 150ms var(--v2-ease), border-color 150ms var(--v2-ease);
+}
+
+.v2-win-trigger:hover {
+  color: var(--v2-partner-fg);
+  border-color: rgba(255, 255, 255, 0.36);
+}
+
+.v2-win-trigger[aria-selected="true"] {
+  background-color: var(--v2-primary);
+  border-color: var(--v2-primary);
+  color: var(--v2-on-primary);
+}
+
+.v2-win-sample-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--v2-partner-muted);
+  padding: 4px 8px;
+  border-radius: var(--v2-r-sm);
+  background-color: rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.v2-win-desktop-canvas {
+  padding: 20px;
+  display: grid;
+  gap: 14px;
+}
+
+@keyframes v2-toast-enter {
+  from {
+    opacity: 0.72;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.v2-win-toast,
+.v2-win-quickadd {
+  padding: 14px 16px;
+  border-radius: var(--v2-r-md);
+  border: 1px solid var(--v2-line);
+  background-color: var(--v2-surface);
+  color: var(--v2-ink);
+  box-shadow: var(--v2-shadow-md);
+}
+
+.v2-win-toast.is-entering,
+.v2-win-quickadd.is-entering {
+  animation: v2-toast-enter 180ms var(--v2-ease);
+}
+
+.v2-win-toast.is-muted {
+  opacity: 0.88;
+}
+
+html[data-theme="dark"] .v2-win-toast,
+html[data-theme="dark"] .v2-win-quickadd {
+  background-color: #1e293b;
+  border-color: var(--v2-field-border);
+}
+
+.v2-win-toast-app {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--v2-muted);
+  margin-bottom: 6px;
+}
+
+.v2-win-toast-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--v2-r-sm);
+  background-color: var(--v2-primary);
+  color: var(--v2-on-primary);
+}
+
+.v2-win-toast-time {
+  margin-left: auto;
+}
+
+.v2-win-toast-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--v2-ink);
+  margin-bottom: 4px;
+}
+
+.v2-win-toast-body {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--v2-muted);
+}
+
+.v2-win-quickadd-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--v2-ink);
+  margin-bottom: 10px;
+}
+
+.v2-win-kbd {
+  padding: 2px 8px;
+  border-radius: var(--v2-r-sm);
+  background-color: var(--v2-primary-tint);
+  color: var(--v2-primary-active);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.v2-win-quickadd-field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--v2-r-sm);
+  background-color: var(--v2-surface-subtle);
+  border: 1px solid var(--v2-primary);
+  font-size: 14px;
+  color: var(--v2-ink);
+}
+
+.v2-win-quickadd-meta {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--v2-muted);
+}
+
+.v2-win-qa-enter {
+  color: var(--v2-primary-active);
+  font-weight: 700;
+}
+
+.v2-win-tray-menu {
+  justify-self: end;
+  width: 100%;
+  max-width: 340px;
+  padding: 6px;
+  border-radius: var(--v2-r-md);
+  background-color: var(--v2-partner-code-bg);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.v2-win-tray-status {
+  padding: 8px 10px;
+  margin-bottom: 4px;
+  border-radius: var(--v2-r-sm);
+  background-color: rgba(255, 255, 255, 0.06);
+  color: var(--v2-partner-check);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.v2-win-menu-item {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--v2-r-sm);
+  background: transparent;
+  color: var(--v2-partner-fg);
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.v2-win-menu-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.v2-win-shortcut {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--v2-partner-muted);
+}
+
+.v2-win-menu-sep {
+  height: 1px;
+  margin-block: 4px;
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+.v2-win-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: var(--v2-partner-check);
+}
+
+.v2-win-check-svg {
+  width: 16px;
+  height: 16px;
+  transition: opacity 140ms var(--v2-ease);
+}
+
+.v2-win-menu-item[aria-checked="false"] .v2-win-check-svg {
+  opacity: 0;
+}
+
+.v2-win-chevron {
+  display: inline-flex;
+  align-items: center;
+  color: var(--v2-partner-muted);
+}
+
+.v2-win-taskbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  background-color: var(--v2-partner-code-bg);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 12px;
+  color: var(--v2-partner-muted);
+}
+
+.v2-win-systray {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.v2-win-tray-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--v2-r-sm);
+  background-color: var(--v2-primary);
+  color: var(--v2-on-primary);
+  cursor: pointer;
+  transition: background-color 150ms var(--v2-ease), border-color 150ms var(--v2-ease);
+}
+
+.v2-win-tray-icon:hover {
+  background-color: var(--v2-primary-hover);
+}
+
+.v2-win-tray-icon[aria-expanded="false"] {
+  background-color: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.v2-win-clock {
+  color: var(--v2-partner-fg);
+  font-weight: 600;
+}
+
+/* Divided Capability Rows & Install Walkthrough */
+.v2-dl-cap-rows {
+  display: grid;
+}
+
+.v2-dl-cap-row {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  padding: 22px 32px;
+}
+
+.v2-dl-cap-row + .v2-dl-cap-row {
+  border-top: 1px solid var(--v2-line);
+}
+
+.v2-dl-cap-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  color: var(--v2-ink);
+}
+
+.v2-dl-cap-name .v2-icon {
+  color: var(--v2-link);
+}
+
+.v2-dl-cap-desc {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--v2-muted);
+  max-width: 64ch;
+}
+
+.v2-dl-bottom-grid {
+  margin-top: 40px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.v2-dl-steps {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 16px;
+}
+
+.v2-dl-steps li strong {
+  display: block;
+  font-size: 16px;
+  color: var(--v2-ink);
+  margin-bottom: 4px;
+}
+
+.v2-dl-steps li p {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--v2-muted);
+}
+
+/* Native Desktop Settings Rows inside /settings */
+.v2-desktop-controls {
+  display: grid;
+}
+
+.v2-desktop-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-block: 14px;
+}
+
+.v2-desktop-toggle-row + .v2-desktop-toggle-row {
+  border-top: 1px solid var(--v2-line);
+}
+
+.v2-desktop-actions-bar {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--v2-line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+@media (max-width: 960px) {
+  .v2-dl-hero,
+  .v2-dl-bottom-grid,
+  .v2-dl-cap-row {
+    grid-template-columns: 1fr;
+  }
+
+  .v2-dl-cap-row {
+    gap: 8px;
+    padding: 20px 24px;
+  }
+
+  .v2-win-tray-menu {
+    max-width: none;
+  }
+
+  .v2-desktop-band {
+    margin-top: 48px;
+    padding: 24px;
+  }
+}
+
+.v2-dl-col-cta {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.v2-dl-pkg-table td .v2-code {
+  overflow-wrap: anywhere;
+}
+
+.v2-win-sample-mobile {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .v2-dl-cta-row {
+    width: 100%;
+  }
+
+  .v2-dl-cta-row .v2-btn {
+    width: 100%;
+    max-width: 100%;
+    padding-inline: 14px;
+    white-space: normal;
+  }
+
+  .v2-win-stage-top .v2-win-sample-badge {
+    display: none;
+  }
+
+  .v2-win-sample-mobile {
+    display: inline-block;
+  }
+
+  .v2-dl-col-os {
+    display: none;
+  }
+
+  .v2-dl-pkg-table th,
+  .v2-dl-pkg-table td {
+    padding: 12px 14px;
+  }
+
+  .v2-dl-cap-row {
+    padding: 18px;
+  }
+
+  .v2-win-taskbar-hint {
+    display: none;
+  }
+
+  .v2-win-taskbar {
+    justify-content: space-between;
+  }
+
+  .v2-desktop-band {
+    padding: 20px 18px;
+  }
 }
