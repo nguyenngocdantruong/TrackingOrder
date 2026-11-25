@@ -1,6 +1,6 @@
 {
   "name": "order-tracker-desktop",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Order Tracker Windows Desktop App (Tauri v2 — System Tray, Toast Notifications, Autostart & Quick Add)",
   "scripts": {

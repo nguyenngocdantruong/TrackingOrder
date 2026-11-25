@@ -10,7 +10,7 @@ on:
       version:
         description: 'Phiên bản phát hành (VD: 1.0.0)'
         required: false
-        default: '1.0.0'
+        default: '1.0.1'
       publish_release:
         description: 'Tự động tạo bản phát hành trên GitHub Releases (để trang /download tải trực tiếp)'
         required: false

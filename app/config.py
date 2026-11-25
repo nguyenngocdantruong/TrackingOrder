@@ -38,7 +38,7 @@ class Config:
     DONATE_NOTIFY_ALL = os.getenv('DONATE_NOTIFY_ALL', '0').lower() in ['1', 'true', 'yes']
 
     GITHUB_REPO = os.getenv('GITHUB_REPO', 'nguyenngocdantruong/TrackingOrder').strip()
-    DESKTOP_APP_VERSION = os.getenv('DESKTOP_APP_VERSION', '1.0.0').strip()
+    DESKTOP_APP_VERSION = os.getenv('DESKTOP_APP_VERSION', '1.0.1').strip()
     DESKTOP_EXE_URL = os.getenv('DESKTOP_EXE_URL', '').strip()
     DESKTOP_MSI_URL = os.getenv('DESKTOP_MSI_URL', '').strip()
 

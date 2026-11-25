@@ -1,6 +1,6 @@
 [package]
 name = "order-tracker-desktop"
-version = "1.0.0"
+version = "1.0.1"
 description = "Order Tracker Windows Companion App (System Tray, Toast Notifications & Autostart)"
 authors = ["Order Tracking Hub"]
 edition = "2021"
