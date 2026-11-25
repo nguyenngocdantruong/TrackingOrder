@@ -1099,7 +1099,7 @@ html[data-theme="dark"] .v2-theme-moon {
 }
 
 /* Floating Telegram Support Chat Bubble */
-.v2-chat-bubble {
+.v2-support-fab {
   position: fixed;
   right: max(20px, env(safe-area-inset-right));
   bottom: max(20px, env(safe-area-inset-bottom));
@@ -1117,25 +1117,25 @@ html[data-theme="dark"] .v2-theme-moon {
   transition: transform 180ms var(--v2-ease), background-color 180ms var(--v2-ease), box-shadow 180ms var(--v2-ease);
 }
 
-.v2-chat-bubble:hover {
+.v2-support-fab:hover {
   background-color: #1b8cc2;
   color: #ffffff;
   transform: translateY(-2px);
   box-shadow: 0 14px 28px rgba(34, 158, 217, 0.42), 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
-.v2-chat-bubble:active {
+.v2-support-fab:active {
   transform: translateY(0);
 }
 
-.v2-chat-bubble-icon {
+.v2-support-fab-icon {
   width: 24px;
   height: 24px;
   display: block;
   transform: translateX(-1px);
 }
 
-.v2-chat-bubble-tip {
+.v2-support-fab-tip {
   position: absolute;
   right: calc(100% + 12px);
   top: 50%;
@@ -1153,21 +1153,21 @@ html[data-theme="dark"] .v2-theme-moon {
   transition: opacity 160ms var(--v2-ease), transform 160ms var(--v2-ease);
 }
 
-.v2-chat-bubble:hover .v2-chat-bubble-tip,
-.v2-chat-bubble:focus-visible .v2-chat-bubble-tip {
+.v2-support-fab:hover .v2-support-fab-tip,
+.v2-support-fab:focus-visible .v2-support-fab-tip {
   opacity: 1;
   transform: translateY(-50%) translateX(0);
 }
 
 @media (max-width: 640px) {
-  .v2-chat-bubble {
+  .v2-support-fab {
     width: 48px;
     height: 48px;
     right: max(16px, env(safe-area-inset-right));
     bottom: max(16px, env(safe-area-inset-bottom));
   }
 
-  .v2-chat-bubble-tip {
+  .v2-support-fab-tip {
     display: none;
   }
 }

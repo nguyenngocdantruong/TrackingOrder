@@ -31,7 +31,7 @@
         } catch (_) {}
     })();
     </script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='v2.css', v='14') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='v2.css', v='15') }}">
     {% block head_extra %}{% endblock %}
 </head>
 <body class="{{ body_class | default('') }}">
@@ -321,17 +321,17 @@
     {% endwith %}
 
     <a
-        class="v2-chat-bubble"
+        class="v2-support-fab"
         href="https://t.me/nguyenngocdantruong"
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Liên hệ hỗ trợ qua Telegram"
         title="Chat hỗ trợ qua Telegram (@nguyenngocdantruong)"
     >
-        <svg class="v2-chat-bubble-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <svg class="v2-support-fab-icon" viewBox="0 0 24 24" aria-hidden="true">
             <path fill="currentColor" d="M21.94 4.66c.29-1.22-.44-1.7-1.25-1.39L2.88 10.14c-1.21.48-1.2 1.16-.22 1.46l4.57 1.43 10.6-6.69c.5-.31.96-.14.58.19l-8.58 7.75-.32 4.74c.47 0 .68-.22.94-.47l2.26-2.2 4.7 3.47c.87.48 1.49.23 1.71-.8l3.08-14.36Z"/>
         </svg>
-        <span class="v2-chat-bubble-tip" aria-hidden="true">Hỗ trợ Telegram</span>
+        <span class="v2-support-fab-tip" aria-hidden="true">Hỗ trợ Telegram</span>
     </a>
 
     <script src="{{ url_for('static', filename='v2.js', v='14') }}" defer></script>
