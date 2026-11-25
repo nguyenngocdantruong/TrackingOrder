@@ -11,9 +11,11 @@ use tauri_plugin_autostart::ManagerExt as AutostartExt;
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_global_shortcut::ShortcutState;
 use tauri_plugin_notification::NotificationExt;
+use tauri_plugin_opener::OpenerExt;
 use tokio::sync::Notify;
 
 const DEFAULT_SERVER_URL: &str = "https://app.dev8084.io.vn";
+const GITHUB_REPO: &str = "nguyenngocdantruong/TrackingOrder";
 const POLL_INTERVAL_SECS: u64 = 90;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -100,6 +102,7 @@ impl AppState {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DesktopPrefsResponse {
+    pub app_version: String,
     pub server_url: String,
     pub has_token: bool,
     pub username: Option<String>,
@@ -107,6 +110,48 @@ pub struct DesktopPrefsResponse {
     pub autostart: bool,
     pub start_minimized: bool,
     pub clipboard_watch: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateCheckResult {
+    pub current_version: String,
+    pub latest_version: String,
+    pub update_available: bool,
+    pub download_url: String,
+    pub release_url: String,
+    pub published_at: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ServerReleaseEnvelope {
+    success: bool,
+    data: Option<ServerReleasePayload>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ServerReleasePayload {
+    version: String,
+    exe_url: Option<String>,
+    msi_url: Option<String>,
+    release_url: Option<String>,
+    published_at: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct GitHubRelease {
+    tag_name: Option<String>,
+    html_url: Option<String>,
+    published_at: Option<String>,
+    #[serde(default)]
+    assets: Vec<GitHubAsset>,
+}
+
+#[derive(Debug, Deserialize)]
+struct GitHubAsset {
+    name: String,
+    browser_download_url: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -236,6 +281,7 @@ fn get_desktop_prefs(app: AppHandle, state: tauri::State<'_, AppState>) -> Deskt
     let guard = state.data.lock().unwrap();
     let autostart = app.autolaunch().is_enabled().unwrap_or(false);
     DesktopPrefsResponse {
+        app_version: env!("CARGO_PKG_VERSION").to_string(),
         server_url: guard.server_url.clone(),
         has_token: guard.token.is_some(),
         username: guard.username.clone(),
@@ -366,6 +412,175 @@ fn send_test_desktop_notification(app: AppHandle) -> Result<(), String> {
         .title("Order Tracker · Thông báo thử nghiệm")
         .body("Kết nối thông báo gốc trên Windows hoạt động bình thường!")
         .show()
+        .map_err(|e| e.to_string())
+}
+
+fn clean_version_str(raw: &str) -> String {
+    let s = raw.trim();
+    let s = s.strip_prefix("desktop-").unwrap_or(s);
+    let s = s.strip_prefix('v').or_else(|| s.strip_prefix('V')).unwrap_or(s);
+    s.trim().to_string()
+}
+
+fn parse_version_tuple(v: &str) -> Vec<u64> {
+    let clean = clean_version_str(v);
+    let core = clean.split('-').next().unwrap_or(&clean);
+    core.split('.')
+        .map(|part| part.parse::<u64>().unwrap_or(0))
+        .collect()
+}
+
+fn is_newer_version(latest: &str, current: &str) -> bool {
+    let a = parse_version_tuple(latest);
+    let b = parse_version_tuple(current);
+    let max_len = a.len().max(b.len());
+    for i in 0..max_len {
+        let av = *a.get(i).unwrap_or(&0);
+        let bv = *b.get(i).unwrap_or(&0);
+        if av != bv {
+            return av > bv;
+        }
+    }
+    false
+}
+
+async fn perform_update_check(app: &AppHandle) -> Result<UpdateCheckResult, String> {
+    let current_version = env!("CARGO_PKG_VERSION").to_string();
+    let server_url = {
+        let st = app.state::<AppState>();
+        let guard = st.data.lock().unwrap();
+        guard.server_url.clone()
+    };
+
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(10))
+        .user_agent(format!("OrderTracker-Windows-Tauri/{}", current_version))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let fallback_releases_url = format!("https://github.com/{}/releases", GITHUB_REPO);
+
+    // 1) Try backend cached endpoint first
+    let api_endpoint = format!(
+        "{}/api/v1/desktop/latest-release",
+        server_url.trim_end_matches('/')
+    );
+    if let Ok(resp) = client.get(&api_endpoint).send().await {
+        if resp.status().is_success() {
+            if let Ok(env) = resp.json::<ServerReleaseEnvelope>().await {
+                if env.success {
+                    if let Some(data) = env.data {
+                        let latest = clean_version_str(&data.version);
+                        let release_url = data
+                            .release_url
+                            .filter(|u| !u.is_empty())
+                            .unwrap_or_else(|| fallback_releases_url.clone());
+                        let download_url = data
+                            .exe_url
+                            .or(data.msi_url)
+                            .unwrap_or_else(|| release_url.clone());
+                        let update_available = is_newer_version(&latest, &current_version);
+                        return Ok(UpdateCheckResult {
+                            current_version,
+                            latest_version: latest,
+                            update_available,
+                            download_url,
+                            release_url,
+                            published_at: data.published_at,
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    // 2) Fallback directly to GitHub Releases API
+    let gh_endpoint = format!(
+        "https://api.github.com/repos/{}/releases/latest",
+        GITHUB_REPO
+    );
+    let gh_resp = client
+        .get(&gh_endpoint)
+        .header("Accept", "application/vnd.github+json")
+        .send()
+        .await
+        .map_err(|_| "Không thể kết nối máy chủ để kiểm tra cập nhật.".to_string())?;
+
+    if gh_resp.status().as_u16() == 404 {
+        return Ok(UpdateCheckResult {
+            current_version: current_version.clone(),
+            latest_version: current_version,
+            update_available: false,
+            download_url: fallback_releases_url.clone(),
+            release_url: fallback_releases_url,
+            published_at: None,
+        });
+    }
+
+    if !gh_resp.status().is_success() {
+        return Err(format!(
+            "Máy chủ cập nhật phản hồi lỗi (HTTP {}).",
+            gh_resp.status().as_u16()
+        ));
+    }
+
+    let rel: GitHubRelease = gh_resp
+        .json()
+        .await
+        .map_err(|_| "Không đọc được thông tin phiên bản mới nhất.".to_string())?;
+
+    let latest = rel
+        .tag_name
+        .as_deref()
+        .map(clean_version_str)
+        .filter(|v| !v.is_empty())
+        .unwrap_or_else(|| current_version.clone());
+
+    let release_url = rel
+        .html_url
+        .filter(|u| !u.is_empty())
+        .unwrap_or_else(|| fallback_releases_url.clone());
+
+    let exe_url = rel
+        .assets
+        .iter()
+        .find(|a| a.name.to_lowercase().ends_with(".exe"))
+        .map(|a| a.browser_download_url.clone());
+    let msi_url = rel
+        .assets
+        .iter()
+        .find(|a| a.name.to_lowercase().ends_with(".msi"))
+        .map(|a| a.browser_download_url.clone());
+
+    let download_url = exe_url.or(msi_url).unwrap_or_else(|| release_url.clone());
+    let published_at = rel
+        .published_at
+        .map(|p| p.chars().take(10).collect::<String>());
+    let update_available = is_newer_version(&latest, &current_version);
+
+    Ok(UpdateCheckResult {
+        current_version,
+        latest_version: latest,
+        update_available,
+        download_url,
+        release_url,
+        published_at,
+    })
+}
+
+#[tauri::command]
+async fn check_for_updates(app: AppHandle) -> Result<UpdateCheckResult, String> {
+    perform_update_check(&app).await
+}
+
+#[tauri::command]
+fn open_external_url(app: AppHandle, url: String) -> Result<(), String> {
+    let trimmed = url.trim();
+    if !(trimmed.starts_with("https://") || trimmed.starts_with("http://")) {
+        return Err("Đường dẫn không hợp lệ.".to_string());
+    }
+    app.opener()
+        .open_url(trimmed, None::<&str>)
         .map_err(|e| e.to_string())
 }
 
@@ -620,9 +835,11 @@ pub fn run() {
             let notify_check = CheckMenuItemBuilder::with_id("toggle_notify", "Nhận thông báo trên Windows")
                 .checked(initial_notify)
                 .build(app)?;
+            let test_notify = MenuItemBuilder::with_id("test_notify", "Gửi thông báo test").build(app)?;
             let autostart_check = CheckMenuItemBuilder::with_id("toggle_autostart", "Khởi động cùng Windows")
                 .checked(initial_autostart)
                 .build(app)?;
+            let check_updates = MenuItemBuilder::with_id("check_updates", "Kiểm tra cập nhật…").build(app)?;
             let switch_srv = MenuItemBuilder::with_id("switch_srv", "Đổi máy chủ kết nối…").build(app)?;
             let quit_item = MenuItemBuilder::with_id("quit", "Thoát hoàn toàn").build(app)?;
 
@@ -635,8 +852,10 @@ pub fn run() {
                 .item(&sync_now)
                 .separator()
                 .item(&notify_check)
+                .item(&test_notify)
                 .item(&autostart_check)
                 .separator()
+                .item(&check_updates)
                 .item(&switch_srv)
                 .item(&quit_item)
                 .build()?;
@@ -679,6 +898,9 @@ pub fn run() {
                         };
                         st.save(&snap);
                     }
+                    "test_notify" => {
+                        let _ = send_test_desktop_notification(app_handle.clone());
+                    }
                     "toggle_autostart" => {
                         let checked = autostart_check.is_checked().unwrap_or(false);
                         if checked {
@@ -686,6 +908,43 @@ pub fn run() {
                         } else {
                             let _ = app_handle.autolaunch().disable();
                         }
+                    }
+                    "check_updates" => {
+                        let handle = app_handle.clone();
+                        tauri::async_runtime::spawn(async move {
+                            match perform_update_check(&handle).await {
+                                Ok(res) if res.update_available => {
+                                    let title = format!("Có bản cập nhật mới v{}", res.latest_version);
+                                    let body = format!(
+                                        "Phiên bản hiện tại v{}. Đang mở liên kết tải bộ cài mới…",
+                                        res.current_version
+                                    );
+                                    let _ = handle.notification().builder().title(&title).body(&body).show();
+                                    if !res.download_url.is_empty() {
+                                        let _ = handle.opener().open_url(&res.download_url, None::<&str>);
+                                    } else {
+                                        focus_and_navigate_main(&handle, Some("/download"));
+                                    }
+                                }
+                                Ok(res) => {
+                                    let body = format!("Bạn đang dùng phiên bản v{}.", res.current_version);
+                                    let _ = handle
+                                        .notification()
+                                        .builder()
+                                        .title("Order Tracker đã ở bản mới nhất")
+                                        .body(&body)
+                                        .show();
+                                }
+                                Err(err) => {
+                                    let _ = handle
+                                        .notification()
+                                        .builder()
+                                        .title("Không thể kiểm tra cập nhật")
+                                        .body(&err)
+                                        .show();
+                                }
+                            }
+                        });
                     }
                     "switch_srv" => {
                         if let Some(win) = app_handle.get_webview_window("main") {
@@ -778,6 +1037,8 @@ pub fn run() {
             switch_server_url,
             trigger_sync_now,
             send_test_desktop_notification,
+            check_for_updates,
+            open_external_url,
             get_quick_add_context,
             close_quick_add,
             submit_quick_add,

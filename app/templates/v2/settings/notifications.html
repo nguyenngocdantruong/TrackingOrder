@@ -216,11 +216,19 @@
 
                 <div class="v2-desktop-actions-bar">
                     <button type="button" id="v2-desk-test-btn" class="v2-btn v2-btn-secondary">
-                        <span data-v2-i18n="settings.desktop.test_btn">Bắn thử thông báo Windows</span>
+                        <span data-v2-i18n="settings.desktop.test_btn">Gửi thông báo test</span>
                     </button>
                     <button type="button" id="v2-desk-sync-btn" class="v2-btn v2-btn-tinted">
                         <span data-v2-i18n="settings.desktop.sync_btn">Đồng bộ khay hệ thống ngay</span>
                     </button>
+                    <button type="button" id="v2-desk-update-btn" class="v2-btn v2-btn-secondary">
+                        <span data-v2-i18n="settings.desktop.update_btn">Kiểm tra cập nhật</span>
+                    </button>
+                </div>
+                <p id="v2-desk-test-status" class="v2-help" role="status" aria-live="polite" style="margin-top:8px;font-size:13px;" hidden></p>
+                <div id="v2-desk-update-box" style="margin-top:8px;display:flex;align-items:center;flex-wrap:wrap;gap:10px;" hidden>
+                    <span id="v2-desk-update-status" class="v2-help" role="status" aria-live="polite" style="margin:0;font-size:13px;"></span>
+                    <button type="button" id="v2-desk-update-download-btn" class="v2-btn v2-btn-primary" style="min-height:34px;padding:6px 12px;font-size:13px;" hidden></button>
                 </div>
             </div>
         </section>

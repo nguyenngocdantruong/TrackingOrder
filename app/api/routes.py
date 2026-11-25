@@ -629,3 +629,21 @@ def desktop_quick_add():
         'success': True,
         'data': serialize_tracking(tracking_id, created),
     }), 201
+
+
+@api_bp.route('/desktop/latest-release', methods=['GET'])
+def desktop_latest_release():
+    from app.v2.routes import _get_desktop_release_info
+
+    rel = _get_desktop_release_info()
+    return jsonify({
+        'success': True,
+        'data': {
+            'version': rel.get('version') or '1.0.0',
+            'exeUrl': rel.get('exe_url'),
+            'msiUrl': rel.get('msi_url'),
+            'releaseUrl': rel.get('latest_release_url') or rel.get('releases_url'),
+            'publishedAt': rel.get('published_at'),
+            'hasDirectInstaller': bool(rel.get('has_direct_installer')),
+        },
+    }), 200

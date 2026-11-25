@@ -241,8 +241,9 @@
       'settings.desktop.minimized_help': 'Không bật cửa sổ chính khi máy tính vừa khởi động, chỉ hiện biểu tượng ở góc phải Taskbar.',
       'settings.desktop.clipboard_label': 'Gợi ý khi sao chép mã vận đơn (Clipboard)',
       'settings.desktop.clipboard_help': 'Tự điền sẵn mã SPXVN / LEX vừa copy khi bạn mở hộp Thêm nhanh (Ctrl+Shift+T).',
-      'settings.desktop.test_btn': 'Bắn thử thông báo Windows',
+      'settings.desktop.test_btn': 'Gửi thông báo test',
       'settings.desktop.sync_btn': 'Đồng bộ khay hệ thống ngay',
+      'settings.desktop.update_btn': 'Kiểm tra cập nhật',
 
       'dl.hero.title': 'Theo dõi đơn hàng ngay từ khay hệ thống Windows',
       'dl.hero.lead': 'Nhận thông báo giao hàng chuẩn Windows 10/11 kèm số tiền COD cần chuẩn bị, tự khởi động ngầm cùng máy và bấm Ctrl+Shift+T để dán mã vận đơn tức thì mà không cần mở trình duyệt.',
@@ -720,6 +721,7 @@
       'settings.desktop.clipboard_help': 'Pre-fill copied SPXVN / LEX codes automatically when opening Quick Add (Ctrl+Shift+T).',
       'settings.desktop.test_btn': 'Send Windows test alert',
       'settings.desktop.sync_btn': 'Sync System Tray now',
+      'settings.desktop.update_btn': 'Check for updates',
 
       'dl.hero.title': 'Track every shipment right from the Windows System Tray',
       'dl.hero.lead': 'Get native Windows 10/11 delivery notifications with COD reminders, launch quietly at system startup, and press Ctrl+Shift+T to paste tracking numbers from anywhere.',
@@ -1331,10 +1333,18 @@
         const elClipboard = document.getElementById('v2-desk-clipboard');
         const btnTest = document.getElementById('v2-desk-test-btn');
         const btnSync = document.getElementById('v2-desk-sync-btn');
+        const btnUpdate = document.getElementById('v2-desk-update-btn');
+        const updateBox = document.getElementById('v2-desk-update-box');
+        const updateStatus = document.getElementById('v2-desk-update-status');
+        const btnUpdateDownload = document.getElementById('v2-desk-update-download-btn');
 
         tauriInvoke('get_desktop_prefs')
           .then((prefs) => {
             if (!prefs) return;
+            if (connectedBadge && prefs.appVersion) {
+              const baseLabel = connectedBadge.textContent.split(' · v')[0];
+              connectedBadge.textContent = `${baseLabel} · v${prefs.appVersion}`;
+            }
             if (elNotify) elNotify.checked = Boolean(prefs.desktopNotify);
             if (elAutostart) elAutostart.checked = Boolean(prefs.autostart);
             if (elMinimized) elMinimized.checked = Boolean(prefs.startMinimized);
@@ -1356,13 +1366,81 @@
         });
 
         if (btnTest) {
-          btnTest.addEventListener('click', () => {
-            tauriInvoke('send_test_desktop_notification').catch(() => {});
+          const testStatus = document.getElementById('v2-desk-test-status');
+          btnTest.addEventListener('click', async () => {
+            btnTest.disabled = true;
+            if (testStatus) {
+              testStatus.hidden = true;
+              testStatus.textContent = '';
+            }
+            try {
+              await tauriInvoke('send_test_desktop_notification');
+              if (testStatus) {
+                testStatus.style.color = 'var(--v2-ok-ink, #15803d)';
+                testStatus.textContent = 'Đã gửi thông báo test tới Windows!';
+                testStatus.hidden = false;
+              }
+            } catch (err) {
+              if (testStatus) {
+                testStatus.style.color = 'var(--v2-danger-ink, #b91c1c)';
+                testStatus.textContent = 'Không thể gửi thông báo test: ' + (err && err.message ? err.message : String(err || 'Lỗi không xác định'));
+                testStatus.hidden = false;
+              }
+            } finally {
+              btnTest.disabled = false;
+            }
           });
         }
         if (btnSync) {
           btnSync.addEventListener('click', () => {
             tauriInvoke('trigger_sync_now').catch(() => {});
+          });
+        }
+        if (btnUpdate) {
+          let pendingDownloadUrl = '';
+          if (btnUpdateDownload) {
+            btnUpdateDownload.addEventListener('click', () => {
+              if (!pendingDownloadUrl) return;
+              tauriInvoke('open_external_url', { url: pendingDownloadUrl }).catch(() => {
+                window.open(pendingDownloadUrl, '_blank', 'noopener');
+              });
+            });
+          }
+          btnUpdate.addEventListener('click', async () => {
+            btnUpdate.disabled = true;
+            if (updateBox) updateBox.hidden = false;
+            if (btnUpdateDownload) btnUpdateDownload.hidden = true;
+            if (updateStatus) {
+              updateStatus.style.color = 'var(--v2-muted)';
+              updateStatus.textContent = 'Đang kiểm tra phiên bản mới…';
+            }
+            try {
+              const res = await tauriInvoke('check_for_updates');
+              if (res && res.updateAvailable) {
+                pendingDownloadUrl = res.downloadUrl || res.releaseUrl || '/download';
+                if (updateStatus) {
+                  updateStatus.style.color = 'var(--v2-primary, #4f46e5)';
+                  updateStatus.textContent = `Có bản mới v${res.latestVersion} (đang dùng v${res.currentVersion}).`;
+                }
+                if (btnUpdateDownload) {
+                  btnUpdateDownload.textContent = `Tải bản v${res.latestVersion}`;
+                  btnUpdateDownload.hidden = false;
+                }
+              } else {
+                const ver = (res && res.currentVersion) ? `v${res.currentVersion}` : '';
+                if (updateStatus) {
+                  updateStatus.style.color = 'var(--v2-ok-ink, #15803d)';
+                  updateStatus.textContent = `Bạn đang dùng phiên bản mới nhất${ver ? ' (' + ver + ')' : ''}.`;
+                }
+              }
+            } catch (err) {
+              if (updateStatus) {
+                updateStatus.style.color = 'var(--v2-danger-ink, #b91c1c)';
+                updateStatus.textContent = 'Không thể kiểm tra cập nhật: ' + (err && err.message ? err.message : String(err || 'Lỗi kết nối'));
+              }
+            } finally {
+              btnUpdate.disabled = false;
+            }
           });
         }
       }
